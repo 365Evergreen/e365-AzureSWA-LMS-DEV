@@ -1,0 +1,27 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: var(--space-4);
+  background: var(--color-surface-subtle);
+}
+
+.code {
+  margin: 0;
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+.message {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  color: var(--color-text-secondary);
+}
+
+.link {
+  font-size: var(--font-size-base);
+  color: var(--color-text-link);
+}

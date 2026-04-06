@@ -26,7 +26,7 @@
 *   **Auth**: Anonymous
 *   **Lifecycle**: Managed and deployed **only in your tenant**
 *   **KB characteristics**:
-    *   Static, Markdown/MDX
+    *   Static
     *   All articles visible
     *   Audience labelling (Editor / Learner / Both)
     *   One source of truth
@@ -144,6 +144,8 @@
     *   Editor
     *   Learner
     *   Backend API
+*   SSO for the learner app
+    *   If a user is already authenticated in the Azure tenant, they shouldn't be prompted to sign in
 *   Single‑tenant today, multi‑tenant capable later
 *   App roles drive permissions, not tenants
 

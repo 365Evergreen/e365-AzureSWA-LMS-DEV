@@ -1,0 +1,22 @@
+{
+  "name": "lms-platform",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "shared/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev:public": "npm run dev -w apps/lms-publicsite-dev",
+    "dev:knowledge": "npm run dev -w apps/lms-knowledge-site",
+    "dev:editor": "npm run dev -w apps/lms-editorsite-dev",
+    "dev:learner": "npm run dev -w apps/lms-learnersite-dev",
+    "build:public": "npm run build -w apps/lms-publicsite-dev",
+    "build:knowledge": "npm run build -w apps/lms-knowledge-site",
+    "build:editor": "npm run build -w apps/lms-editorsite-dev",
+    "build:learner": "npm run build -w apps/lms-learnersite-dev",
+    "build:all": "npm run build --workspaces --if-present",
+    "lint:all": "npm run lint --workspaces --if-present"
+  }
+}

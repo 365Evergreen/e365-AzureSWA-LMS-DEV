@@ -1,0 +1,38 @@
+.main {
+  padding: var(--space-8) var(--space-6);
+}
+
+.container {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--space-10);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
+  line-height: var(--line-height-tight);
+}
+
+.description {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-6);
+  line-height: var(--line-height-relaxed);
+}
+
+.progressWrapper {
+  max-width: 32rem;
+}
+
+.blocks {
+  display: flex;
+  flex-direction: column;
+}

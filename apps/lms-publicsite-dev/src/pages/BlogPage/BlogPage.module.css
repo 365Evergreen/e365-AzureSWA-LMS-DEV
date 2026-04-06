@@ -1,0 +1,27 @@
+.page {
+  padding: var(--space-16) var(--space-6);
+}
+
+.inner {
+  max-width: var(--max-width-content);
+  margin: 0 auto;
+}
+
+.heading {
+  margin: 0 0 var(--space-10);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-8);
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

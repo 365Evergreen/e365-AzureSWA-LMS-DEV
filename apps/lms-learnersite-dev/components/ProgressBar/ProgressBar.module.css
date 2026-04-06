@@ -1,0 +1,28 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.track {
+  flex: 1;
+  height: 0.5rem;
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background-color: var(--color-brand-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  min-width: 6rem;
+  text-align: right;
+}

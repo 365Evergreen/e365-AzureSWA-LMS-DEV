@@ -1,26 +1,13 @@
-@import "tailwindcss";
+@import '@lms/shared-ui/src/tokens.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 16px; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: var(--font-family-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-subtle);
+  line-height: var(--line-height-normal);
 }
+a { color: var(--color-text-link); text-decoration: none; }
+img, svg { display: block; max-width: 100%; }

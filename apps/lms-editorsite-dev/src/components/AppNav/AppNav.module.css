@@ -1,0 +1,17 @@
+.logo {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-brand-primary);
+  text-decoration: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.displayName {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}

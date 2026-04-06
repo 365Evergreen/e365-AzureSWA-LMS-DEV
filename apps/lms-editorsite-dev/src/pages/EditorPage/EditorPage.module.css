@@ -1,0 +1,38 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  grid-template-rows: 1fr auto;
+  flex: 1;
+  overflow: hidden;
+}
+
+.palette {
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+.canvas {
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+}
+
+.properties {
+  overflow-y: auto;
+  padding: var(--space-4);
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.publishBar {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--color-border);
+}
