@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { SiteNav } from '../SiteNav'
+import { SiteHeader } from '../SiteHeader'
 import { SiteFooter } from '../SiteFooter'
 import styles from './Layout.module.css'
 
@@ -10,7 +10,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   return (
     <div className={styles.wrapper}>
-      <SiteNav />
+      <SiteHeader />
       <main className={styles.main}>{children}</main>
       <SiteFooter />
     </div>
