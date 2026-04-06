@@ -2,7 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { randomUUID } from 'crypto';
 import { ContentBundleSchema } from '@lms/shared-schemas';
 import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
-import { uploadBundle } from '../lib/storage';
+import { uploadBundle, upsertCourseMetadata } from '../lib/storage';
 
 async function publishHandler(
   req: HttpRequest,
@@ -30,7 +30,6 @@ async function publishHandler(
     return { status: 400, jsonBody: { error: 'Request body must be valid JSON' } };
   }
 
-  // Accept the bundle payload without bundleId/publishedBy — both are set server-side
   const RequestSchema = ContentBundleSchema.omit({ bundleId: true, publishedBy: true });
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {
@@ -41,20 +40,40 @@ async function publishHandler(
   }
 
   const bundleId = randomUUID();
-  const bundle = {
-    ...parsed.data,
-    bundleId,
-    publishedBy: claims.oid,
-  };
+  const now = new Date().toISOString();
+  const bundle = { ...parsed.data, bundleId, publishedBy: claims.oid };
 
-  await uploadBundle(bundleId, bundle);
+  const bundleUrl = await uploadBundle(bundleId, bundle);
+
+  // Upsert catalogue metadata so the course appears in the public catalogue
+  const { metadata, courseId } = parsed.data;
+  const slug = (body as Record<string, unknown>).slug as string | undefined;
+  if (slug) {
+    await upsertCourseMetadata({
+      courseId,
+      slug,
+      title: metadata.title,
+      description: metadata.description ?? '',
+      status: 'published',
+      audience: ((body as Record<string, unknown>).audience as string ?? 'all') as 'all',
+      level: ((body as Record<string, unknown>).level as string ?? 'beginner') as 'beginner',
+      tags: ((body as Record<string, unknown>).tags as string[]) ?? [],
+      thumbnailUrl: (body as Record<string, unknown>).thumbnailUrl as string | undefined,
+      bundleUrl,
+      authorId: claims.oid as string,
+      publishedAt: now,
+      updatedAt: now,
+      moduleCount: ((body as Record<string, unknown>).moduleCount as number) ?? 0,
+      durationMinutes: ((body as Record<string, unknown>).durationMinutes as number) ?? 0,
+    });
+  }
 
   if (process.env.CDN_PURGE_ENDPOINT) {
     context.log(`CDN purge stub: ${process.env.CDN_PURGE_ENDPOINT}/content-bundles/${bundleId}`);
   }
 
   context.log(`Published bundle ${bundleId} by ${claims.oid}`);
-  return { status: 201, jsonBody: { bundleId } };
+  return { status: 201, jsonBody: { bundleId, bundleUrl } };
 }
 
 app.http('publish', {

@@ -29,6 +29,32 @@ export const ContentBundleSchema = z.object({
 
 export type ContentBundle = z.infer<typeof ContentBundleSchema>;
 
+// ─── Course Metadata (catalogue entry) ───────────────────────────────────────
+
+export const CourseLevelSchema = z.enum(['beginner', 'intermediate', 'advanced']);
+export const CourseAudienceSchema = z.enum(['developer', 'manager', 'designer', 'all']);
+export const CourseStatusSchema = z.enum(['draft', 'published', 'archived']);
+
+export const CourseMetadataSchema = z.object({
+  courseId: z.string().uuid(),
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string(),
+  status: CourseStatusSchema,
+  audience: CourseAudienceSchema,
+  level: CourseLevelSchema,
+  tags: z.array(z.string()),
+  thumbnailUrl: z.string().url().optional(),
+  bundleUrl: z.string().url(),
+  authorId: z.string(),
+  publishedAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  moduleCount: z.number().int().nonnegative(),
+  durationMinutes: z.number().int().nonnegative(),
+});
+
+export type CourseMetadata = z.infer<typeof CourseMetadataSchema>;
+
 // ─── Course Enrolment ─────────────────────────────────────────────────────────
 
 export const CourseEnrolmentSchema = z.object({

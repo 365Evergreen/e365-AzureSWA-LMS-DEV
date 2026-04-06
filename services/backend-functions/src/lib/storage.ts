@@ -1,6 +1,6 @@
 import { BlobServiceClient } from '@azure/storage-blob';
 import { TableClient } from '@azure/data-tables';
-import type { ProgressRecord, CourseEnrolment } from '@lms/shared-schemas';
+import type { ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
 
 function connectionString(): string {
   const cs = process.env.STORAGE_CONNECTION_STRING;
@@ -10,15 +10,114 @@ function connectionString(): string {
 
 // ─── Blob Storage ─────────────────────────────────────────────────────────────
 
-export async function uploadBundle(bundleId: string, content: unknown): Promise<void> {
+export async function uploadBundle(bundleId: string, content: unknown): Promise<string> {
   const client = BlobServiceClient.fromConnectionString(connectionString());
   const container = client.getContainerClient('content-bundles');
-  await container.createIfNotExists();
+  await container.createIfNotExists({ access: 'blob' });
   const blob = container.getBlockBlobClient(`${bundleId}.json`);
   const json = JSON.stringify(content);
   await blob.upload(json, Buffer.byteLength(json), {
     blobHTTPHeaders: { blobContentType: 'application/json' },
   });
+  return blob.url;
+}
+
+export async function fetchBundle(bundleId: string): Promise<unknown | null> {
+  const client = BlobServiceClient.fromConnectionString(connectionString());
+  const blob = client
+    .getContainerClient('content-bundles')
+    .getBlockBlobClient(`${bundleId}.json`);
+  try {
+    const download = await blob.download();
+    const chunks: Buffer[] = [];
+    for await (const chunk of download.readableStreamBody as AsyncIterable<Buffer>) {
+      chunks.push(chunk);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+// ─── Courses Table ────────────────────────────────────────────────────────────
+
+const CATALOGUE_PK = 'catalogue';
+
+function coursesTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), 'courses');
+}
+
+export async function upsertCourseMetadata(meta: CourseMetadata): Promise<void> {
+  const client = coursesTable();
+  await client.createTable().catch(() => {});
+  await client.upsertEntity(
+    {
+      partitionKey: CATALOGUE_PK,
+      rowKey: meta.slug,
+      courseId: meta.courseId,
+      title: meta.title,
+      description: meta.description,
+      status: meta.status,
+      audience: meta.audience,
+      level: meta.level,
+      tags: meta.tags.join(','),
+      thumbnailUrl: meta.thumbnailUrl ?? '',
+      bundleUrl: meta.bundleUrl,
+      authorId: meta.authorId,
+      publishedAt: meta.publishedAt,
+      updatedAt: meta.updatedAt,
+      moduleCount: meta.moduleCount,
+      durationMinutes: meta.durationMinutes,
+    },
+    'Replace'
+  );
+}
+
+export async function listPublishedCourses(): Promise<CourseMetadata[]> {
+  const client = coursesTable();
+  await client.createTable().catch(() => {});
+  const results: CourseMetadata[] = [];
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq '${CATALOGUE_PK}' and status eq 'published'`,
+    },
+  });
+  for await (const e of entities) {
+    results.push(entityToCourseMetadata(e));
+  }
+  return results.sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
+}
+
+export async function getCourseBySlug(slug: string): Promise<CourseMetadata | null> {
+  const client = coursesTable();
+  try {
+    const e = await client.getEntity<Record<string, unknown>>(CATALOGUE_PK, slug);
+    return entityToCourseMetadata(e);
+  } catch {
+    return null;
+  }
+}
+
+function entityToCourseMetadata(e: Record<string, unknown>): CourseMetadata {
+  return {
+    courseId: e.courseId as string,
+    slug: e.rowKey as string,
+    title: e.title as string,
+    description: e.description as string,
+    status: e.status as CourseMetadata['status'],
+    audience: e.audience as CourseMetadata['audience'],
+    level: e.level as CourseMetadata['level'],
+    tags: ((e.tags as string) || '').split(',').filter(Boolean),
+    thumbnailUrl: (e.thumbnailUrl as string) || undefined,
+    bundleUrl: e.bundleUrl as string,
+    authorId: e.authorId as string,
+    publishedAt: e.publishedAt as string,
+    updatedAt: e.updatedAt as string,
+    moduleCount: e.moduleCount as number,
+    durationMinutes: e.durationMinutes as number,
+  };
 }
 
 // ─── Progress Table ───────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import styles from './SiteHeader.module.css'
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/' },
+  { label: 'Catalogue', href: '/catalogue' },
   { label: 'Blog', href: '/blog' },
   { label: 'Knowledge Base', href: '/kb' },
 ]
