@@ -14,12 +14,12 @@
     "@azure/data-tables": "^13.2.0",
     "@azure/functions": "^4.5.0",
     "@azure/storage-blob": "^12.23.0",
-    "@lms/shared-schemas": "*",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.1.0",
     "zod": "^3"
   },
   "devDependencies": {
+    "@lms/shared-schemas": "*",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.0.0",
     "esbuild": "^0.24.0",
