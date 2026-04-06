@@ -12,6 +12,7 @@
     "dev:knowledge": "npm run dev -w apps/lms-knowledge-site",
     "dev:editor": "npm run dev -w apps/lms-editorsite-dev",
     "dev:learner": "npm run dev -w apps/lms-learnersite-dev",
+    "dev:backend": "npm run dev -w services/backend-functions",
     "build:public": "npm run build -w apps/lms-publicsite-dev",
     "build:knowledge": "npm run build -w apps/lms-knowledge-site",
     "build:editor": "npm run build -w apps/lms-editorsite-dev",
