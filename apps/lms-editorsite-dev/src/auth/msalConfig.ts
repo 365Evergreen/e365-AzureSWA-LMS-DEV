@@ -3,7 +3,7 @@ export const msalInstance = createMsalInstance({
   auth: {
     clientId: import.meta.env.VITE_ENTRA_CLIENT_ID ?? 'dev-client-id',
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_ENTRA_TENANT_ID ?? 'common'}`,
-    redirectUri: window.location.origin,
+    redirectUri: `${window.location.origin}/auth/callback`,
   },
   cache: { cacheLocation: 'sessionStorage' },
 });
