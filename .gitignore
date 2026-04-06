@@ -28,6 +28,9 @@ Thumbs.db
 # Azure / deployment
 .azure/local/
 
+# Azure Functions local settings (may contain connection strings / secrets)
+local.settings.json
+
 # Logs
 *.log
 npm-debug.log*

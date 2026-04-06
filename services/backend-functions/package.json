@@ -1,0 +1,28 @@
+{
+  "name": "@lms/backend-functions",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@azure/functions --external:@azure/data-tables --external:@azure/storage-blob --external:jsonwebtoken --external:jwks-rsa",
+    "watch": "npm run build -- --watch",
+    "start": "func start",
+    "dev": "npm run build && func start",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.2.0",
+    "@azure/functions": "^4.5.0",
+    "@azure/storage-blob": "^12.23.0",
+    "@lms/shared-schemas": "*",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "~5"
+  }
+}

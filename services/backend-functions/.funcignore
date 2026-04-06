@@ -1,0 +1,6 @@
+.git
+.vscode
+local.settings.json
+*.ts
+src
+node_modules
