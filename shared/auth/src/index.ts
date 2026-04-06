@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 
 // ─── App Roles ───────────────────────────────────────────────────────────────
 
-export type AppRole = 'Author' | 'Publisher' | 'Admin' | 'Learner';
+export type AppRole = 'ContentEditor' | 'Learner';
 
 export interface AuthUser {
   account: AccountInfo;
@@ -50,7 +50,7 @@ function parseRoles(account: AccountInfo): AppRole[] {
   const raw = claims?.['roles'];
   if (!Array.isArray(raw)) return [];
   return raw.filter((r): r is AppRole =>
-    ['Author', 'Publisher', 'Admin', 'Learner'].includes(r as string),
+    ['ContentEditor', 'Learner'].includes(r as string),
   );
 }
 

@@ -12,7 +12,7 @@ interface PublishBarProps {
 
 export default function PublishBar({ status, onStatusChange }: PublishBarProps) {
   const { user } = useAuth(msalInstance);
-  const canPublish = user?.roles.some((r) => r === 'Publisher' || r === 'Admin') ?? false;
+  const canPublish = user?.roles.some((r) => r === 'ContentEditor') ?? false;
 
   return (
     <div className={styles.bar}>

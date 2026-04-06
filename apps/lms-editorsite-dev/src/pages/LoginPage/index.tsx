@@ -5,7 +5,9 @@ import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   function handleSignIn() {
-    login(msalInstance, ['User.Read']);
+    const apiScope = import.meta.env.VITE_API_SCOPE as string | undefined;
+    const scopes = apiScope ? [apiScope] : ['User.Read'];
+    login(msalInstance, scopes);
   }
 
   return (
