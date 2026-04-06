@@ -27,6 +27,7 @@ Thumbs.db
 
 # Azure / deployment
 .azure/local/
+agent
 
 # Azure Functions local settings (may contain connection strings / secrets)
 local.settings.json

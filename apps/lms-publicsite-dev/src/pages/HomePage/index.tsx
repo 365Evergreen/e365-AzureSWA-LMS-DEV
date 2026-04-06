@@ -1,6 +1,6 @@
-import { Hero } from './Hero'
-import { FeatureGrid } from './FeatureGrid'
-import { KBTeaser } from './KBTeaser'
+import { Hero } from './Hero/Hero'
+import { FeatureGrid } from './FeatureGrid/FeatureGrid'
+import { KBTeaser } from './KBTeaser/KBTeaser'
 import styles from './HomePage.module.css'
 
 export default function HomePage() {
