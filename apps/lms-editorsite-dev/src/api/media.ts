@@ -1,5 +1,4 @@
 import { msalInstance } from '../auth/msalConfig';
-import { acquireToken } from '@lms/shared-auth';
 
 export interface MediaItem {
   id: string;
@@ -12,24 +11,42 @@ export interface MediaItem {
 
 async function getToken(): Promise<string | null> {
   const scope = import.meta.env.VITE_API_SCOPE ?? 'User.Read';
-  const account = msalInstance.getActiveAccount();
-  return acquireToken(msalInstance, { scopes: [scope], ...(account ? { account } : {}) });
+  try {
+    await msalInstance.initialize();
+    const account = msalInstance.getActiveAccount();
+    if (!account) return null;
+    const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
+    return result.accessToken;
+  } catch {
+    // Silent acquisition failed (expired, no cache). The AuthGuard will redirect
+    // to login on the next render cycle; return null so the API call fails gracefully.
+    return null;
+  }
+}
+
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  const token = await getToken();
+  const headers = new Headers(init?.headers);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return fetch(url, { ...init, headers });
 }
 
 export async function listMedia(): Promise<MediaItem[]> {
-  const token = await getToken();
-  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-  const res = await fetch('/api/media', { headers });
-  if (!res.ok) throw new Error(`listMedia failed: ${res.status}`);
+  const res = await apiFetch('/api/media');
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`listMedia ${res.status}: ${body}`);
+  }
   return res.json() as Promise<MediaItem[]>;
 }
 
 export async function uploadMedia(file: File): Promise<MediaItem> {
-  const token = await getToken();
-  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch('/api/media/upload', { method: 'POST', headers, body: formData });
-  if (!res.ok) throw new Error(`uploadMedia failed: ${res.status}`);
+  const res = await apiFetch('/api/media/upload', { method: 'POST', body: formData });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`uploadMedia ${res.status}: ${body}`);
+  }
   return res.json() as Promise<MediaItem>;
 }

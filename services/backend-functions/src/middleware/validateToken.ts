@@ -34,12 +34,17 @@ export function extractBearerToken(req: HttpRequest): string | null {
 }
 
 export function validateToken(token: string): Promise<AuthClaims> {
+  const clientId = process.env.ENTRA_CLIENT_ID ?? '';
+  // Entra v2 access tokens carry aud as the Application ID URI (api://CLIENT_ID)
+  // Accept both the bare GUID and the api:// prefixed URI to handle both cases.
+  const audience = [`api://${clientId}`, clientId].filter(Boolean);
+
   return new Promise((resolve, reject) => {
     jwt.verify(
       token,
       getSigningKey,
       {
-        audience: process.env.ENTRA_CLIENT_ID,
+        audience,
         issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
         algorithms: ['RS256'],
       },
