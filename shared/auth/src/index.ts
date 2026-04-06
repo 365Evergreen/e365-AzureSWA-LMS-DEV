@@ -64,7 +64,13 @@ export function useAuth(msalInstance: PublicClientApplication): {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    msalInstance.initialize().then(() => {
+    msalInstance.initialize().then(async () => {
+      // Process the redirect response (auth code) returned by Entra after loginRedirect.
+      // Without this, getActiveAccount() always returns null on the redirect-back load.
+      const result = await msalInstance.handleRedirectPromise();
+      if (result?.account) {
+        msalInstance.setActiveAccount(result.account);
+      }
       const account = msalInstance.getActiveAccount();
       if (account) {
         setUser({ account, roles: parseRoles(account) });
