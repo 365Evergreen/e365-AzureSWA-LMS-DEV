@@ -14,7 +14,14 @@ export default function AppNav() {
   return (
     <Nav
       logo={<span className={styles.logo}>LMS Editor</span>}
-      items={user ? [{ label: 'Dashboard', href: '/' }] : []}
+      items={
+        user
+          ? [
+              { label: 'Dashboard', href: '/' },
+              { label: 'Media', href: '/media' },
+            ]
+          : []
+      }
       actions={
         <div className={styles.actions}>
           {user ? (

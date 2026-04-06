@@ -1,5 +1,6 @@
-import { getBlock } from '@lms/block-registry';
-import type { BlockType } from '@lms/block-registry';
+import { getBlock, BlockType } from '@lms/block-registry';
+import ImageBlockEditor from '../ImageBlockEditor';
+import VideoBlockEditor from '../VideoBlockEditor';
 import styles from './BlockPropertyEditor.module.css';
 
 interface PropertyBlock {
@@ -19,6 +20,24 @@ export default function BlockPropertyEditor({ block, onUpdatePayload }: BlockPro
       <div className={styles.empty}>
         <p>Select a block to edit properties</p>
       </div>
+    );
+  }
+
+  if (block.type === BlockType.IMAGE) {
+    return (
+      <ImageBlockEditor
+        payload={block.payload as { src: string; alt: string; caption: string }}
+        onChange={onUpdatePayload}
+      />
+    );
+  }
+
+  if (block.type === BlockType.VIDEO) {
+    return (
+      <VideoBlockEditor
+        payload={block.payload as { src: string; title: string; posterSrc?: string }}
+        onChange={onUpdatePayload}
+      />
     );
   }
 

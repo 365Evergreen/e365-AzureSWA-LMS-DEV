@@ -1,5 +1,6 @@
 import { BlobServiceClient } from '@azure/storage-blob';
 import { TableClient } from '@azure/data-tables';
+import { randomUUID } from 'crypto';
 import type { ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
 
 function connectionString(): string {
@@ -192,4 +193,59 @@ export async function fetchEnrolments(userId: string): Promise<CourseEnrolment[]
     });
   }
   return results;
+}
+
+// ─── Media Blob Storage ────────────────────────────────────────────────────────
+
+const MEDIA_CONTAINER = 'media';
+
+export interface MediaItem {
+  id: string;
+  name: string;
+  url: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+}
+
+export async function uploadMediaBlob(
+  filename: string,
+  data: Buffer,
+  contentType: string,
+): Promise<MediaItem> {
+  const client = BlobServiceClient.fromConnectionString(connectionString());
+  const container = client.getContainerClient(MEDIA_CONTAINER);
+  await container.createIfNotExists({ access: 'blob' });
+  const id = randomUUID();
+  const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const blobName = `${id}-${safeFilename}`;
+  const blob = container.getBlockBlobClient(blobName);
+  const uploadedAt = new Date().toISOString();
+  await blob.upload(data, data.length, {
+    blobHTTPHeaders: { blobContentType: contentType },
+    metadata: { originalname: safeFilename, uploadedat: uploadedAt },
+  });
+  return { id, name: filename, url: blob.url, contentType, size: data.length, uploadedAt };
+}
+
+export async function listMediaBlobs(): Promise<MediaItem[]> {
+  const client = BlobServiceClient.fromConnectionString(connectionString());
+  const container = client.getContainerClient(MEDIA_CONTAINER);
+  await container.createIfNotExists({ access: 'blob' });
+  const items: MediaItem[] = [];
+  for await (const blob of container.listBlobsFlat({ includeMetadata: true })) {
+    const dashIdx = blob.name.indexOf('-');
+    const id = dashIdx !== -1 ? blob.name.substring(0, dashIdx) : blob.name;
+    items.push({
+      id,
+      name: blob.metadata?.originalname ?? blob.name,
+      url: container.getBlockBlobClient(blob.name).url,
+      contentType: blob.properties.contentType ?? 'application/octet-stream',
+      size: blob.properties.contentLength ?? 0,
+      uploadedAt: blob.metadata?.uploadedat ?? blob.properties.createdOn?.toISOString() ?? '',
+    });
+  }
+  return items.sort(
+    (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+  );
 }
