@@ -206,7 +206,7 @@ export interface SitePageMetadata {
   title: string;
   description: string;
   status: 'draft' | 'published';
-  contentType: 'page' | 'post';
+  contentType: 'page' | 'post' | 'knowledge';
   templateId: string;
   bundleUrl: string;
   publishedAt: string;

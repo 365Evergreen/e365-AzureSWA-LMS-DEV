@@ -1,19 +1,20 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { BlockType } from '@lms/block-registry';
-import AppNav from '../../components/AppNav';
-import BlockPalette from '../../components/BlockPalette';
-import BlockCanvas from '../../components/BlockCanvas';
-import BlockPropertyEditor from '../../components/BlockPropertyEditor';
-import CoursePropertiesPane from '../../components/CoursePropertiesPane';
-import LayoutPropertiesPane from '../../components/LayoutPropertiesPane';
-import ContentTypeModal from '../../components/ContentTypeModal';
-import TemplateGallery from '../../components/TemplateGallery';
-import CanvasLayoutPreview from '../../components/CanvasLayoutPreview';
-import type { CourseProperties } from '../../components/CoursePropertiesPane/types';
-import { defaultCourseProperties } from '../../components/CoursePropertiesPane/types';
-import PublishBar from '../../components/PublishBar';
+import AppNav from '../AppNav';
+import BlockPalette from '../BlockPalette';
+import BlockCanvas from '../BlockCanvas';
+import BlockPropertyEditor from '../BlockPropertyEditor';
+import CoursePropertiesPane from '../CoursePropertiesPane';
+import LayoutPropertiesPane from '../LayoutPropertiesPane';
+import TemplateGallery from '../TemplateGallery';
+import CanvasLayoutPreview from '../CanvasLayoutPreview';
+import type { CourseProperties } from '../CoursePropertiesPane/types';
+import { defaultCourseProperties } from '../CoursePropertiesPane/types';
+import PublishBar from '../PublishBar';
 import { savePage } from '../../api/pages';
-import styles from './EditorPage.module.css';
+import type { SiteContentType } from '../../api/pages';
+import styles from './ContentEditor.module.css';
 
 interface EditorBlock {
   id: string;
@@ -21,8 +22,13 @@ interface EditorBlock {
   payload: unknown;
 }
 
-type ContentType = 'page' | 'post';
-type NewContentStep = 'type' | 'template' | null;
+interface ContentEditorProps {
+  contentType: SiteContentType;
+  /** If omitted, the template gallery is shown first (for 'page' type). */
+  defaultTemplateId?: string;
+  /** Where to navigate after a successful save. Defaults to the parent list route. */
+  returnPath?: string;
+}
 
 interface EditorState {
   blocks: EditorBlock[];
@@ -30,19 +36,21 @@ interface EditorState {
   publishStatus: 'draft' | 'published';
   courseProperties: CourseProperties;
   rightTab: 'course' | 'block' | 'layout';
-  newContentStep: NewContentStep;
-  contentType: ContentType | null;
+  showTemplateGallery: boolean;
 }
 
-export default function EditorPage() {
+export default function ContentEditor({ contentType, defaultTemplateId, returnPath }: ContentEditorProps) {
+  const navigate = useNavigate();
+  const initialTemplateId = defaultTemplateId ?? (contentType === 'page' ? '' : 'post');
+  const needsTemplateSelection = !defaultTemplateId && contentType === 'page';
+
   const [state, setState] = useState<EditorState>({
     blocks: [],
     selectedBlockId: null,
     publishStatus: 'draft',
-    courseProperties: defaultCourseProperties,
+    courseProperties: { ...defaultCourseProperties, templateId: initialTemplateId },
     rightTab: 'layout',
-    newContentStep: 'type',
-    contentType: null,
+    showTemplateGallery: needsTemplateSelection,
   });
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -78,35 +86,17 @@ export default function EditorPage() {
     setState((s) => ({ ...s, courseProperties }));
   }
 
-  function handleContentTypeSelect(type: ContentType) {
-    if (type === 'post') {
-      setState((s) => ({
-        ...s,
-        contentType: type,
-        newContentStep: null,
-        courseProperties: { ...s.courseProperties, templateId: 'post', contentWidth: undefined },
-        rightTab: 'layout',
-      }));
-    } else {
-      setState((s) => ({ ...s, contentType: type, newContentStep: 'template' }));
-    }
-  }
-
   function handleTemplateSelect(templateId: string) {
     setState((s) => ({
       ...s,
-      newContentStep: null,
+      showTemplateGallery: false,
       courseProperties: { ...s.courseProperties, templateId, contentWidth: undefined },
       rightTab: 'layout',
     }));
   }
 
-  function openNewContentFlow() {
-    setState((s) => ({ ...s, newContentStep: 'type', contentType: null }));
-  }
-
   async function handleSave(status: 'draft' | 'published') {
-    const { courseProperties, blocks, contentType } = state;
+    const { courseProperties, blocks } = state;
 
     if (!courseProperties.slug) {
       setValidationError('Please set a slug in the Content tab before saving.');
@@ -126,7 +116,7 @@ export default function EditorPage() {
       title: courseProperties.title,
       description: courseProperties.description,
       templateId: courseProperties.templateId,
-      contentType: contentType ?? 'page',
+      contentType,
       blocks: blocks.map((b) => ({
         id: b.id,
         type: b.type,
@@ -137,6 +127,10 @@ export default function EditorPage() {
     });
 
     setState((s) => ({ ...s, publishStatus: result.status }));
+
+    if (status === 'published' && returnPath) {
+      navigate(returnPath);
+    }
   }
 
   const selectedBlock = state.blocks.find((b) => b.id === state.selectedBlockId) ?? null;
@@ -199,7 +193,7 @@ export default function EditorPage() {
               <LayoutPropertiesPane
                 templateId={templateId}
                 contentWidth={contentWidth}
-                onChangeTemplate={openNewContentFlow}
+                onChangeTemplate={() => setState((s) => ({ ...s, showTemplateGallery: true }))}
                 onContentWidthChange={(w) =>
                   setCourseProperties({ ...state.courseProperties, contentWidth: w })
                 }
@@ -220,21 +214,13 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {state.newContentStep === 'type' && (
-        <ContentTypeModal
-          onSelect={handleContentTypeSelect}
-          onCancel={() => setState((s) => ({ ...s, newContentStep: null }))}
-        />
-      )}
-      {state.newContentStep === 'template' && state.contentType === 'page' && (
+      {state.showTemplateGallery && (
         <TemplateGallery
           category="page"
           onSelect={handleTemplateSelect}
-          onCancel={() => setState((s) => ({ ...s, newContentStep: 'type' }))}
+          onCancel={() => setState((s) => ({ ...s, showTemplateGallery: false }))}
         />
       )}
     </div>
   );
 }
-
-

@@ -1,6 +1,7 @@
 import { getBlock, BlockType } from '@lms/block-registry';
 import ImageBlockEditor from '../ImageBlockEditor';
 import VideoBlockEditor from '../VideoBlockEditor';
+import TextBlockPropertyEditor, { isTextBlock } from '../TextBlockPropertyEditor';
 import styles from './BlockPropertyEditor.module.css';
 
 interface PropertyBlock {
@@ -23,27 +24,47 @@ export default function BlockPropertyEditor({ block, onUpdatePayload }: BlockPro
     );
   }
 
+  const def = getBlock(block.type);
+
   if (block.type === BlockType.IMAGE) {
     return (
-      <ImageBlockEditor
-        payload={block.payload as { src: string; alt: string; caption: string }}
-        onChange={onUpdatePayload}
-      />
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <ImageBlockEditor
+          payload={block.payload as { src: string; alt: string; caption: string }}
+          onChange={onUpdatePayload}
+        />
+      </div>
     );
   }
 
   if (block.type === BlockType.VIDEO) {
     return (
-      <VideoBlockEditor
-        payload={block.payload as { src: string; title: string; posterSrc?: string }}
-        onChange={onUpdatePayload}
-      />
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <VideoBlockEditor
+          payload={block.payload as { src: string; title: string; posterSrc?: string }}
+          onChange={onUpdatePayload}
+        />
+      </div>
     );
   }
 
-  const def = getBlock(block.type);
-  const jsonValue = JSON.stringify(block.payload, null, 2);
+  if (isTextBlock(block.type)) {
+    return (
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <TextBlockPropertyEditor
+          blockType={block.type}
+          payload={block.payload as Record<string, unknown>}
+          onChange={onUpdatePayload}
+        />
+      </div>
+    );
+  }
 
+  // Fallback: raw JSON editor for unimplemented block types
+  const jsonValue = JSON.stringify(block.payload, null, 2);
   function handleChange(value: string) {
     try {
       const parsed: unknown = JSON.parse(value);

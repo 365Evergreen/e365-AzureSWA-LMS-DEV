@@ -15,7 +15,7 @@ const SavePageSchema = z.object({
   title: z.string().min(1, 'title is required'),
   description: z.string().optional().default(''),
   templateId: z.string().min(1, 'templateId is required'),
-  contentType: z.enum(['page', 'post']),
+  contentType: z.enum(['page', 'post', 'knowledge']),
   blocks: z.array(BlockSchema),
   status: z.enum(['draft', 'published']),
   tags: z.array(z.string()).optional().default([]),
@@ -32,8 +32,8 @@ async function savePageHandler(
   try {
     claims = await validateToken(token);
   } catch (err) {
-    context.warn('Token validation failed:', err);
-    return { status: 401, jsonBody: { error: 'Invalid or expired token' } };
+    context.warn('Token validation failed:', (err as Error).message ?? err);
+    return { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } };
   }
 
   if (!hasRole(claims, 'ContentEditor')) {

@@ -35,9 +35,14 @@ export function extractBearerToken(req: HttpRequest): string | null {
 
 export function validateToken(token: string): Promise<AuthClaims> {
   const clientId = process.env.ENTRA_CLIENT_ID ?? '';
-  // Entra v2 access tokens carry aud as the Application ID URI (api://CLIENT_ID)
-  // Accept both the bare GUID and the api:// prefixed URI to handle both cases.
+  const tenantId = process.env.ENTRA_TENANT_ID ?? '';
+  // Accept both v1 and v2 access tokens — the issued version depends on the
+  // API app registration's accessTokenAcceptedVersion manifest setting.
   const audience = [`api://${clientId}`, clientId].filter(Boolean);
+  const issuer = [
+    `https://login.microsoftonline.com/${tenantId}/v2.0`,
+    `https://sts.windows.net/${tenantId}/`,
+  ];
 
   return new Promise((resolve, reject) => {
     jwt.verify(
@@ -45,7 +50,7 @@ export function validateToken(token: string): Promise<AuthClaims> {
       getSigningKey,
       {
         audience,
-        issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
+        issuer,
         algorithms: ['RS256'],
       },
       (err, decoded) => {

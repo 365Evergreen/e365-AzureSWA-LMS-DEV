@@ -13,11 +13,23 @@ export default function AppNav() {
 
   return (
     <Nav
-      logo={<span className={styles.logo}>LMS Editor</span>}
+      logo={
+        <Link to="/" className={styles.logoLink}>
+          <img
+            src="https://stlms365evdev.blob.core.windows.net/media/Evergreen_Logo__100px.png"
+            alt="Evergreen LMS"
+            className={styles.logoImage}
+          />
+          <span className={styles.logoTitle}>365 Evergreen LMS admin portal</span>
+        </Link>
+      }
       items={
         user
           ? [
-              { label: 'Dashboard', href: '/' },
+              { label: 'Courses', href: '/courses' },
+              { label: 'Knowledge Base', href: '/knowledge-base' },
+              { label: 'Website', href: '/website' },
+              { label: 'Blog Posts', href: '/blog-posts' },
               { label: 'Media', href: '/media' },
             ]
           : []

@@ -1,11 +1,14 @@
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance } from '../auth/msalConfig';
+
+export type SiteContentType = 'page' | 'post' | 'knowledge';
 
 export interface SavePageRequest {
   slug: string;
   title: string;
   description?: string;
   templateId: string;
-  contentType: 'page' | 'post';
+  contentType: SiteContentType;
   blocks: { id: string; type: string; version?: number; payload: Record<string, unknown> }[];
   status: 'draft' | 'published';
   tags?: string[];
@@ -27,10 +30,23 @@ async function getToken(): Promise<string | null> {
       console.warn('[pages] getToken: no active account');
       return null;
     }
-    const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
-    return result.accessToken;
+    try {
+      const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
+      try {
+        const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
+        console.debug('[pages] token claims: aud=', payload.aud, 'iss=', payload.iss, 'roles=', payload.roles);
+      } catch { /* ignore decode errors */ }
+      return result.accessToken;
+    } catch (err) {
+      if (err instanceof InteractionRequiredAuthError) {
+        console.warn('[pages] getToken: interaction required — opening popup');
+        const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
+        return result.accessToken;
+      }
+      throw err;
+    }
   } catch (err) {
-    console.warn('[pages] getToken: silent acquisition failed', err);
+    console.warn('[pages] getToken: failed', err);
     return null;
   }
 }
@@ -40,6 +56,8 @@ async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  } else {
+    console.warn('[pages] apiFetch: no token — request will be sent without Authorization header');
   }
   headers.set('Content-Type', 'application/json');
   return fetch(url, { ...init, headers });

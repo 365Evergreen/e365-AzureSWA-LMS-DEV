@@ -1,3 +1,4 @@
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance } from '../auth/msalConfig';
 
 export interface MediaItem {
@@ -18,15 +19,23 @@ async function getToken(): Promise<string | null> {
       console.warn('[media] getToken: no active account');
       return null;
     }
-    const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
-    // Decode JWT payload to log actual claims (debug only)
     try {
-      const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
-      console.debug('[media] token claims: aud=', payload.aud, 'iss=', payload.iss, 'exp=', new Date(payload.exp * 1000).toISOString());
-    } catch { /* ignore */ }
-    return result.accessToken;
+      const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
+      try {
+        const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
+        console.debug('[media] token claims: aud=', payload.aud, 'iss=', payload.iss, 'exp=', new Date(payload.exp * 1000).toISOString());
+      } catch { /* ignore */ }
+      return result.accessToken;
+    } catch (err) {
+      if (err instanceof InteractionRequiredAuthError) {
+        console.warn('[media] getToken: interaction required — opening popup');
+        const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
+        return result.accessToken;
+      }
+      throw err;
+    }
   } catch (err) {
-    console.warn('[media] getToken: silent acquisition failed', err);
+    console.warn('[media] getToken: failed', err);
     return null;
   }
 }

@@ -1,7 +1,7 @@
 .palette {
   height: 100%;
   overflow-y: auto;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -15,10 +15,47 @@
   letter-spacing: 0.05em;
 }
 
+.group {
+  margin-bottom: var(--space-2);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-2) var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: background var(--transition-fast);
+}
+
+.groupHeader:hover {
+  background: var(--color-surface-muted);
+}
+
+.groupLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.groupChevron {
+  font-size: var(--font-size-base);
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+
 .list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 var(--space-1);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);

@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
 import { uploadMediaBlob } from '../lib/storage';
+import { processImage } from '../lib/imageUtils';
 
 const ALLOWED_TYPES = new Set([
   'image/jpeg',
@@ -51,9 +52,10 @@ async function uploadMediaHandler(
     return { status: 413, jsonBody: { error: 'File exceeds 50 MB limit' } };
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const item = await uploadMediaBlob(file.name, buffer, file.type);
-  context.log(`Media uploaded: ${item.id} (${file.type}, ${file.size}B) by ${claims.oid}`);
+  const raw = Buffer.from(await file.arrayBuffer());
+  const { buffer, contentType, filename } = await processImage(raw, file.name, file.type);
+  const item = await uploadMediaBlob(filename, buffer, contentType);
+  context.log(`Media uploaded: ${item.id} (${contentType}, ${buffer.length}B) by ${claims.oid}`);
   return { status: 201, jsonBody: item };
 }
 
