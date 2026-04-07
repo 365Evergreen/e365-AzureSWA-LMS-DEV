@@ -1,5 +1,6 @@
 import {
   registerBlock,
+  BlockGroup,
   BlockType,
   HeadingPayloadSchema,
   ParagraphPayloadSchema,
@@ -22,6 +23,7 @@ import { DividerBlock } from '../components/blocks/DividerBlock';
 export function registerBlocks(): void {
   registerBlock({
     type: BlockType.HEADING,
+    group: BlockGroup.TEXT,
     label: 'Heading',
     icon: 'H',
     payloadSchema: HeadingPayloadSchema,
@@ -31,6 +33,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.PARAGRAPH,
+    group: BlockGroup.TEXT,
     label: 'Paragraph',
     icon: 'P',
     payloadSchema: ParagraphPayloadSchema,
@@ -40,6 +43,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.IMAGE,
+    group: BlockGroup.MEDIA,
     label: 'Image',
     icon: '🖼',
     payloadSchema: ImagePayloadSchema,
@@ -49,6 +53,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.VIDEO,
+    group: BlockGroup.MEDIA,
     label: 'Video',
     icon: '▶',
     payloadSchema: VideoPayloadSchema,
@@ -58,6 +63,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.QUIZ,
+    group: BlockGroup.LEARNING,
     label: 'Quiz',
     icon: '❓',
     payloadSchema: QuizPayloadSchema,
@@ -71,6 +77,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.CODE,
+    group: BlockGroup.TEXT,
     label: 'Code',
     icon: '</>',
     payloadSchema: CodePayloadSchema,
@@ -80,6 +87,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.CALLOUT,
+    group: BlockGroup.DESIGN,
     label: 'Callout',
     icon: '📢',
     payloadSchema: CalloutPayloadSchema,
@@ -89,6 +97,7 @@ export function registerBlocks(): void {
 
   registerBlock({
     type: BlockType.DIVIDER,
+    group: BlockGroup.DESIGN,
     label: 'Divider',
     icon: '—',
     payloadSchema: DividerPayloadSchema,
