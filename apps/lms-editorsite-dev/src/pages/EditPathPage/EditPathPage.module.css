@@ -5,7 +5,13 @@
   flex-direction: column;
 }
 
-/* ── Top bar ──────────────────────────────────────────────────── */
+.loading,
+.error {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
 
 .topBar {
   display: flex;
@@ -34,12 +40,16 @@
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topBarActions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .saveError {
@@ -47,23 +57,26 @@
   color: var(--color-error, #dc2626);
 }
 
-/* ── Two-column layout ────────────────────────────────────────── */
+.publishedBadge {
+  font-size: var(--font-size-sm);
+  color: #10b981;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── Layout ────────────────────────────────────────────────────── */
 
 .layout {
   display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 0;
+  grid-template-columns: 300px 1fr;
   flex: 1;
   min-height: 0;
 }
 
 @media (max-width: 860px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
+  .layout { grid-template-columns: 1fr; }
 }
 
-/* ── Metadata panel ───────────────────────────────────────────── */
+/* ── Meta panel ────────────────────────────────────────────────── */
 
 .metaPanel {
   background: var(--color-surface);
@@ -72,7 +85,7 @@
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .section {
@@ -102,13 +115,6 @@
   color: var(--color-text-primary);
 }
 
-.req { color: var(--color-error, #dc2626); }
-
-.hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
 .input,
 .textarea,
 .select {
@@ -131,7 +137,7 @@
 
 .textarea { resize: vertical; font-family: inherit; }
 
-/* ── Structure panel ──────────────────────────────────────────── */
+/* ── Structure panel ───────────────────────────────────────────── */
 
 .structurePanel {
   padding: var(--space-6);
@@ -151,10 +157,6 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
-
-.emptyStructure p { margin: var(--space-1) 0; }
-
-/* ── Module cards ─────────────────────────────────────────────── */
 
 .moduleList {
   display: flex;
@@ -194,19 +196,25 @@
   min-width: 28px;
 }
 
-.inlineInput {
+.moduleTitle {
   flex: 1;
-  background: none;
-  border: none;
-  border-bottom: 1px solid transparent;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-  padding: 2px 4px;
 }
 
-.inlineInput:hover { border-bottom-color: var(--color-border); }
-.inlineInput:focus { outline: none; border-bottom-color: var(--color-primary); }
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.unitCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
 
 .removeBtn {
   background: none;
@@ -217,11 +225,12 @@
   padding: 4px;
   border-radius: var(--radius-sm);
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .removeBtn:hover { background: #fef2f2; color: #dc2626; }
 
-/* ── Unit rows ────────────────────────────────────────────────── */
+/* ── Unit list ─────────────────────────────────────────────────── */
 
 .unitList {
   padding: var(--space-2) var(--space-4) var(--space-3);
@@ -243,18 +252,50 @@
 .unitIndex {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-  min-width: 28px;
-  text-align: center;
+  min-width: 32px;
+  font-variant-numeric: tabular-nums;
 }
 
-.unitTypeSelect {
-  padding: 2px var(--space-2);
+.unitTitle {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unitType {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.editUnitBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
   font-size: var(--font-size-xs);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
+  color: var(--color-primary);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.editUnitBtn:hover {
+  background: var(--color-primary-subtle, #eff6ff);
+  border-color: var(--color-primary);
+}
+
+.publishedUnit {
+  font-size: var(--font-size-xs);
+  color: #10b981;
+  font-weight: var(--font-weight-semibold);
   flex-shrink: 0;
 }
 

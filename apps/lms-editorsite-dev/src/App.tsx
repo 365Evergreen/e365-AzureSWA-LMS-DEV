@@ -19,6 +19,8 @@ const AddNewBlogPostPage = React.lazy(() => import('./pages/AddNewBlogPostPage')
 const EditWebPage = React.lazy(() => import('./pages/EditWebPage'));
 const EditBlogPostPage = React.lazy(() => import('./pages/EditBlogPostPage'));
 const EditKnowledgePage = React.lazy(() => import('./pages/EditKnowledgePage'));
+const EditPathPage = React.lazy(() => import('./pages/EditPathPage'));
+const EditUnitPage = React.lazy(() => import('./pages/EditUnitPage'));
 const EditorPage = React.lazy(() => import('./pages/EditorPage'));
 const MediaLibraryPage = React.lazy(() => import('./pages/MediaLibraryPage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
           <Route path="/courses" element={<AuthGuard><CoursesPage /></AuthGuard>} />
           <Route path="/courses/new" element={<AuthGuard><AddNewCoursePage /></AuthGuard>} />
+          <Route path="/courses/edit/:pathId" element={<AuthGuard><EditPathPage /></AuthGuard>} />
+          <Route path="/courses/units/:unitId/edit" element={<AuthGuard><EditUnitPage /></AuthGuard>} />
           <Route path="/knowledge-base" element={<AuthGuard><KnowledgeBasePage /></AuthGuard>} />
           <Route path="/knowledge-base/new" element={<AuthGuard><AddNewKnowledgePage /></AuthGuard>} />
           <Route path="/knowledge-base/edit/:slug" element={<AuthGuard><EditKnowledgePage /></AuthGuard>} />

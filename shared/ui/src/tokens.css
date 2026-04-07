@@ -1,8 +1,8 @@
 :root {
   /* ── Brand colours ─────────────────────────────────────────── */
-  --color-brand-primary:       #2563eb;
-  --color-brand-primary-hover: #1d4ed8;
-  --color-brand-secondary:     #0891b2;
+  --color-brand-primary:       #027a00;
+  --color-brand-primary-hover: #0e5d00;
+  --color-brand-secondary:     #348f3f;
 
   /* ── Surface colours ───────────────────────────────────────── */
   --color-surface:        #ffffff;
@@ -18,7 +18,7 @@
   --color-text-secondary:#475569;
   --color-text-muted:    #94a3b8;
   --color-text-inverse:  #ffffff;
-  --color-text-link:     #2563eb;
+  --color-text-link:     #027a00;
 
   /* ── Semantic colours ──────────────────────────────────────── */
   --color-success:       #16a34a;
