@@ -14,12 +14,19 @@ async function getToken(): Promise<string | null> {
   try {
     await msalInstance.initialize();
     const account = msalInstance.getActiveAccount();
-    if (!account) return null;
+    if (!account) {
+      console.warn('[media] getToken: no active account');
+      return null;
+    }
     const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
+    // Decode JWT payload to log actual claims (debug only)
+    try {
+      const payload = JSON.parse(atob(result.accessToken.split('.')[1]));
+      console.debug('[media] token claims: aud=', payload.aud, 'iss=', payload.iss, 'exp=', new Date(payload.exp * 1000).toISOString());
+    } catch { /* ignore */ }
     return result.accessToken;
-  } catch {
-    // Silent acquisition failed (expired, no cache). The AuthGuard will redirect
-    // to login on the next render cycle; return null so the API call fails gracefully.
+  } catch (err) {
+    console.warn('[media] getToken: silent acquisition failed', err);
     return null;
   }
 }
@@ -27,7 +34,11 @@ async function getToken(): Promise<string | null> {
 async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   const token = await getToken();
   const headers = new Headers(init?.headers);
-  if (token) headers.set('Authorization', `Bearer ${token}`);
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  } else {
+    console.warn('[media] apiFetch: no token — request will be sent without Authorization header');
+  }
   return fetch(url, { ...init, headers });
 }
 
