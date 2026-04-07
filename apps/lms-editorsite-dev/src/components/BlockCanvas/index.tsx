@@ -185,9 +185,17 @@ function LinkRow({ payload, onChange, onClose }: LinkRowProps) {
 interface InlineEditorProps {
   block: CanvasBlock;
   onChange: (payload: unknown) => void;
+  onInsertAfter: (blocks: Array<{ type: BlockType; payload: unknown }>) => void;
 }
 
-function InlineEditor({ block, onChange }: InlineEditorProps) {
+function splitPastedText(text: string): string[] {
+  return text
+    .split(/(\r?\n){2,}/)
+    .map((s) => s.replace(/\r?\n/g, ' ').trim())
+    .filter(Boolean);
+}
+
+function InlineEditor({ block, onChange, onInsertAfter }: InlineEditorProps) {
   const p = block.payload as Record<string, unknown>;
   const alignment = (p.alignment as string) ?? 'left';
   const weight = (p.weight as string) ?? 'normal';
@@ -216,6 +224,15 @@ function InlineEditor({ block, onChange }: InlineEditorProps) {
           onClick={(e) => e.stopPropagation()}
           onBlur={(e) => onChange({ ...p, text: e.target.value })}
           onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          onPaste={(e) => {
+            const text = e.clipboardData.getData('text/plain');
+            const lines = text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+            if (lines.length < 2) return;
+            e.preventDefault();
+            e.currentTarget.value = lines[0];
+            onChange({ ...p, text: lines[0] });
+            onInsertAfter(lines.slice(1).map((html) => ({ type: 'paragraph' as BlockType, payload: { html } })));
+          }}
         />
       );
     }
@@ -230,6 +247,15 @@ function InlineEditor({ block, onChange }: InlineEditorProps) {
           rows={3}
           onClick={(e) => e.stopPropagation()}
           onBlur={(e) => onChange({ ...p, html: e.target.value })}
+          onPaste={(e) => {
+            const text = e.clipboardData.getData('text/plain');
+            const paras = splitPastedText(text);
+            if (paras.length < 2) return;
+            e.preventDefault();
+            e.currentTarget.value = paras[0];
+            onChange({ ...p, html: paras[0] });
+            onInsertAfter(paras.slice(1).map((html) => ({ type: 'paragraph' as BlockType, payload: { ...p, html } })));
+          }}
         />
       );
 
@@ -301,6 +327,7 @@ interface BlockCanvasProps {
   onRemoveBlock: (id: string) => void;
   onReorderBlocks: (blocks: CanvasBlock[]) => void;
   onUpdatePayload: (id: string, payload: unknown) => void;
+  onInsertBlocksAfter: (afterId: string, blocks: Array<{ type: BlockType; payload: unknown }>) => void;
 }
 
 interface BlockCanvasItemProps {
@@ -309,9 +336,10 @@ interface BlockCanvasItemProps {
   onSelect: () => void;
   onRemove: () => void;
   onUpdatePayload: (payload: unknown) => void;
+  onInsertAfter: (blocks: Array<{ type: BlockType; payload: unknown }>) => void;
 }
 
-function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayload }: BlockCanvasItemProps) {
+function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayload, onInsertAfter }: BlockCanvasItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
   const [showLinkRow, setShowLinkRow] = useState(false);
   const def = getBlock(block.type);
@@ -348,7 +376,7 @@ function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayloa
       )}
       <div className={styles.renderer}>
         {isSelected && canInline
-          ? <InlineEditor block={block} onChange={onUpdatePayload} />
+          ? <InlineEditor block={block} onChange={onUpdatePayload} onInsertAfter={onInsertAfter} />
           : def ? <def.Renderer payload={block.payload} blockId={block.id} /> : <p>Unknown block type</p>
         }
       </div>
@@ -358,7 +386,7 @@ function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayloa
 
 // ─── Canvas ───────────────────────────────────────────────────────────────────
 
-export default function BlockCanvas({ blocks, selectedBlockId, onSelectBlock, onRemoveBlock, onReorderBlocks, onUpdatePayload }: BlockCanvasProps) {
+export default function BlockCanvas({ blocks, selectedBlockId, onSelectBlock, onRemoveBlock, onReorderBlocks, onUpdatePayload, onInsertBlocksAfter }: BlockCanvasProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (over && active.id !== over.id) {
@@ -388,6 +416,7 @@ export default function BlockCanvas({ blocks, selectedBlockId, onSelectBlock, on
               onSelect={() => onSelectBlock(block.id)}
               onRemove={() => onRemoveBlock(block.id)}
               onUpdatePayload={(payload) => onUpdatePayload(block.id, payload)}
+              onInsertAfter={(newBlocks) => onInsertBlocksAfter(block.id, newBlocks)}
             />
           ))}
         </div>

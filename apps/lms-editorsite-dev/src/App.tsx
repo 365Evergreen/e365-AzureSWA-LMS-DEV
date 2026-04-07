@@ -16,6 +16,9 @@ const AddNewCoursePage = React.lazy(() => import('./pages/AddNewCoursePage'));
 const AddNewKnowledgePage = React.lazy(() => import('./pages/AddNewKnowledgePage'));
 const AddNewWebPage = React.lazy(() => import('./pages/AddNewWebPage'));
 const AddNewBlogPostPage = React.lazy(() => import('./pages/AddNewBlogPostPage'));
+const EditWebPage = React.lazy(() => import('./pages/EditWebPage'));
+const EditBlogPostPage = React.lazy(() => import('./pages/EditBlogPostPage'));
+const EditKnowledgePage = React.lazy(() => import('./pages/EditKnowledgePage'));
 const EditorPage = React.lazy(() => import('./pages/EditorPage'));
 const MediaLibraryPage = React.lazy(() => import('./pages/MediaLibraryPage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
@@ -34,10 +37,13 @@ export default function App() {
           <Route path="/courses/new" element={<AuthGuard><AddNewCoursePage /></AuthGuard>} />
           <Route path="/knowledge-base" element={<AuthGuard><KnowledgeBasePage /></AuthGuard>} />
           <Route path="/knowledge-base/new" element={<AuthGuard><AddNewKnowledgePage /></AuthGuard>} />
+          <Route path="/knowledge-base/edit/:slug" element={<AuthGuard><EditKnowledgePage /></AuthGuard>} />
           <Route path="/website" element={<AuthGuard><WebsitePage /></AuthGuard>} />
           <Route path="/website/new" element={<AuthGuard><AddNewWebPage /></AuthGuard>} />
+          <Route path="/website/edit/:slug" element={<AuthGuard><EditWebPage /></AuthGuard>} />
           <Route path="/blog-posts" element={<AuthGuard><BlogPostsPage /></AuthGuard>} />
           <Route path="/blog-posts/new" element={<AuthGuard><AddNewBlogPostPage /></AuthGuard>} />
+          <Route path="/blog-posts/edit/:slug" element={<AuthGuard><EditBlogPostPage /></AuthGuard>} />
           <Route path="/editor/:courseId" element={<AuthGuard><EditorPage /></AuthGuard>} />
           <Route path="/media" element={<AuthGuard><MediaLibraryPage /></AuthGuard>} />
           <Route path="*" element={<NotFoundPage />} />

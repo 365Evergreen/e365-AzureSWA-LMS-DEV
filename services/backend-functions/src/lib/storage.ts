@@ -213,6 +213,10 @@ export interface SitePageMetadata {
   updatedAt: string;
   author?: string;
   tags?: string[];
+  inNav?: boolean;
+  navLabel?: string;
+  navParent?: string;
+  navOrder?: number;
 }
 
 function siteContentTable(): TableClient {
@@ -265,6 +269,10 @@ export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<vo
       updatedAt: meta.updatedAt,
       author: meta.author ?? '',
       tags: (meta.tags ?? []).join(','),
+      inNav: meta.inNav ?? false,
+      navLabel: meta.navLabel ?? '',
+      navParent: meta.navParent ?? '',
+      navOrder: meta.navOrder ?? 0,
     },
     'Replace'
   );
@@ -272,7 +280,7 @@ export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<vo
 
 export async function getSitePageBySlug(
   slug: string,
-  contentType: 'page' | 'post' = 'page'
+  contentType: 'page' | 'post' | 'knowledge' = 'page'
 ): Promise<SitePageMetadata | null> {
   const client = siteContentTable();
   await client.createTable().catch(() => {});
@@ -284,7 +292,7 @@ export async function getSitePageBySlug(
   }
 }
 
-export async function listSitePages(contentType: 'page' | 'post' = 'page'): Promise<SitePageMetadata[]> {
+export async function listSitePages(contentType: 'page' | 'post' | 'knowledge' = 'page'): Promise<SitePageMetadata[]> {
   const client = siteContentTable();
   await client.createTable().catch(() => {});
   const results: SitePageMetadata[] = [];
@@ -315,7 +323,60 @@ function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata 
     updatedAt: e.updatedAt as string,
     author: (e.author as string) || undefined,
     tags: ((e.tags as string) || '').split(',').filter(Boolean),
+    inNav: (e.inNav as boolean) ?? false,
+    navLabel: (e.navLabel as string) || undefined,
+    navParent: (e.navParent as string) || undefined,
+    navOrder: (e.navOrder as number) ?? 0,
   };
+}
+
+export async function listAllSitePages(
+  contentType: 'page' | 'post' | 'knowledge' = 'page'
+): Promise<SitePageMetadata[]> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  const results: SitePageMetadata[] = [];
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq '${contentType}'` },
+  });
+  for await (const e of entities) {
+    results.push(entityToSitePageMetadata(e));
+  }
+  return results.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+}
+
+export async function patchSitePageMeta(
+  slug: string,
+  contentType: 'page' | 'post' | 'knowledge',
+  patch: Partial<Pick<SitePageMetadata, 'title' | 'description' | 'status' | 'inNav' | 'navLabel' | 'navParent' | 'navOrder'>>
+): Promise<void> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  const update: Record<string, unknown> = {
+    partitionKey: contentType,
+    rowKey: slug,
+    updatedAt: new Date().toISOString(),
+    ...patch,
+    ...(patch.status === 'published' ? { publishedAt: new Date().toISOString() } : {}),
+  };
+  await client.updateEntity(update, 'Merge');
+}
+
+export async function listNavItems(): Promise<SitePageMetadata[]> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  const results: SitePageMetadata[] = [];
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'page' and inNav eq true and status eq 'published'`,
+    },
+  });
+  for await (const e of entities) {
+    results.push(entityToSitePageMetadata(e));
+  }
+  return results;
 }
 
 

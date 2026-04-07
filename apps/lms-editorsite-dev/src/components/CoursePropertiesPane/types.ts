@@ -6,6 +6,11 @@ export interface CourseProperties {
   status: 'draft' | 'published';
   templateId: string;
   contentWidth?: string;
+  // Navigation (web pages only)
+  inNav: boolean;
+  navLabel: string;
+  navParent: string;
+  navOrder: number;
 }
 
 export const defaultCourseProperties: CourseProperties = {
@@ -15,5 +20,9 @@ export const defaultCourseProperties: CourseProperties = {
   featuredImageUrl: '',
   status: 'draft',
   templateId: 'content-page-fse',
+  inNav: false,
+  navLabel: '',
+  navParent: '',
+  navOrder: 0,
 };
 

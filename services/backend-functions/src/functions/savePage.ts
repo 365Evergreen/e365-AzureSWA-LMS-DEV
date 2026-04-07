@@ -19,6 +19,10 @@ const SavePageSchema = z.object({
   blocks: z.array(BlockSchema),
   status: z.enum(['draft', 'published']),
   tags: z.array(z.string()).optional().default([]),
+  inNav: z.boolean().optional().default(false),
+  navLabel: z.string().optional().default(''),
+  navParent: z.string().optional().default(''),
+  navOrder: z.number().optional().default(0),
 });
 
 async function savePageHandler(
@@ -55,7 +59,8 @@ async function savePageHandler(
     };
   }
 
-  const { slug, title, description, templateId, contentType, blocks, status, tags } = parsed.data;
+  const { slug, title, description, templateId, contentType, blocks, status, tags,
+          inNav, navLabel, navParent, navOrder } = parsed.data;
   const pageId = `${contentType}-${slug}`;
   const now = new Date().toISOString();
 
@@ -75,6 +80,10 @@ async function savePageHandler(
     updatedAt: now,
     author: claims.oid as string | undefined,
     tags,
+    inNav,
+    navLabel: navLabel || title,
+    navParent,
+    navOrder,
   });
 
   context.log(`Saved ${contentType} "${slug}" (${pageId}) by ${claims.oid} — status: ${status}`);

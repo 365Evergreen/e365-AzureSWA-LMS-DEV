@@ -1,31 +1,12 @@
 import { useState, useCallback } from 'react'
-import { NavLink, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { MegaNav } from '../MegaNav'
 import styles from './SiteHeader.module.css'
-
-const NAV_ITEMS = [
-  { label: 'Home', href: '/' },
-  { label: 'Catalogue', href: '/catalogue' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'Knowledge Base', href: '/kb' },
-]
-
-function getNavLinkClass({ isActive }: { isActive: boolean }) {
-  return isActive
-    ? `${styles.navLink} ${styles.navLinkActive}`
-    : styles.navLink
-}
-
-function getMobileNavLinkClass({ isActive }: { isActive: boolean }) {
-  return isActive
-    ? `${styles.mobileNavLink} ${styles.mobileNavLinkActive}`
-    : styles.mobileNavLink
-}
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), [])
-
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
   return (
@@ -36,19 +17,9 @@ export function SiteHeader() {
           <span className={styles.logoText}>LMS Platform</span>
         </Link>
 
-        <ul className={styles.nav} role="list">
-          {NAV_ITEMS.map(({ label, href }) => (
-            <li key={href}>
-              <NavLink
-                to={href}
-                end={href === '/'}
-                className={getNavLinkClass}
-              >
-                {label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+        <nav className={styles.desktopNav} aria-label="Main navigation">
+          <MegaNav onNavigate={closeMenu} />
+        </nav>
 
         <div className={styles.actions}>
           <Link to="/kb" className={styles.ctaButton}>
@@ -72,17 +43,7 @@ export function SiteHeader() {
         aria-label="Mobile navigation"
         className={menuOpen ? `${styles.mobileMenu} ${styles.mobileMenuOpen}` : styles.mobileMenu}
       >
-        {NAV_ITEMS.map(({ label, href }) => (
-          <NavLink
-            key={href}
-            to={href}
-            end={href === '/'}
-            className={getMobileNavLinkClass}
-            onClick={closeMenu}
-          >
-            {label}
-          </NavLink>
-        ))}
+        <MegaNav mobile onNavigate={closeMenu} />
         <Link to="/kb" className={styles.mobileCtaButton} onClick={closeMenu}>
           Get Started
         </Link>

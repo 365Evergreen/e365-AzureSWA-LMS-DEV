@@ -12,6 +12,11 @@ export interface SavePageRequest {
   blocks: { id: string; type: string; version?: number; payload: Record<string, unknown> }[];
   status: 'draft' | 'published';
   tags?: string[];
+  // Navigation (web pages only)
+  inNav?: boolean;
+  navLabel?: string;
+  navParent?: string;
+  navOrder?: number;
 }
 
 export interface SavePageResponse {
@@ -61,6 +66,80 @@ async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   }
   headers.set('Content-Type', 'application/json');
   return fetch(url, { ...init, headers });
+}
+
+export interface PageSummary {
+  pageId: string;
+  slug: string;
+  title: string;
+  description: string;
+  status: 'draft' | 'published';
+  contentType: 'page' | 'post' | 'knowledge';
+  templateId: string;
+  bundleUrl: string;
+  publishedAt: string;
+  updatedAt: string;
+  author?: string;
+  tags?: string[];
+  inNav?: boolean;
+  navLabel?: string;
+  navParent?: string;
+  navOrder?: number;
+}
+
+export interface PatchPageMetaRequest {
+  contentType: SiteContentType;
+  title?: string;
+  description?: string;
+  status?: 'draft' | 'published';
+  inNav?: boolean;
+  navLabel?: string;
+  navParent?: string;
+  navOrder?: number;
+}
+
+export interface EditorPageResponse {
+  metadata: PageSummary;
+  bundle: {
+    pageId: string;
+    slug: string;
+    title: string;
+    templateId: string;
+    blocks: Array<{ id: string; type: string; version?: number; payload: Record<string, unknown> }>;
+    savedAt: string;
+  } | null;
+}
+
+export async function loadEditorPage(slug: string, contentType: SiteContentType = 'page'): Promise<EditorPageResponse> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const res = await apiFetch(`${base}/api/editor/pages/${encodeURIComponent(slug)}?contentType=${contentType}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`loadEditorPage ${res.status}: ${body}`);
+  }
+  return res.json() as Promise<EditorPageResponse>;
+}
+
+export async function listPages(contentType: SiteContentType = 'page'): Promise<PageSummary[]> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const res = await apiFetch(`${base}/api/editor/pages?contentType=${contentType}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`listPages ${res.status}: ${body}`);
+  }
+  return res.json() as Promise<PageSummary[]>;
+}
+
+export async function patchPageMeta(slug: string, patch: PatchPageMetaRequest): Promise<void> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const res = await apiFetch(`${base}/api/pages/${encodeURIComponent(slug)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`patchPageMeta ${res.status}: ${body}`);
+  }
 }
 
 export async function savePage(request: SavePageRequest): Promise<SavePageResponse> {

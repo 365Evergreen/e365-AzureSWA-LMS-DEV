@@ -70,6 +70,16 @@ export default function EditorPage() {
     }));
   }
 
+  function insertBlocksAfter(afterId: string, newBlocks: Array<{ type: BlockType; payload: unknown }>) {
+    setState((s) => {
+      const idx = s.blocks.findIndex((b) => b.id === afterId);
+      const toInsert = newBlocks.map((nb) => ({ id: crypto.randomUUID(), type: nb.type, payload: nb.payload }));
+      const updated = [...s.blocks];
+      updated.splice(idx + 1, 0, ...toInsert);
+      return { ...s, blocks: updated };
+    });
+  }
+
   function reorderBlocks(blocks: EditorBlock[]) {
     setState((s) => ({ ...s, blocks }));
   }
@@ -158,6 +168,7 @@ export default function EditorPage() {
               onRemoveBlock={removeBlock}
               onReorderBlocks={reorderBlocks}
               onUpdatePayload={updateBlockPayload}
+              onInsertBlocksAfter={insertBlocksAfter}
             />
           </CanvasLayoutPreview>
         </main>

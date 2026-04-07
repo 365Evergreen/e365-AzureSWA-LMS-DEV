@@ -9,6 +9,7 @@ import CoursePropertiesPane from '../CoursePropertiesPane';
 import LayoutPropertiesPane from '../LayoutPropertiesPane';
 import TemplateGallery from '../TemplateGallery';
 import CanvasLayoutPreview from '../CanvasLayoutPreview';
+import NavPropertiesSection from '../NavPropertiesSection';
 import type { CourseProperties } from '../CoursePropertiesPane/types';
 import { defaultCourseProperties } from '../CoursePropertiesPane/types';
 import PublishBar from '../PublishBar';
@@ -22,12 +23,27 @@ interface EditorBlock {
   payload: unknown;
 }
 
+export interface ContentEditorInitialData {
+  slug: string;
+  title: string;
+  description?: string;
+  templateId: string;
+  status: 'draft' | 'published';
+  blocks: Array<{ id: string; type: BlockType; payload: unknown }>;
+  inNav?: boolean;
+  navLabel?: string;
+  navParent?: string;
+  navOrder?: number;
+}
+
 interface ContentEditorProps {
   contentType: SiteContentType;
   /** If omitted, the template gallery is shown first (for 'page' type). */
   defaultTemplateId?: string;
   /** Where to navigate after a successful save. Defaults to the parent list route. */
   returnPath?: string;
+  /** Pre-populate the editor with existing page data (edit mode). */
+  initialData?: ContentEditorInitialData;
 }
 
 interface EditorState {
@@ -39,16 +55,27 @@ interface EditorState {
   showTemplateGallery: boolean;
 }
 
-export default function ContentEditor({ contentType, defaultTemplateId, returnPath }: ContentEditorProps) {
+export default function ContentEditor({ contentType, defaultTemplateId, returnPath, initialData }: ContentEditorProps) {
   const navigate = useNavigate();
-  const initialTemplateId = defaultTemplateId ?? (contentType === 'page' ? '' : 'post');
-  const needsTemplateSelection = !defaultTemplateId && contentType === 'page';
+  const initialTemplateId = initialData?.templateId ?? defaultTemplateId ?? (contentType === 'page' ? '' : 'post');
+  const needsTemplateSelection = !initialData && !defaultTemplateId && contentType === 'page';
 
   const [state, setState] = useState<EditorState>({
-    blocks: [],
+    blocks: initialData?.blocks ?? [],
     selectedBlockId: null,
-    publishStatus: 'draft',
-    courseProperties: { ...defaultCourseProperties, templateId: initialTemplateId },
+    publishStatus: initialData?.status ?? 'draft',
+    courseProperties: initialData ? {
+      ...defaultCourseProperties,
+      slug: initialData.slug,
+      title: initialData.title,
+      description: initialData.description ?? '',
+      templateId: initialData.templateId,
+      status: initialData.status,
+      inNav: initialData.inNav ?? false,
+      navLabel: initialData.navLabel ?? '',
+      navParent: initialData.navParent ?? '',
+      navOrder: initialData.navOrder ?? 0,
+    } : { ...defaultCourseProperties, templateId: initialTemplateId },
     rightTab: 'layout',
     showTemplateGallery: needsTemplateSelection,
   });
@@ -76,6 +103,16 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
       ...s,
       blocks: s.blocks.map((b) => (b.id === id ? { ...b, payload } : b)),
     }));
+  }
+
+  function insertBlocksAfter(afterId: string, newBlocks: Array<{ type: BlockType; payload: unknown }>) {
+    setState((s) => {
+      const idx = s.blocks.findIndex((b) => b.id === afterId);
+      const toInsert = newBlocks.map((nb) => ({ id: crypto.randomUUID(), type: nb.type, payload: nb.payload }));
+      const updated = [...s.blocks];
+      updated.splice(idx + 1, 0, ...toInsert);
+      return { ...s, blocks: updated };
+    });
   }
 
   function reorderBlocks(blocks: EditorBlock[]) {
@@ -124,6 +161,12 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
         payload: b.payload as Record<string, unknown>,
       })),
       status,
+      ...(contentType === 'page' ? {
+        inNav: courseProperties.inNav,
+        navLabel: courseProperties.navLabel || courseProperties.title,
+        navParent: courseProperties.navParent || undefined,
+        navOrder: courseProperties.navOrder,
+      } : {}),
     });
 
     setState((s) => ({ ...s, publishStatus: result.status }));
@@ -152,6 +195,7 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
               onRemoveBlock={removeBlock}
               onReorderBlocks={reorderBlocks}
               onUpdatePayload={updateBlockPayload}
+              onInsertBlocksAfter={insertBlocksAfter}
             />
           </CanvasLayoutPreview>
         </main>
@@ -184,10 +228,18 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
           )}
           <div className={styles.tabContent}>
             {state.rightTab === 'course' && (
-              <CoursePropertiesPane
-                properties={state.courseProperties}
-                onChange={setCourseProperties}
-              />
+              <>
+                <CoursePropertiesPane
+                  properties={state.courseProperties}
+                  onChange={setCourseProperties}
+                />
+                {contentType === 'page' && (
+                  <NavPropertiesSection
+                    properties={state.courseProperties}
+                    onChange={setCourseProperties}
+                  />
+                )}
+              </>
             )}
             {state.rightTab === 'layout' && (
               <LayoutPropertiesPane

@@ -1,0 +1,54 @@
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { listNavItems } from '../lib/storage';
+
+export interface NavNode {
+  slug: string;
+  label: string;
+  href: string;
+  order: number;
+  children: NavNode[];
+}
+
+async function getNavHandler(
+  _req: HttpRequest,
+  _context: InvocationContext,
+): Promise<HttpResponseInit> {
+  const items = await listNavItems();
+
+  const topLevel: NavNode[] = [];
+  const childMap = new Map<string, NavNode[]>();
+
+  for (const item of items) {
+    const node: NavNode = {
+      slug: item.slug,
+      label: item.navLabel || item.title,
+      href: `/${item.slug}`,
+      order: item.navOrder ?? 0,
+      children: [],
+    };
+    if (!item.navParent) {
+      topLevel.push(node);
+    } else {
+      if (!childMap.has(item.navParent)) childMap.set(item.navParent, []);
+      childMap.get(item.navParent)!.push(node);
+    }
+  }
+
+  for (const node of topLevel) {
+    node.children = (childMap.get(node.slug) ?? []).sort((a, b) => a.order - b.order);
+  }
+  topLevel.sort((a, b) => a.order - b.order);
+
+  return {
+    status: 200,
+    jsonBody: topLevel,
+    headers: { 'Cache-Control': 'public, max-age=60' },
+  };
+}
+
+app.http('getNav', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'nav',
+  handler: getNavHandler,
+});

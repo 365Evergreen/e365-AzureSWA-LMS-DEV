@@ -7,3 +7,7 @@ import './functions/listMedia';
 import './functions/uploadMedia';
 import './functions/getPage';
 import './functions/savePage';
+import './functions/adminListPages';
+import './functions/getEditorPage';
+import './functions/patchPageMeta';
+import './functions/getNav';
