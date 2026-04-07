@@ -5,3 +5,5 @@ import './functions/postProgress';
 import './functions/getEnrolment';
 import './functions/listMedia';
 import './functions/uploadMedia';
+import './functions/getPage';
+import './functions/savePage';

@@ -41,3 +41,17 @@
   background-color: var(--color-success-bg);
   color: var(--color-success);
 }
+
+.savedAt {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.saveError {
+  font-size: var(--font-size-sm);
+  color: var(--color-error, #dc2626);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -195,7 +195,129 @@ export async function fetchEnrolments(userId: string): Promise<CourseEnrolment[]
   return results;
 }
 
-// ─── Media Blob Storage ────────────────────────────────────────────────────────
+// ─── Site Content (Pages / Posts) ────────────────────────────────────────────
+
+const SITE_CONTENT_CONTAINER = 'site-content';
+const SITE_CONTENT_TABLE = 'sitecontent';
+
+export interface SitePageMetadata {
+  pageId: string;
+  slug: string;
+  title: string;
+  description: string;
+  status: 'draft' | 'published';
+  contentType: 'page' | 'post';
+  templateId: string;
+  bundleUrl: string;
+  publishedAt: string;
+  updatedAt: string;
+  author?: string;
+  tags?: string[];
+}
+
+function siteContentTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), SITE_CONTENT_TABLE);
+}
+
+export async function uploadSiteBundle(pageId: string, content: unknown): Promise<string> {
+  const client = BlobServiceClient.fromConnectionString(connectionString());
+  const container = client.getContainerClient(SITE_CONTENT_CONTAINER);
+  await container.createIfNotExists({ access: 'blob' });
+  const blob = container.getBlockBlobClient(`${pageId}.json`);
+  const json = JSON.stringify(content);
+  await blob.upload(json, Buffer.byteLength(json), {
+    blobHTTPHeaders: { blobContentType: 'application/json' },
+  });
+  return blob.url;
+}
+
+export async function fetchSiteBundle(pageId: string): Promise<unknown | null> {
+  const client = BlobServiceClient.fromConnectionString(connectionString());
+  const blob = client
+    .getContainerClient(SITE_CONTENT_CONTAINER)
+    .getBlockBlobClient(`${pageId}.json`);
+  try {
+    const download = await blob.download();
+    const chunks: Buffer[] = [];
+    for await (const chunk of download.readableStreamBody as AsyncIterable<Buffer>) {
+      chunks.push(chunk);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<void> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  await client.upsertEntity(
+    {
+      partitionKey: meta.contentType,
+      rowKey: meta.slug,
+      pageId: meta.pageId,
+      title: meta.title,
+      description: meta.description,
+      status: meta.status,
+      templateId: meta.templateId,
+      bundleUrl: meta.bundleUrl,
+      publishedAt: meta.publishedAt,
+      updatedAt: meta.updatedAt,
+      author: meta.author ?? '',
+      tags: (meta.tags ?? []).join(','),
+    },
+    'Replace'
+  );
+}
+
+export async function getSitePageBySlug(
+  slug: string,
+  contentType: 'page' | 'post' = 'page'
+): Promise<SitePageMetadata | null> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  try {
+    const e = await client.getEntity<Record<string, unknown>>(contentType, slug);
+    return entityToSitePageMetadata(e);
+  } catch {
+    return null;
+  }
+}
+
+export async function listSitePages(contentType: 'page' | 'post' = 'page'): Promise<SitePageMetadata[]> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  const results: SitePageMetadata[] = [];
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq '${contentType}' and status eq 'published'`,
+    },
+  });
+  for await (const e of entities) {
+    results.push(entityToSitePageMetadata(e));
+  }
+  return results.sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
+}
+
+function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata {
+  return {
+    pageId: e.pageId as string,
+    slug: e.rowKey as string,
+    title: e.title as string,
+    description: e.description as string,
+    status: e.status as SitePageMetadata['status'],
+    contentType: e.partitionKey as SitePageMetadata['contentType'],
+    templateId: e.templateId as string,
+    bundleUrl: e.bundleUrl as string,
+    publishedAt: e.publishedAt as string,
+    updatedAt: e.updatedAt as string,
+    author: (e.author as string) || undefined,
+    tags: ((e.tags as string) || '').split(',').filter(Boolean),
+  };
+}
+
 
 const MEDIA_CONTAINER = 'media';
 

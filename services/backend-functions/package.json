@@ -8,6 +8,7 @@
     "watch": "npm run build -- --watch",
     "start": "\"C:/Users/Pauli/AppData/Local/Microsoft/WinGet/Packages/Microsoft.Azure.FunctionsCoreTools_Microsoft.Winget.Source_8wekyb3d8bbwe/func.exe\" start",
     "dev": "npm run build && npm run start",
+    "seed": "npx tsx scripts/seedContent.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "@lms/shared-schemas": "*",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.0.0",
+    "azurite": "^3.35.0",
     "esbuild": "^0.24.0",
     "typescript": "~5"
   }

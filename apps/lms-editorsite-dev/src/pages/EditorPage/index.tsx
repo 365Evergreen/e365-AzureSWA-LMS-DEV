@@ -12,6 +12,7 @@ import CanvasLayoutPreview from '../../components/CanvasLayoutPreview';
 import type { CourseProperties } from '../../components/CoursePropertiesPane/types';
 import { defaultCourseProperties } from '../../components/CoursePropertiesPane/types';
 import PublishBar from '../../components/PublishBar';
+import { savePage } from '../../api/pages';
 import styles from './EditorPage.module.css';
 
 interface EditorBlock {
@@ -26,7 +27,7 @@ type NewContentStep = 'type' | 'template' | null;
 interface EditorState {
   blocks: EditorBlock[];
   selectedBlockId: string | null;
-  publishStatus: 'draft' | 'review' | 'published';
+  publishStatus: 'draft' | 'published';
   courseProperties: CourseProperties;
   rightTab: 'course' | 'block' | 'layout';
   newContentStep: NewContentStep;
@@ -43,6 +44,7 @@ export default function EditorPage() {
     newContentStep: 'type',
     contentType: null,
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   function addBlock(type: BlockType, payload: unknown) {
     const id = crypto.randomUUID();
@@ -72,17 +74,12 @@ export default function EditorPage() {
     setState((s) => ({ ...s, blocks }));
   }
 
-  function setPublishStatus(status: EditorState['publishStatus']) {
-    setState((s) => ({ ...s, publishStatus: status }));
-  }
-
   function setCourseProperties(courseProperties: CourseProperties) {
     setState((s) => ({ ...s, courseProperties }));
   }
 
   function handleContentTypeSelect(type: ContentType) {
     if (type === 'post') {
-      // Posts have a single template — skip the gallery
       setState((s) => ({
         ...s,
         contentType: type,
@@ -91,7 +88,6 @@ export default function EditorPage() {
         rightTab: 'layout',
       }));
     } else {
-      // Pages need a template gallery
       setState((s) => ({ ...s, contentType: type, newContentStep: 'template' }));
     }
   }
@@ -107,6 +103,40 @@ export default function EditorPage() {
 
   function openNewContentFlow() {
     setState((s) => ({ ...s, newContentStep: 'type', contentType: null }));
+  }
+
+  async function handleSave(status: 'draft' | 'published') {
+    const { courseProperties, blocks, contentType } = state;
+
+    if (!courseProperties.slug) {
+      setValidationError('Please set a slug in the Content tab before saving.');
+      setState((s) => ({ ...s, rightTab: 'course' }));
+      throw new Error('Slug is required');
+    }
+    if (!courseProperties.title) {
+      setValidationError('Please set a title in the Content tab before saving.');
+      setState((s) => ({ ...s, rightTab: 'course' }));
+      throw new Error('Title is required');
+    }
+
+    setValidationError(null);
+
+    const result = await savePage({
+      slug: courseProperties.slug,
+      title: courseProperties.title,
+      description: courseProperties.description,
+      templateId: courseProperties.templateId,
+      contentType: contentType ?? 'page',
+      blocks: blocks.map((b) => ({
+        id: b.id,
+        type: b.type,
+        version: 1,
+        payload: b.payload as Record<string, unknown>,
+      })),
+      status,
+    });
+
+    setState((s) => ({ ...s, publishStatus: result.status }));
   }
 
   const selectedBlock = state.blocks.find((b) => b.id === state.selectedBlockId) ?? null;
@@ -154,6 +184,9 @@ export default function EditorPage() {
               Block
             </button>
           </div>
+          {validationError && (
+            <div className={styles.validationError}>{validationError}</div>
+          )}
           <div className={styles.tabContent}>
             {state.rightTab === 'course' && (
               <CoursePropertiesPane
@@ -182,7 +215,7 @@ export default function EditorPage() {
           </div>
         </aside>
         <div className={styles.publishBar}>
-          <PublishBar status={state.publishStatus} onStatusChange={setPublishStatus} />
+          <PublishBar status={state.publishStatus} onSave={handleSave} />
         </div>
       </div>
 
@@ -202,3 +235,5 @@ export default function EditorPage() {
     </div>
   );
 }
+
+
