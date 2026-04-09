@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useAuth } from '@lms/shared-auth';
+import { useState, useEffect } from 'react';
 import { msalInstance } from '../../auth/msalConfig';
 import ConfirmModal from '../ConfirmModal';
 import styles from './PublishBar.module.css';
@@ -44,8 +43,27 @@ const MODAL_CONFIG: Record<
 };
 
 export default function PublishBar({ status, onSave, onDiscard, onDelete }: PublishBarProps) {
-  const { user } = useAuth(msalInstance);
-  const canPublish = user?.roles.some((r) => r === 'ContentEditor') ?? false;
+  // Roles must be read from the access token, not the ID token.
+  // The ContentEditor role is assigned on the backend API app registration so it
+  // only appears in the access token (scoped to the API), not the SPA's ID token.
+  const [canPublish, setCanPublish] = useState(false);
+
+  useEffect(() => {
+    const scope = (import.meta.env.VITE_API_SCOPE as string | undefined) ?? '';
+    if (!scope) return;
+    msalInstance.initialize().then(async () => {
+      const account = msalInstance.getActiveAccount();
+      if (!account) return;
+      try {
+        const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
+        const payload = JSON.parse(atob(result.accessToken.split('.')[1])) as { roles?: unknown };
+        const roles: string[] = Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
+        setCanPublish(roles.includes('ContentEditor'));
+      } catch {
+        setCanPublish(false);
+      }
+    });
+  }, []);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
