@@ -17,7 +17,7 @@
     "build:editor": "pnpm --filter ./apps/lms-editorsite-dev build",
     "build:learner": "pnpm --filter ./apps/lms-learnersite-dev build",
     "build:backend": "pnpm --filter ./services/backend-functions build",
-    "build:all": "pnpm -r build",
+    "build:all": "pnpm run build:public && pnpm run build:knowledge && pnpm run build:editor && pnpm run build:learner && pnpm run build:backend",
     "lint:all": "pnpm -r lint"
   }
 }
