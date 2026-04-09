@@ -1,5 +1,6 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance } from '../auth/msalConfig';
+import { apiBase } from './apiBase';
 import type {
   CatalogueItem,
   PathDetail,
@@ -47,7 +48,7 @@ async function apiFetch<T>(
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const base = apiBase();
   const res = await fetch(`${base}${url}`, { ...options, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);

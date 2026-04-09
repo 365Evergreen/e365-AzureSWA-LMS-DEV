@@ -1,5 +1,6 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance } from '../auth/msalConfig';
+import { apiBase } from './apiBase';
 
 export type SiteContentType = 'page' | 'post' | 'knowledge';
 
@@ -111,7 +112,7 @@ export interface EditorPageResponse {
 }
 
 export async function loadEditorPage(slug: string, contentType: SiteContentType = 'page'): Promise<EditorPageResponse> {
-  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const base = apiBase();
   const res = await apiFetch(`${base}/api/editor/pages/${encodeURIComponent(slug)}?contentType=${contentType}`);
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -121,7 +122,7 @@ export async function loadEditorPage(slug: string, contentType: SiteContentType 
 }
 
 export async function listPages(contentType: SiteContentType = 'page'): Promise<PageSummary[]> {
-  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const base = apiBase();
   const res = await apiFetch(`${base}/api/editor/pages?contentType=${contentType}`);
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -131,7 +132,7 @@ export async function listPages(contentType: SiteContentType = 'page'): Promise<
 }
 
 export async function patchPageMeta(slug: string, patch: PatchPageMetaRequest): Promise<void> {
-  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const base = apiBase();
   const res = await apiFetch(`${base}/api/pages/${encodeURIComponent(slug)}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
@@ -143,7 +144,7 @@ export async function patchPageMeta(slug: string, patch: PatchPageMetaRequest): 
 }
 
 export async function savePage(request: SavePageRequest): Promise<SavePageResponse> {
-  const base = import.meta.env.VITE_API_BASE_URL ?? '';
+  const base = apiBase();
   const res = await apiFetch(`${base}/api/pages`, {
     method: 'POST',
     body: JSON.stringify(request),
