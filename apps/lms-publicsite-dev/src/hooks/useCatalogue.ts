@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { CourseMetadata } from '@lms/shared-schemas'
+import { apiBase } from '../api/apiBase'
 
 interface CatalogueResult {
   courses: CourseMetadata[]
@@ -32,13 +33,12 @@ export function useCatalogue(options: UseCatalogueOptions = {}): UseCatalogueRet
     setLoading(true)
     setError(null)
     try {
-      const base = import.meta.env.VITE_API_BASE_URL ?? ''
       const params = new URLSearchParams()
       if (audience) params.set('audience', audience)
       if (level) params.set('level', level)
       if (tag) params.set('tag', tag)
       const qs = params.toString()
-      const res = await fetch(`${base}/api/catalogue${qs ? `?${qs}` : ''}`)
+      const res = await fetch(`${apiBase()}/api/catalogue${qs ? `?${qs}` : ''}`)
       if (!res.ok) throw new Error(`API error ${res.status}`)
       const data: CatalogueResult = await res.json()
       setCourses(data.courses)

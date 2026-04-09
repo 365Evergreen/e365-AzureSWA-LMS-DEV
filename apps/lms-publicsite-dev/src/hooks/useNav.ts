@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiBase } from '../api/apiBase'
 
 export interface NavNode {
   slug: string
@@ -13,8 +14,7 @@ export function useNav(): { items: NavNode[]; loading: boolean } {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_BASE_URL ?? ''
-    fetch(`${base}/api/nav`)
+    fetch(`${apiBase()}/api/nav`)
       .then((r) => (r.ok ? (r.json() as Promise<NavNode[]>) : Promise.resolve([])))
       .then((data) => setItems(data))
       .catch(() => setItems([]))

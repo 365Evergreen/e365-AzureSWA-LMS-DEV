@@ -10,6 +10,10 @@
   },
   "dependencies": {
     "@azure/msal-browser": "^5.6.3",
+    "@lms/block-registry": "workspace:*",
+    "@lms/shared-auth": "workspace:*",
+    "@lms/shared-schemas": "workspace:*",
+    "@lms/shared-ui": "workspace:*",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4"

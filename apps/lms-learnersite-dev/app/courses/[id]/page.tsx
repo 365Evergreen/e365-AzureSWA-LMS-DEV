@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { AppNav } from '../../../components/AppNav';
 import { ProgressBar } from '../../../components/ProgressBar';
 import { LoadingSpinner } from '@lms/shared-ui';
-import { getMockBundle, mockCourses } from '../../../lib/mockData';
+import { useCourse } from '../../../lib/hooks/useCourse';
+import { useCatalogue } from '../../../lib/hooks/useCatalogue';
 import styles from './course.module.css';
 
 const BlockRenderer = dynamic(
@@ -16,9 +17,28 @@ const BlockRenderer = dynamic(
 export default function CoursePage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const bundle = getMockBundle(id);
-  const course = mockCourses.find((c) => c.id === id);
+  const { loading, data: bundle, error } = useCourse(id);
+  const { data: courses } = useCatalogue();
+  const course = courses?.find((c) => c.id === id);
   const progress = course?.progress ?? 0;
+
+  if (loading) {
+    return (
+      <>
+        <AppNav />
+        <div className={styles.loading}>Loading course…</div>
+      </>
+    );
+  }
+
+  if (error || !bundle) {
+    return (
+      <>
+        <AppNav />
+        <div className={styles.error}>Failed to load course.</div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -35,7 +55,7 @@ export default function CoursePage() {
             </div>
           </header>
           <div className={styles.blocks}>
-            {bundle.blocks.map((block) => (
+            {bundle.blocks.map((block: any) => (
               <BlockRenderer key={block.id} block={block} />
             ))}
           </div>

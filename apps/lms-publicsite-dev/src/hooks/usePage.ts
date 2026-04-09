@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiBase } from '../api/apiBase'
 
 interface Block {
   id: string
@@ -44,8 +45,7 @@ export function usePage(slug: string): UsePageResult {
     setLoading(true)
     setError(null)
 
-    const base = import.meta.env.VITE_API_BASE_URL ?? ''
-    fetch(`${base}/api/pages/${slug}`)
+    fetch(`${apiBase()}/api/pages/${slug}`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`API ${res.status}`)
         return res.json() as Promise<{ metadata: PageMetadata; bundle: PageBundle }>

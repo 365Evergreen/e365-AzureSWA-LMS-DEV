@@ -2,22 +2,22 @@
   "name": "lms-platform",
   "version": "0.0.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "shared/*",
-    "services/*"
-  ],
+  "packageManager": "pnpm@10.27.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"]
+  },
   "scripts": {
-    "dev:public": "npm run dev -w apps/lms-publicsite-dev",
-    "dev:knowledge": "npm run dev -w apps/lms-knowledge-site",
-    "dev:editor": "npm run dev -w apps/lms-editorsite-dev",
-    "dev:learner": "npm run dev -w apps/lms-learnersite-dev",
-    "dev:backend": "npm run dev -w services/backend-functions",
-    "build:public": "npm run build -w apps/lms-publicsite-dev",
-    "build:knowledge": "npm run build -w apps/lms-knowledge-site",
-    "build:editor": "npm run build -w apps/lms-editorsite-dev",
-    "build:learner": "npm run build -w apps/lms-learnersite-dev",
-    "build:all": "npm run build --workspaces --if-present",
-    "lint:all": "npm run lint --workspaces --if-present"
+    "dev:public": "pnpm --filter ./apps/lms-publicsite-dev dev",
+    "dev:knowledge": "pnpm --filter ./apps/lms-knowledge-site dev",
+    "dev:editor": "pnpm --filter ./apps/lms-editorsite-dev dev",
+    "dev:learner": "pnpm --filter ./apps/lms-learnersite-dev dev",
+    "dev:backend": "pnpm --filter ./services/backend-functions dev",
+    "build:public": "pnpm --filter ./apps/lms-publicsite-dev build",
+    "build:knowledge": "pnpm --filter ./apps/lms-knowledge-site build",
+    "build:editor": "pnpm --filter ./apps/lms-editorsite-dev build",
+    "build:learner": "pnpm --filter ./apps/lms-learnersite-dev build",
+    "build:backend": "pnpm --filter ./services/backend-functions build",
+    "build:all": "pnpm -r build",
+    "lint:all": "pnpm -r lint"
   }
 }

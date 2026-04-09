@@ -21,7 +21,7 @@
     "zod": "^3"
   },
   "devDependencies": {
-    "@lms/shared-schemas": "*",
+    "@lms/shared-schemas": "workspace:*",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.0.0",
     "@types/sharp": "^0.31.1",

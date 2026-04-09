@@ -1,5 +1,5 @@
 import { BlobServiceClient } from '@azure/storage-blob';
-import { TableClient } from '@azure/data-tables';
+import { TableClient, TableEntity } from '@azure/data-tables';
 import { randomUUID } from 'crypto';
 import type { ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
 
@@ -354,7 +354,7 @@ export async function patchSitePageMeta(
 ): Promise<void> {
   const client = siteContentTable();
   await client.createTable().catch(() => {});
-  const update: Record<string, unknown> = {
+  const update: TableEntity<Record<string, unknown>> = {
     partitionKey: contentType,
     rowKey: slug,
     updatedAt: new Date().toISOString(),
@@ -589,15 +589,13 @@ export async function patchCatalogueItem(
   patch: Partial<Omit<CatalogueItem, 'itemId' | 'itemType' | 'createdOn'>>
 ): Promise<void> {
   const client = catalogueTable();
-  await client.updateEntity(
-    {
-      partitionKey: `catalogue|${itemType}`,
-      rowKey: itemId,
-      updatedOn: new Date().toISOString(),
-      ...patch,
-    },
-    'Merge'
-  );
+  const update: TableEntity<Record<string, unknown>> = {
+    partitionKey: `catalogue|${itemType}`,
+    rowKey: itemId,
+    updatedOn: new Date().toISOString(),
+    ...patch,
+  };
+  await client.updateEntity(update, 'Merge');
 }
 
 // ─── ContentVersions ──────────────────────────────────────────────────────────
