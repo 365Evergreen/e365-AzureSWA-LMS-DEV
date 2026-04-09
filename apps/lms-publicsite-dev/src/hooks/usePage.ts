@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiBase } from '../api/apiBase'
-
-interface Block {
-  id: string
-  type: string
-  version: number
-  payload: Record<string, unknown>
-}
+import type { Block } from '../components/PublicBlockRenderer'
 
 interface PageMetadata {
   pageId: string
@@ -34,7 +28,9 @@ interface UsePageResult {
   error: string | null
 }
 
-export function usePage(slug: string): UsePageResult {
+export type ContentType = 'page' | 'post' | 'knowledge'
+
+export function usePage(slug: string, type: ContentType = 'page'): UsePageResult {
   const [metadata, setMetadata] = useState<PageMetadata | null>(null)
   const [blocks, setBlocks] = useState<Block[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,8 +40,10 @@ export function usePage(slug: string): UsePageResult {
     let cancelled = false
     setLoading(true)
     setError(null)
+    setMetadata(null)
+    setBlocks([])
 
-    fetch(`${apiBase()}/api/pages/${slug}`)
+    fetch(`${apiBase()}/api/pages/${slug}?type=${type}`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`API ${res.status}`)
         return res.json() as Promise<{ metadata: PageMetadata; bundle: PageBundle }>
@@ -64,7 +62,7 @@ export function usePage(slug: string): UsePageResult {
       })
 
     return () => { cancelled = true }
-  }, [slug])
+  }, [slug, type])
 
   return { metadata, blocks, loading, error }
 }

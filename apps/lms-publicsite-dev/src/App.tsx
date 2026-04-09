@@ -9,6 +9,7 @@ const BlogPostPage = React.lazy(() => import('./pages/BlogPostPage'))
 const KBPage = React.lazy(() => import('./pages/KBPage'))
 const KBArticlePage = React.lazy(() => import('./pages/KBArticlePage'))
 const CataloguePage = React.lazy(() => import('./pages/CataloguePage'))
+const WebsitePage = React.lazy(() => import('./pages/WebsitePage'))
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'))
 
 function App() {
@@ -24,6 +25,9 @@ function App() {
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/kb" element={<KBPage />} />
               <Route path="/kb/:slug" element={<KBArticlePage />} />
+              {/* CMS-managed pages — must come before 404 */}
+              <Route path="/:slug" element={<WebsitePage />} />
+              <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
