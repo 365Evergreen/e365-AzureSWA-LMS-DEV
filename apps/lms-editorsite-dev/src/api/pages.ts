@@ -92,7 +92,7 @@ export interface PatchPageMetaRequest {
   contentType: SiteContentType;
   title?: string;
   description?: string;
-  status?: 'draft' | 'published';
+  status?: 'draft' | 'published' | 'deleted';
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;
@@ -141,6 +141,10 @@ export async function patchPageMeta(slug: string, patch: PatchPageMetaRequest): 
     const body = await res.text().catch(() => '');
     throw new Error(`patchPageMeta ${res.status}: ${body}`);
   }
+}
+
+export async function deletePage(slug: string, contentType: SiteContentType): Promise<void> {
+  return patchPageMeta(slug, { contentType, status: 'deleted' });
 }
 
 export async function savePage(request: SavePageRequest): Promise<SavePageResponse> {

@@ -227,7 +227,11 @@ export default function EditorPage() {
           </div>
         </aside>
         <div className={styles.publishBar}>
-          <PublishBar status={state.publishStatus} onSave={handleSave} />
+          <PublishBar
+            status={state.publishStatus}
+            onSave={handleSave}
+            onDiscard={() => { setState((s) => ({ ...s, blocks: [], publishStatus: 'draft' })); }}
+          />
         </div>
       </div>
 

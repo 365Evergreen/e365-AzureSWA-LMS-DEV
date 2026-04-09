@@ -13,7 +13,7 @@ import NavPropertiesSection from '../NavPropertiesSection';
 import type { CourseProperties } from '../CoursePropertiesPane/types';
 import { defaultCourseProperties } from '../CoursePropertiesPane/types';
 import PublishBar from '../PublishBar';
-import { savePage } from '../../api/pages';
+import { savePage, deletePage } from '../../api/pages';
 import type { SiteContentType } from '../../api/pages';
 import styles from './ContentEditor.module.css';
 
@@ -176,6 +176,17 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
     }
   }
 
+  async function handleDelete() {
+    const { courseProperties } = state;
+    if (!courseProperties.slug) return;
+    await deletePage(courseProperties.slug, contentType);
+    navigate(returnPath ?? '/');
+  }
+
+  function handleDiscard() {
+    navigate(returnPath ?? '/');
+  }
+
   const selectedBlock = state.blocks.find((b) => b.id === state.selectedBlockId) ?? null;
   const { templateId, contentWidth } = state.courseProperties;
 
@@ -262,7 +273,12 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
           </div>
         </aside>
         <div className={styles.publishBar}>
-          <PublishBar status={state.publishStatus} onSave={handleSave} />
+          <PublishBar
+            status={state.publishStatus}
+            onSave={handleSave}
+            onDiscard={handleDiscard}
+            onDelete={initialData?.slug ? handleDelete : undefined}
+          />
         </div>
       </div>
 

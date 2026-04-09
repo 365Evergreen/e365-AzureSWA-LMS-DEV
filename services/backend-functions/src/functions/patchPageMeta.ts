@@ -7,7 +7,7 @@ const PatchSchema = z.object({
   contentType: z.enum(['page', 'post', 'knowledge']).default('page'),
   title: z.string().optional(),
   description: z.string().optional(),
-  status: z.enum(['draft', 'published']).optional(),
+  status: z.enum(['draft', 'published', 'deleted']).optional(),
   inNav: z.boolean().optional(),
   navLabel: z.string().optional(),
   navParent: z.string().optional(),
