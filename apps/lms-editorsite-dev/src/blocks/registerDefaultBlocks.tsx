@@ -1,6 +1,6 @@
 import React from 'react';
-import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema } from '@lms/block-registry';
-import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload } from '@lms/block-registry';
+import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema, FormPayloadSchema } from '@lms/block-registry';
+import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload, FormPayload, FormField } from '@lms/block-registry';
 import { z } from 'zod';
 
 // ─── Stub renderer for blocks not yet implemented ─────────────────────────────
@@ -721,5 +721,119 @@ export function registerDefaultBlocks(): void {
     payloadSchema: DividerPayloadSchema,
     defaultPayload: {},
     Renderer: () => <hr style={{ border: 'none', borderTop: '1px solid var(--color-border, #e0e0e0)', margin: '0.5rem 0' }} />,
+  });
+
+  // ─── Forms blocks ─────────────────────────────────────────────────────────
+
+  registerBlock({
+    type: BlockType.FORM,
+    group: BlockGroup.FORMS,
+    label: 'Form',
+    icon: '⊟',
+    payloadSchema: FormPayloadSchema,
+    defaultPayload: {
+      title: 'Contact us',
+      fields: [
+        { id: crypto.randomUUID(), type: 'text', label: 'Full name', placeholder: 'Your name', required: true, options: [], fullWidth: false },
+        { id: crypto.randomUUID(), type: 'email', label: 'Email address', placeholder: 'you@example.com', required: true, options: [], fullWidth: false },
+        { id: crypto.randomUUID(), type: 'textarea', label: 'Message', placeholder: 'Your message…', required: false, options: [], fullWidth: true },
+      ],
+      layout: '2col',
+      labelPosition: 'above',
+      submitLabel: 'Submit',
+    } as FormPayload,
+    Renderer: ({ payload }) => {
+      const p = payload as FormPayload;
+      const cols = p.layout === '2col' ? 2 : 1;
+      const labelPos = p.labelPosition ?? 'above';
+      return (
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
+          {p.title && (
+            <h3 style={{ margin: '0 0 0.25rem', fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text-primary, #111)' }}>
+              {p.title}
+            </h3>
+          )}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap: '0.75rem 1rem',
+          }}>
+            {(p.fields ?? []).map((field: FormField) => (
+              <div
+                key={field.id}
+                style={{
+                  gridColumn: field.fullWidth ? '1 / -1' : undefined,
+                  display: 'flex',
+                  flexDirection: labelPos === 'inline' ? 'row' : 'column',
+                  alignItems: labelPos === 'inline' ? 'center' : undefined,
+                  gap: labelPos === 'inline' ? '0.75rem' : '0.25rem',
+                }}
+              >
+                <label style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary, #111)',
+                  whiteSpace: 'nowrap',
+                  minWidth: labelPos === 'inline' ? '8rem' : undefined,
+                  flexShrink: 0,
+                }}>
+                  {field.label || 'Field'}
+                  {field.required && <span style={{ color: '#e53e3e', marginLeft: '2px' }}>*</span>}
+                </label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    placeholder={field.placeholder}
+                    rows={3}
+                    disabled
+                    style={{ flex: 1, padding: '0.5rem', border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '4px', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.875rem', background: 'var(--color-surface, #fff)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                ) : field.type === 'select' ? (
+                  <select
+                    disabled
+                    style={{ flex: 1, padding: '0.5rem', border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '4px', fontSize: '0.875rem', background: 'var(--color-surface, #fff)', width: '100%' }}
+                  >
+                    <option value="">{field.placeholder || 'Select an option'}</option>
+                    {(field.options ?? []).map((opt: string, i: number) => (
+                      <option key={i} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type === 'phone' ? 'tel' : field.type}
+                    placeholder={field.placeholder}
+                    disabled
+                    style={{ flex: 1, padding: '0.5rem', border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '4px', fontSize: '0.875rem', background: 'var(--color-surface, #fff)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {(p.fields ?? []).length > 0 && (
+            <div>
+              <button
+                type="submit"
+                disabled
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  background: 'var(--color-primary, #2563eb)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'not-allowed',
+                  opacity: 0.85,
+                }}
+              >
+                {p.submitLabel || 'Submit'}
+              </button>
+            </div>
+          )}
+        </form>
+      );
+    },
   });
 }

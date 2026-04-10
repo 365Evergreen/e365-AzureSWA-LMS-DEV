@@ -1,9 +1,10 @@
 import { getBlock, BlockType } from '@lms/block-registry';
-import type { HeroPayload, GridPayload } from '@lms/block-registry';
+import type { HeroPayload, GridPayload, FormPayload } from '@lms/block-registry';
 import ImageBlockEditor from '../ImageBlockEditor';
 import VideoBlockEditor from '../VideoBlockEditor';
 import HeroBlockEditor from '../HeroBlockEditor';
 import GridBlockEditor from '../GridBlockEditor';
+import FormBlockEditor from '../FormBlockEditor';
 import TextBlockPropertyEditor, { isTextBlock } from '../TextBlockPropertyEditor';
 import styles from './BlockPropertyEditor.module.css';
 
@@ -71,6 +72,18 @@ export default function BlockPropertyEditor({ block, onUpdatePayload }: BlockPro
         <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
         <VideoBlockEditor
           payload={block.payload as { src: string; title: string; posterSrc?: string }}
+          onChange={onUpdatePayload}
+        />
+      </div>
+    );
+  }
+
+  if (block.type === BlockType.FORM) {
+    return (
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <FormBlockEditor
+          payload={block.payload as FormPayload}
           onChange={onUpdatePayload}
         />
       </div>

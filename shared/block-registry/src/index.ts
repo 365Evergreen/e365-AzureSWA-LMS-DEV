@@ -8,6 +8,7 @@ export const BlockGroup = {
   MEDIA: 'Media',
   DESIGN: 'Design',
   LEARNING: 'Learning',
+  FORMS: 'Forms',
 } as const;
 
 export type BlockGroup = (typeof BlockGroup)[keyof typeof BlockGroup];
@@ -45,6 +46,8 @@ export const BlockType = {
   QUIZ: 'quiz',
   CALLOUT: 'callout',
   DIVIDER: 'divider',
+  // Forms
+  FORM: 'form',
 } as const;
 
 export type BlockType = (typeof BlockType)[keyof typeof BlockType];
@@ -144,6 +147,26 @@ export interface CalloutPayload {
 
 export interface DividerPayload {}
 
+export type FormFieldType = 'text' | 'email' | 'phone' | 'number' | 'textarea' | 'select';
+
+export interface FormField {
+  id: string;
+  type: FormFieldType;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+  fullWidth?: boolean;
+}
+
+export interface FormPayload {
+  title?: string;
+  fields: FormField[];
+  layout?: '1col' | '2col';
+  labelPosition?: 'above' | 'inline';
+  submitLabel?: string;
+}
+
 // ─── Block Payload Schemas ────────────────────────────────────────────────────
 
 export const TEXT_SIZES = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl'] as const;
@@ -228,6 +251,24 @@ export const CalloutPayloadSchema = z.object({
 });
 
 export const DividerPayloadSchema = z.object({});
+
+export const FormFieldSchema = z.object({
+  id: z.string(),
+  type: z.enum(['text', 'email', 'phone', 'number', 'textarea', 'select']),
+  label: z.string(),
+  placeholder: z.string().optional().default(''),
+  required: z.boolean().optional().default(false),
+  options: z.array(z.string()).optional().default([]),
+  fullWidth: z.boolean().optional().default(false),
+});
+
+export const FormPayloadSchema = z.object({
+  title: z.string().optional().default(''),
+  fields: z.array(FormFieldSchema).default([]),
+  layout: z.enum(['1col', '2col']).optional().default('1col'),
+  labelPosition: z.enum(['above', 'inline']).optional().default('above'),
+  submitLabel: z.string().optional().default('Submit'),
+});
 
 export const HeroPayloadSchema = z.object({
   layout: z.enum(['left', 'center', 'right']).optional().default('center'),
