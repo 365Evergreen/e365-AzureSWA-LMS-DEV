@@ -2,6 +2,14 @@ import type { ViewMode } from '../ViewToggle'
 import type { BlogPost } from '../../hooks/useBlogPosts'
 import styles from './ArticleCard.module.css'
 
+function formatUkDate(value: string): string {
+  return new Date(value).toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
 interface ArticleCardProps {
   article: BlogPost
   view?: ViewMode
@@ -18,11 +26,7 @@ export function ArticleCard({ article, view = 'grid' }: ArticleCardProps) {
       <div className={styles.body}>
       <div className={styles.meta}>
         <time className={styles.date} dateTime={article.publishedAt}>
-          {new Date(article.publishedAt).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
+          {formatUkDate(article.publishedAt)}
         </time>
         {article.tags.length > 0 && (
           <div className={styles.tags}>

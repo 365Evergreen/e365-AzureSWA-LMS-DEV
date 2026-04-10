@@ -18,8 +18,11 @@ const SavePageSchema = z.object({
   contentType: z.enum(['page', 'post', 'knowledge']),
   blocks: z.array(BlockSchema),
   status: z.enum(['draft', 'published']),
+  publishedAt: z.string().datetime().optional(),
   tags: z.array(z.string()).optional().default([]),
   featuredImage: z.string().optional().default(''),
+  categoryIds: z.array(z.string()).optional().default([]),
+  primaryCategoryId: z.string().optional(),
   inNav: z.boolean().optional().default(false),
   navLabel: z.string().optional().default(''),
   navParent: z.string().optional().default(''),
@@ -60,10 +63,14 @@ async function savePageHandler(
     };
   }
 
-  const { slug, title, description, templateId, contentType, blocks, status, tags, featuredImage,
-          inNav, navLabel, navParent, navOrder } = parsed.data;
+  const { slug, title, description, templateId, contentType, blocks, status, publishedAt, tags, featuredImage,
+          categoryIds, primaryCategoryId, inNav, navLabel, navParent, navOrder } = parsed.data;
+  if (primaryCategoryId && !categoryIds.includes(primaryCategoryId)) {
+    return { status: 400, jsonBody: { error: 'primaryCategoryId must be included in categoryIds' } };
+  }
   const pageId = `${contentType}-${slug}`;
   const now = new Date().toISOString();
+  const effectivePublishedAt = publishedAt || (status === 'published' ? now : '');
 
   const bundle = { pageId, slug, title, templateId, blocks, savedAt: now };
   const bundleUrl = await uploadSiteBundle(pageId, bundle);
@@ -78,7 +85,9 @@ async function savePageHandler(
     templateId,
     bundleUrl,
     featuredImage: featuredImage || undefined,
-    publishedAt: status === 'published' ? now : '',
+    categoryIds,
+    primaryCategoryId: primaryCategoryId || undefined,
+    publishedAt: effectivePublishedAt,
     updatedAt: now,
     author: claims.oid as string | undefined,
     tags,

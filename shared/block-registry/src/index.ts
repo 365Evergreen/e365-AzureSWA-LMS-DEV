@@ -101,6 +101,25 @@ export interface VideoPayload { src: string; title: string; posterSrc?: string }
 
 export interface VideoEmbedPayload { url: string; title?: string; aspectRatio?: '16:9' | '4:3' | '1:1' }
 
+export interface AccordionPanelBlock {
+  id: string;
+  type: BlockType;
+  payload: unknown;
+}
+
+export interface AccordionPanel {
+  id: string;
+  title: string;
+  blocks: AccordionPanelBlock[];
+  defaultOpen?: boolean;
+}
+
+export interface AccordionPayload {
+  title?: string;
+  visible?: boolean;
+  panels: AccordionPanel[];
+}
+
 export interface HeroPayload {
   layout: 'left' | 'center' | 'right';
   height: 'small' | 'medium' | 'large' | 'full';
@@ -252,6 +271,25 @@ export const CalloutPayloadSchema = z.object({
 
 export const DividerPayloadSchema = z.object({});
 
+const AccordionPanelBlockSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  payload: z.any(),
+});
+
+const AccordionPanelSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  blocks: z.array(AccordionPanelBlockSchema).default([]),
+  defaultOpen: z.boolean().optional().default(false),
+});
+
+export const AccordionPayloadSchema = z.object({
+  title: z.string().optional().default(''),
+  visible: z.boolean().optional().default(true),
+  panels: z.array(AccordionPanelSchema).min(1),
+});
+
 export const FormFieldSchema = z.object({
   id: z.string(),
   type: z.enum(['text', 'email', 'phone', 'number', 'textarea', 'select']),
@@ -300,6 +338,36 @@ export const GridPayloadSchema = z.object({
   rows: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1 as 1),
   cells: z.array(GridCellSchema).default([]),
 });
+
+export function normalizeAccordionPayload(payload: unknown): AccordionPayload {
+  const parsed = AccordionPayloadSchema.safeParse(payload);
+  if (parsed.success) {
+    return parsed.data as AccordionPayload;
+  }
+
+  const legacy = payload as {
+    items?: Array<{ title?: string; body?: string; defaultOpen?: boolean }>;
+  };
+
+  return {
+    title: '',
+    visible: true,
+    panels: (legacy.items ?? []).map((item, index) => ({
+      id: `legacy-panel-${index}`,
+      title: item.title ?? `Panel ${index + 1}`,
+      defaultOpen: item.defaultOpen ?? index === 0,
+      blocks: item.body
+        ? [
+            {
+              id: `legacy-panel-${index}-body`,
+              type: BlockType.PARAGRAPH,
+              payload: { html: item.body },
+            },
+          ]
+        : [],
+    })),
+  };
+}
 
 // ─── Block Definition ─────────────────────────────────────────────────────────
 

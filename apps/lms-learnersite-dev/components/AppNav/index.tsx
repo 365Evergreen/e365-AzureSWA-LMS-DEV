@@ -42,8 +42,11 @@ export function AppNav() {
 
   return (
     <Nav
-      logo={<span className={styles.logo}>LMS Learner</span>}
-      items={[{ label: 'Catalogue', href: '/catalogue' }]}
+      logo={<Link href="/" className={styles.logoLink}><span className={styles.logo}>LMS Learner</span></Link>}
+      items={[
+        { label: 'Home', href: '/' },
+        { label: 'Catalogue', href: '/catalogue' },
+      ]}
       actions={actions}
     />
   );

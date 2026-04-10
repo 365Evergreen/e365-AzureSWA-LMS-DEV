@@ -1,5 +1,6 @@
 import { getBlock, BlockType } from '@lms/block-registry';
-import type { HeroPayload, GridPayload, FormPayload } from '@lms/block-registry';
+import type { AccordionPayload, HeroPayload, GridPayload, FormPayload } from '@lms/block-registry';
+import AccordionBlockEditor from '../AccordionBlockEditor';
 import ImageBlockEditor from '../ImageBlockEditor';
 import VideoBlockEditor from '../VideoBlockEditor';
 import HeroBlockEditor from '../HeroBlockEditor';
@@ -36,6 +37,18 @@ export default function BlockPropertyEditor({ block, onUpdatePayload }: BlockPro
         <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
         <GridBlockEditor
           payload={block.payload as GridPayload}
+          onChange={onUpdatePayload}
+        />
+      </div>
+    );
+  }
+
+  if (block.type === BlockType.ACCORDION) {
+    return (
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <AccordionBlockEditor
+          payload={block.payload as AccordionPayload}
           onChange={onUpdatePayload}
         />
       </div>

@@ -29,6 +29,9 @@ export default function EditBlogPostPage() {
             payload: b.payload,
           })),
           featuredImage: metadata.featuredImage,
+          publishedAt: metadata.publishedAt,
+          categoryIds: metadata.categoryIds,
+          primaryCategoryId: metadata.primaryCategoryId,
         });
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load post'));

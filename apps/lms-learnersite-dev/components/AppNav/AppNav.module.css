@@ -5,6 +5,10 @@
   letter-spacing: -0.01em;
 }
 
+.logoLink {
+  text-decoration: none;
+}
+
 .actions {
   display: flex;
   align-items: center;

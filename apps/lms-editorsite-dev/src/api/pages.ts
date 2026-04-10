@@ -1,4 +1,5 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
+import type { BlogCategory } from '@lms/shared-schemas';
 import { msalInstance } from '../auth/msalConfig';
 import { apiBase } from './apiBase';
 
@@ -12,8 +13,11 @@ export interface SavePageRequest {
   contentType: SiteContentType;
   blocks: { id: string; type: string; version?: number; payload: Record<string, unknown> }[];
   status: 'draft' | 'published';
+  publishedAt?: string;
   tags?: string[];
   featuredImage?: string;
+  categoryIds?: string[];
+  primaryCategoryId?: string;
   // Navigation (web pages only)
   inNav?: boolean;
   navLabel?: string;
@@ -88,6 +92,8 @@ export interface PageSummary {
   author?: string;
   tags?: string[];
   featuredImage?: string;
+  categoryIds?: string[];
+  primaryCategoryId?: string;
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;
@@ -102,6 +108,9 @@ export interface PatchPageMetaRequest {
   title?: string;
   description?: string;
   status?: 'draft' | 'published' | 'deleted';
+  publishedAt?: string;
+  categoryIds?: string[];
+  primaryCategoryId?: string;
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;
@@ -118,6 +127,14 @@ export interface EditorPageResponse {
     blocks: Array<{ id: string; type: string; version?: number; payload: Record<string, unknown> }>;
     savedAt: string;
   } | null;
+}
+
+export interface CreateBlogCategoryRequest {
+  taxonomy?: 'post';
+  name: string;
+  slug?: string;
+  parentId?: string;
+  sortOrder?: number;
 }
 
 export async function loadEditorPage(slug: string, contentType: SiteContentType = 'page'): Promise<EditorPageResponse> {
@@ -167,4 +184,27 @@ export async function savePage(request: SavePageRequest): Promise<SavePageRespon
     throw new Error(`savePage ${res.status}: ${body}`);
   }
   return res.json() as Promise<SavePageResponse>;
+}
+
+export async function listBlogCategories(): Promise<BlogCategory[]> {
+  const base = apiBase();
+  const res = await apiFetch(`${base}/api/categories?taxonomy=post`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`listBlogCategories ${res.status}: ${body}`);
+  }
+  return res.json() as Promise<BlogCategory[]>;
+}
+
+export async function createBlogCategory(request: CreateBlogCategoryRequest): Promise<BlogCategory> {
+  const base = apiBase();
+  const res = await apiFetch(`${base}/api/categories`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`createBlogCategory ${res.status}: ${body}`);
+  }
+  return res.json() as Promise<BlogCategory>;
 }

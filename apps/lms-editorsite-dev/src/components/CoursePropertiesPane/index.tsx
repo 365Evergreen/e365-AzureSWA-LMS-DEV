@@ -1,12 +1,20 @@
 import { useState } from 'react';
+import type { BlogCategory } from '@lms/shared-schemas';
 import type { CourseProperties } from './types';
+import type { CreateBlogCategoryRequest } from '../../api/pages';
 import CourseSelectorModal from '../CourseSelectorModal';
+import BlogCategoryPicker from '../BlogCategoryPicker';
 import type { SelectedCourse } from '../CourseSelectorModal';
 import styles from './CoursePropertiesPane.module.css';
 
 interface CoursePropertiesPaneProps {
+  contentType?: 'page' | 'post' | 'knowledge';
   properties: CourseProperties;
   onChange: (properties: CourseProperties) => void;
+  categories?: BlogCategory[];
+  categoriesLoading?: boolean;
+  categoriesError?: string | null;
+  onCreateCategory?: (request: CreateBlogCategoryRequest) => Promise<BlogCategory>;
 }
 
 function slugify(value: string): string {
@@ -18,7 +26,29 @@ function slugify(value: string): string {
     .replace(/-+/g, '-');
 }
 
-export default function CoursePropertiesPane({ properties, onChange }: CoursePropertiesPaneProps) {
+function toDateTimeLocalValue(value: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const timezoneOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
+function fromDateTimeLocalValue(value: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
+export default function CoursePropertiesPane({
+  contentType = 'page',
+  properties,
+  onChange,
+  categories = [],
+  categoriesLoading = false,
+  categoriesError = null,
+  onCreateCategory,
+}: CoursePropertiesPaneProps) {
   const [selectorOpen, setSelectorOpen] = useState(false);
 
   function update<K extends keyof CourseProperties>(key: K, value: CourseProperties[K]) {
@@ -47,7 +77,7 @@ export default function CoursePropertiesPane({ properties, onChange }: CoursePro
 
   return (
     <div className={styles.pane}>
-      <h2 className={styles.heading}>Course Properties</h2>
+      <h2 className={styles.heading}>Content Properties</h2>
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="course-title">Title</label>
@@ -130,6 +160,36 @@ export default function CoursePropertiesPane({ properties, onChange }: CoursePro
           ))}
         </div>
       </div>
+
+      {contentType === 'post' && (
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="post-published-at">
+            Publish date
+            <span className={styles.hint}>Used when publishing; back-dating is allowed</span>
+          </label>
+          <input
+            id="post-published-at"
+            className={styles.input}
+            type="datetime-local"
+            value={toDateTimeLocalValue(properties.publishedAt)}
+            onChange={(e) => update('publishedAt', fromDateTimeLocalValue(e.target.value))}
+          />
+        </div>
+      )}
+
+      {contentType === 'post' && onCreateCategory && (
+        <BlogCategoryPicker
+          categories={categories}
+          selectedIds={properties.categoryIds}
+          primaryCategoryId={properties.primaryCategoryId}
+          loading={categoriesLoading}
+          error={categoriesError}
+          onCreateCategory={onCreateCategory}
+          onChange={(categoryIds, primaryCategoryId) =>
+            onChange({ ...properties, categoryIds, primaryCategoryId })
+          }
+        />
+      )}
 
       {properties.templateId === 'course-overview' && (
         <div className={styles.field}>

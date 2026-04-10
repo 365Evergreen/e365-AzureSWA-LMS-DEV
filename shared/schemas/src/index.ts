@@ -83,6 +83,27 @@ export const ProgressRecordSchema = z.object({
 
 export type ProgressRecord = z.infer<typeof ProgressRecordSchema>;
 
+// ─── Blog Category Taxonomy ─────────────────────────────────────────────────────
+
+export const BlogCategoryStatusSchema = z.enum(['active', 'archived']);
+export type BlogCategoryStatus = z.infer<typeof BlogCategoryStatusSchema>;
+
+export const BlogCategorySchema = z.object({
+  categoryId: z.string().uuid(),
+  taxonomy: z.enum(['post']).default('post'),
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  parentId: z.string().uuid().optional(),
+  path: z.string().min(1),
+  depth: z.number().int().nonnegative(),
+  sortOrder: z.number().int().nonnegative().default(0),
+  status: BlogCategoryStatusSchema.default('active'),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type BlogCategory = z.infer<typeof BlogCategorySchema>;
+
 // =============================================================================
 // CATALOGUE HIERARCHY — PATH → MODULE → UNIT
 // Design reference: apps/lms-editorsite-dev/docs/courses/implementation-plan.md

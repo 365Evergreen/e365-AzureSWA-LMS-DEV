@@ -8,6 +8,9 @@ const PatchSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(['draft', 'published', 'deleted']).optional(),
+  publishedAt: z.string().datetime().optional(),
+  categoryIds: z.array(z.string()).optional(),
+  primaryCategoryId: z.string().optional(),
   inNav: z.boolean().optional(),
   navLabel: z.string().optional(),
   navParent: z.string().optional(),
@@ -32,6 +35,14 @@ async function patchPageMetaHandler(req: HttpRequest, context: InvocationContext
   const parsed = PatchSchema.safeParse(body);
   if (!parsed.success) {
     return { status: 400, jsonBody: { error: 'Invalid request', details: parsed.error.flatten() } };
+  }
+
+  if (
+    parsed.data.primaryCategoryId &&
+    parsed.data.categoryIds &&
+    !parsed.data.categoryIds.includes(parsed.data.primaryCategoryId)
+  ) {
+    return { status: 400, jsonBody: { error: 'primaryCategoryId must be included in categoryIds' } };
   }
 
   const { contentType, ...patch } = parsed.data;

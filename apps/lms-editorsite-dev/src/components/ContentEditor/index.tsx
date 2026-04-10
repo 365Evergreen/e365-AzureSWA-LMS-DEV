@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { BlogCategory } from '@lms/shared-schemas';
 import { useNavigate } from 'react-router-dom';
 import type { BlockType } from '@lms/block-registry';
 import AppNav from '../AppNav';
@@ -13,7 +14,7 @@ import NavPropertiesSection from '../NavPropertiesSection';
 import type { CourseProperties } from '../CoursePropertiesPane/types';
 import { defaultCourseProperties } from '../CoursePropertiesPane/types';
 import PublishBar from '../PublishBar';
-import { savePage, deletePage } from '../../api/pages';
+import { createBlogCategory, deletePage, listBlogCategories, savePage } from '../../api/pages';
 import type { SiteContentType } from '../../api/pages';
 import styles from './ContentEditor.module.css';
 
@@ -38,6 +39,9 @@ export interface ContentEditorInitialData {
   linkedCourseSlug?: string;
   linkedCourseTitle?: string;
   featuredImage?: string;
+  publishedAt?: string;
+  categoryIds?: string[];
+  primaryCategoryId?: string;
 }
 
 interface ContentEditorProps {
@@ -83,11 +87,42 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
       linkedCourseSlug: initialData.linkedCourseSlug,
       linkedCourseTitle: initialData.linkedCourseTitle,
       featuredImageUrl: initialData.featuredImage ?? '',
+      publishedAt: initialData.publishedAt ?? '',
+      categoryIds: initialData.categoryIds ?? [],
+      primaryCategoryId: initialData.primaryCategoryId,
     } : { ...defaultCourseProperties, templateId: initialTemplateId },
     rightTab: 'layout',
     showTemplateGallery: needsTemplateSelection,
   });
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(contentType === 'post');
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (contentType !== 'post') return;
+
+    let cancelled = false;
+    setCategoriesLoading(true);
+    setCategoriesError(null);
+
+    listBlogCategories()
+      .then((items) => {
+        if (cancelled) return;
+        setCategories(items);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setCategoriesError(error instanceof Error ? error.message : 'Failed to load categories');
+      })
+      .finally(() => {
+        if (!cancelled) setCategoriesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contentType]);
 
   function addBlock(type: BlockType, payload: unknown) {
     const id = crypto.randomUUID();
@@ -131,6 +166,22 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
     setState((s) => ({ ...s, courseProperties }));
   }
 
+  async function handleCreateBlogCategory(request: {
+    taxonomy?: 'post';
+    name: string;
+    slug?: string;
+    parentId?: string;
+    sortOrder?: number;
+  }): Promise<BlogCategory> {
+    const created = await createBlogCategory(request);
+    setCategories((previous) =>
+      [...previous, created].sort(
+        (a, b) => a.path.localeCompare(b.path) || a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
+      )
+    );
+    return created;
+  }
+
   function handleTemplateSelect(templateId: string) {
     setState((s) => ({
       ...s,
@@ -163,6 +214,11 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
       templateId: courseProperties.templateId,
       contentType,
       featuredImage: courseProperties.featuredImageUrl || undefined,
+      ...(contentType === 'post' ? {
+        publishedAt: courseProperties.publishedAt || undefined,
+        categoryIds: courseProperties.categoryIds,
+        primaryCategoryId: courseProperties.primaryCategoryId,
+      } : {}),
       blocks: blocks.map((b) => ({
         id: b.id,
         type: b.type,
@@ -255,8 +311,13 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
             {state.rightTab === 'course' && (
               <>
                 <CoursePropertiesPane
+                  contentType={contentType}
                   properties={state.courseProperties}
                   onChange={setCourseProperties}
+                  categories={categories}
+                  categoriesLoading={categoriesLoading}
+                  categoriesError={categoriesError}
+                  onCreateCategory={handleCreateBlogCategory}
                 />
                 {contentType === 'page' && (
                   <NavPropertiesSection

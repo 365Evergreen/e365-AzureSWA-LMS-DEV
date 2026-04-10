@@ -1,6 +1,6 @@
 import React from 'react';
-import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema, FormPayloadSchema } from '@lms/block-registry';
-import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload, FormPayload, FormField } from '@lms/block-registry';
+import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema, FormPayloadSchema, AccordionPayloadSchema, normalizeAccordionPayload } from '@lms/block-registry';
+import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload, FormPayload, FormField, AccordionPayload } from '@lms/block-registry';
 import { z } from 'zod';
 
 // ─── Stub renderer for blocks not yet implemented ─────────────────────────────
@@ -376,30 +376,61 @@ export function registerDefaultBlocks(): void {
     group: BlockGroup.DESIGN,
     label: 'Accordion',
     icon: '≡',
-    payloadSchema: z.object({
-      items: z.array(z.object({
-        title: z.string(),
-        body: z.string(),
-        defaultOpen: z.boolean().optional().default(false),
-      })).min(1),
-    }),
+    payloadSchema: AccordionPayloadSchema,
     defaultPayload: {
-      items: [
-        { title: 'Panel 1', body: 'Content for panel 1.', defaultOpen: true },
-        { title: 'Panel 2', body: 'Content for panel 2.', defaultOpen: false },
+      title: '',
+      visible: true,
+      panels: [
+        {
+          id: crypto.randomUUID(),
+          title: 'Panel 1',
+          defaultOpen: true,
+          blocks: [
+            {
+              id: crypto.randomUUID(),
+              type: BlockType.PARAGRAPH,
+              payload: { html: 'Content for panel 1.' },
+            },
+          ],
+        },
+        {
+          id: crypto.randomUUID(),
+          title: 'Panel 2',
+          defaultOpen: false,
+          blocks: [
+            {
+              id: crypto.randomUUID(),
+              type: BlockType.PARAGRAPH,
+              payload: { html: 'Content for panel 2.' },
+            },
+          ],
+        },
       ],
-    },
+    } as AccordionPayload,
     Renderer: ({ payload }) => {
-      const p = payload as { items: { title: string; body: string; defaultOpen?: boolean }[] };
+      const p = normalizeAccordionPayload(payload);
+      if (p.visible === false) {
+        return (
+          <div style={{ padding: '0.75rem 1rem', border: '1px dashed var(--color-border, #e0e0e0)', borderRadius: '6px', color: 'var(--color-text-secondary, #666)' }}>
+            Hidden accordion
+          </div>
+        );
+      }
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {p.items.map((item, i) => (
-            <details key={i} open={item.defaultOpen} style={{ border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '6px', overflow: 'hidden' }}>
+          {p.title ? (
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary, #222)' }}>
+              {p.title}
+            </div>
+          ) : null}
+          {p.panels.map((item) => (
+            <details key={item.id} open={item.defaultOpen} style={{ border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '6px', overflow: 'hidden' }}>
               <summary style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontWeight: 600, background: 'var(--color-surface-subtle, #f9f9f9)', userSelect: 'none' }}>
                 {item.title}
               </summary>
-              <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
-                dangerouslySetInnerHTML={{ __html: item.body }} />
+              <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', color: 'var(--color-text-secondary, #666)' }}>
+                {item.blocks.length} block{item.blocks.length !== 1 ? 's' : ''}
+              </div>
             </details>
           ))}
         </div>

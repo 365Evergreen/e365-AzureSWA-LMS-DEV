@@ -4,7 +4,11 @@
   "private": true,
   "packageManager": "pnpm@10.27.0",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "scripts": {
     "dev:public": "pnpm --filter ./apps/lms-publicsite-dev dev",
@@ -19,5 +23,8 @@
     "build:backend": "pnpm --filter ./services/backend-functions build",
     "build:all": "pnpm run build:public && pnpm run build:knowledge && pnpm run build:editor && pnpm run build:learner && pnpm run build:backend",
     "lint:all": "pnpm -r lint"
+  },
+  "dependencies": {
+    "sharp": "^0.34.5"
   }
 }

@@ -3,6 +3,9 @@ export interface CourseProperties {
   slug: string;
   description: string;
   featuredImageUrl: string;
+  publishedAt: string;
+  categoryIds: string[];
+  primaryCategoryId?: string;
   status: 'draft' | 'published';
   templateId: string;
   contentWidth?: string;
@@ -22,6 +25,9 @@ export const defaultCourseProperties: CourseProperties = {
   slug: '',
   description: '',
   featuredImageUrl: '',
+  publishedAt: '',
+  categoryIds: [],
+  primaryCategoryId: undefined,
   status: 'draft',
   templateId: 'content-page-fse',
   linkedCourseId: undefined,

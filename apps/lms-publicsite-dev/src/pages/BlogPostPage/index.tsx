@@ -5,6 +5,14 @@ import { PublicBlockRenderer } from '../../components/PublicBlockRenderer'
 import { blogArticles } from '../../data/blog'
 import styles from './BlogPostPage.module.css'
 
+function formatUkDate(value: string): string {
+  return new Date(value).toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
 export default function BlogPostPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   const { metadata, blocks, loading, error } = usePage(slug, 'post')
@@ -27,13 +35,8 @@ export default function BlogPostPage() {
           <a href="/blog" className={styles.back}>← Back to Blog</a>
           <div className={styles.meta}>
             <time className={styles.date} dateTime={metadata.publishedAt}>
-              {new Date(metadata.publishedAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {formatUkDate(metadata.publishedAt)}
             </time>
-            {metadata.author && <span className={styles.author}>by {metadata.author}</span>}
             {metadata.tags && metadata.tags.length > 0 && (
               <div className={styles.tags}>
                 {metadata.tags.map((tag) => (
@@ -71,11 +74,7 @@ export default function BlogPostPage() {
         <a href="/blog" className={styles.back}>← Back to Blog</a>
         <div className={styles.meta}>
           <time className={styles.date} dateTime={article.date}>
-            {new Date(article.date).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {formatUkDate(article.date)}
           </time>
           <div className={styles.tags}>
             {article.tags.map((tag) => (

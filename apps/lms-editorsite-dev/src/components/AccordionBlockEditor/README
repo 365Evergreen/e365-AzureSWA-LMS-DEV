@@ -1,0 +1,5 @@
+# Accordion block editor
+
+Update the accordion block in the editor app. The accordion should be a canvas. Editors can click the panel title and edit 
+its name. They can add blocks inside the content area. They can add a title to the block and toggle visibilty. They can    
+easily add new panels. They can reorder panels by drag and drop 

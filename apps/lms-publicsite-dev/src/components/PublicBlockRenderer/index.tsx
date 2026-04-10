@@ -127,17 +127,50 @@ function AudioBlock({ payload }: { payload: Record<string, unknown> }) {
 // ─── Design blocks ────────────────────────────────────────────────────────────
 
 function AccordionBlock({ payload }: { payload: Record<string, unknown> }) {
-  type AccordionItem = { title: string; body: string; defaultOpen?: boolean }
-  const items = (payload.items as AccordionItem[]) ?? []
+  type AccordionPanel = {
+    id: string
+    title: string
+    defaultOpen?: boolean
+    blocks: Block[]
+  }
+
+  const normalized = (() => {
+    if (Array.isArray(payload.panels)) {
+      return {
+        title: (payload.title as string | undefined) ?? '',
+        visible: payload.visible as boolean | undefined,
+        panels: payload.panels as AccordionPanel[],
+      }
+    }
+
+    const legacyItems = (payload.items as Array<{ title?: string; body?: string; defaultOpen?: boolean }>) ?? []
+    return {
+      title: '',
+      visible: true,
+      panels: legacyItems.map((item, index) => ({
+        id: `legacy-panel-${index}`,
+        title: item.title ?? `Panel ${index + 1}`,
+        defaultOpen: item.defaultOpen,
+        blocks: item.body
+          ? [{ id: `legacy-panel-${index}-body`, type: 'paragraph', version: 1, payload: { html: item.body } }]
+          : [],
+      })),
+    }
+  })()
+
+  if (normalized.visible === false) {
+    return null
+  }
+
   return (
     <div className={styles.accordion}>
-      {items.map((item, i) => (
-        <details key={i} open={item.defaultOpen} className={styles.accordionItem}>
+      {normalized.title ? <h3 className={styles.h3}>{normalized.title}</h3> : null}
+      {normalized.panels.map((item) => (
+        <details key={item.id} open={item.defaultOpen} className={styles.accordionItem}>
           <summary className={styles.accordionSummary}>{item.title}</summary>
-          <div
-            className={styles.accordionBody}
-            dangerouslySetInnerHTML={{ __html: item.body }}
-          />
+          <div className={styles.accordionBody}>
+            {item.blocks.map(renderBlock)}
+          </div>
         </details>
       ))}
     </div>

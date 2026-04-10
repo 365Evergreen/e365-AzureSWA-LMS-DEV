@@ -4,7 +4,8 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getBlock, TEXT_SIZE_CSS } from '@lms/block-registry';
-import type { BlockType, TextSize } from '@lms/block-registry';
+import type { AccordionPayload, BlockType, TextSize } from '@lms/block-registry';
+import AccordionCanvasEditor from '../AccordionCanvasEditor';
 import styles from './BlockCanvas.module.css';
 
 // ─── Block types that support inline editing ──────────────────────────────────
@@ -345,6 +346,7 @@ function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayloa
   const def = getBlock(block.type);
   const canInline = INLINE_EDITABLE.has(block.type);
   const canFormat = INLINE_FORMATTED.has(block.type);
+  const isAccordion = block.type === 'accordion';
 
   useEffect(() => {
     if (!isSelected) setShowLinkRow(false);
@@ -375,7 +377,9 @@ function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayloa
         <LinkRow payload={block.payload as Record<string, unknown>} onChange={onUpdatePayload} onClose={() => setShowLinkRow(false)} />
       )}
       <div className={styles.renderer}>
-        {isSelected && canInline
+        {isSelected && isAccordion
+          ? <AccordionCanvasEditor payload={block.payload as AccordionPayload} onChange={onUpdatePayload} />
+          : isSelected && canInline
           ? <InlineEditor block={block} onChange={onUpdatePayload} onInsertAfter={onInsertAfter} />
           : def ? <def.Renderer payload={block.payload} blockId={block.id} /> : <p>Unknown block type</p>
         }

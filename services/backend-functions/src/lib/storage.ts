@@ -2,7 +2,7 @@
 import { BlobServiceClient } from '@azure/storage-blob';
 import { TableClient, TableEntity } from '@azure/data-tables';
 import { randomUUID } from 'crypto';
-import type { ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
+import type { BlogCategory, ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
 
 function connectionString(): string {
   const cs = process.env.STORAGE_CONNECTION_STRING;
@@ -215,6 +215,8 @@ export interface SitePageMetadata {
   author?: string;
   tags?: string[];
   featuredImage?: string;
+  categoryIds?: string[];
+  primaryCategoryId?: string;
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;
@@ -272,6 +274,8 @@ export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<vo
       author: meta.author ?? '',
       tags: (meta.tags ?? []).join(','),
       featuredImage: meta.featuredImage ?? '',
+      categoryIds: (meta.categoryIds ?? []).join(','),
+      primaryCategoryId: meta.primaryCategoryId ?? '',
       inNav: meta.inNav ?? false,
       navLabel: meta.navLabel ?? '',
       navParent: meta.navParent ?? '',
@@ -327,6 +331,8 @@ function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata 
     author: (e.author as string) || undefined,
     tags: ((e.tags as string) || '').split(',').filter(Boolean),
     featuredImage: (e.featuredImage as string) || undefined,
+    categoryIds: ((e.categoryIds as string) || '').split(',').filter(Boolean),
+    primaryCategoryId: (e.primaryCategoryId as string) || undefined,
     inNav: (e.inNav as boolean) ?? false,
     navLabel: (e.navLabel as string) || undefined,
     navParent: (e.navParent as string) || undefined,
@@ -354,16 +360,22 @@ export async function listAllSitePages(
 export async function patchSitePageMeta(
   slug: string,
   contentType: 'page' | 'post' | 'knowledge',
-  patch: Partial<Pick<SitePageMetadata, 'title' | 'description' | 'status' | 'featuredImage' | 'inNav' | 'navLabel' | 'navParent' | 'navOrder'>>
+  patch: Partial<Pick<SitePageMetadata, 'title' | 'description' | 'status' | 'publishedAt' | 'featuredImage' | 'categoryIds' | 'primaryCategoryId' | 'inNav' | 'navLabel' | 'navParent' | 'navOrder'>>
 ): Promise<void> {
   const client = siteContentTable();
   await client.createTable().catch(() => {});
+  const hasCategoryIds = Object.prototype.hasOwnProperty.call(patch, 'categoryIds');
+  const hasPrimaryCategoryId = Object.prototype.hasOwnProperty.call(patch, 'primaryCategoryId');
+  const hasPublishedAt = Object.prototype.hasOwnProperty.call(patch, 'publishedAt');
   const update: TableEntity<Record<string, unknown>> = {
     partitionKey: contentType,
     rowKey: slug,
     updatedAt: new Date().toISOString(),
     ...patch,
-    ...(patch.status === 'published' ? { publishedAt: new Date().toISOString() } : {}),
+    ...(hasPublishedAt ? { publishedAt: patch.publishedAt ?? '' } : {}),
+    ...(hasCategoryIds ? { categoryIds: (patch.categoryIds ?? []).join(',') } : {}),
+    ...(hasPrimaryCategoryId ? { primaryCategoryId: patch.primaryCategoryId ?? '' } : {}),
+    ...(patch.status === 'published' && !hasPublishedAt ? { publishedAt: new Date().toISOString() } : {}),
   };
   await client.updateEntity(update, 'Merge');
 }
@@ -381,6 +393,119 @@ export async function listNavItems(): Promise<SitePageMetadata[]> {
     results.push(entityToSitePageMetadata(e));
   }
   return results;
+}
+
+const BLOG_CATEGORY_TABLE = 'blogCategories';
+
+function blogCategoryTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), BLOG_CATEGORY_TABLE);
+}
+
+function entityToBlogCategory(entity: Record<string, unknown>): BlogCategory {
+  return {
+    categoryId: entity.rowKey as string,
+    taxonomy: entity.partitionKey as 'post',
+    name: entity.name as string,
+    slug: entity.slug as string,
+    parentId: (entity.parentId as string) || undefined,
+    path: entity.path as string,
+    depth: entity.depth as number,
+    sortOrder: (entity.sortOrder as number) ?? 0,
+    status: (entity.status as BlogCategory['status']) ?? 'active',
+    createdAt: entity.createdAt as string,
+    updatedAt: entity.updatedAt as string,
+  };
+}
+
+export async function getBlogCategory(categoryId: string, taxonomy: 'post' = 'post'): Promise<BlogCategory | null> {
+  const client = blogCategoryTable();
+  await client.createTable().catch(() => {});
+  try {
+    const entity = await client.getEntity<Record<string, unknown>>(taxonomy, categoryId);
+    return entityToBlogCategory(entity);
+  } catch {
+    return null;
+  }
+}
+
+export async function listBlogCategories(taxonomy: 'post' = 'post'): Promise<BlogCategory[]> {
+  const client = blogCategoryTable();
+  await client.createTable().catch(() => {});
+  const categories: BlogCategory[] = [];
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq '${taxonomy}' and status eq 'active'`,
+    },
+  });
+  for await (const entity of entities) {
+    categories.push(entityToBlogCategory(entity));
+  }
+  return categories.sort(
+    (a, b) =>
+      a.path.localeCompare(b.path) ||
+      a.sortOrder - b.sortOrder ||
+      a.name.localeCompare(b.name)
+  );
+}
+
+export async function createBlogCategory(input: {
+  taxonomy?: 'post';
+  name: string;
+  slug: string;
+  parentId?: string;
+  sortOrder?: number;
+}): Promise<BlogCategory> {
+  const taxonomy = input.taxonomy ?? 'post';
+  const client = blogCategoryTable();
+  await client.createTable().catch(() => {});
+
+  let parent: BlogCategory | null = null;
+  if (input.parentId) {
+    parent = await getBlogCategory(input.parentId, taxonomy);
+    if (!parent) {
+      throw new Error('Parent category not found');
+    }
+  }
+
+  const path = parent ? `${parent.path}/${input.slug}` : input.slug;
+  const existing = await listBlogCategories(taxonomy);
+  if (existing.some((category) => category.path === path)) {
+    throw new Error('A category with this path already exists');
+  }
+
+  const now = new Date().toISOString();
+  const category: BlogCategory = {
+    categoryId: randomUUID(),
+    taxonomy,
+    name: input.name,
+    slug: input.slug,
+    parentId: parent?.categoryId,
+    path,
+    depth: parent ? parent.depth + 1 : 0,
+    sortOrder: input.sortOrder ?? 0,
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await client.upsertEntity(
+    {
+      partitionKey: taxonomy,
+      rowKey: category.categoryId,
+      name: category.name,
+      slug: category.slug,
+      parentId: category.parentId ?? '',
+      path: category.path,
+      depth: category.depth,
+      sortOrder: category.sortOrder,
+      status: category.status,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+    },
+    'Replace'
+  );
+
+  return category;
 }
 
 
