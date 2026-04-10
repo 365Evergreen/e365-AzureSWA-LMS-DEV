@@ -1,6 +1,12 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { listNavItems } from '../lib/storage';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 export interface NavNode {
   slug: string;
   label: string;
@@ -10,9 +16,13 @@ export interface NavNode {
 }
 
 async function getNavHandler(
-  _req: HttpRequest,
+  req: HttpRequest,
   _context: InvocationContext,
 ): Promise<HttpResponseInit> {
+  if (req.method === 'OPTIONS') {
+    return { status: 204, headers: CORS_HEADERS };
+  }
+
   const items = await listNavItems();
 
   const topLevel: NavNode[] = [];
@@ -42,12 +52,12 @@ async function getNavHandler(
   return {
     status: 200,
     jsonBody: topLevel,
-    headers: { 'Cache-Control': 'public, max-age=60' },
+    headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
   };
 }
 
 app.http('getNav', {
-  methods: ['GET'],
+  methods: ['GET', 'OPTIONS'],
   authLevel: 'anonymous',
   route: 'nav',
   handler: getNavHandler,

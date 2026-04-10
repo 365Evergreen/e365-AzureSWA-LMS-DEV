@@ -1,16 +1,26 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { listPublishedCourses, getCourseBySlug, fetchBundle } from '../lib/storage';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 async function getCatalogueHandler(
   req: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
+  if (req.method === 'OPTIONS') {
+    return { status: 204, headers: CORS_HEADERS };
+  }
+
   const slug = req.params.slug;
 
   if (slug) {
     const course = await getCourseBySlug(slug);
     if (!course || course.status !== 'published') {
-      return { status: 404, jsonBody: { error: 'Course not found' } };
+      return { status: 404, jsonBody: { error: 'Course not found' }, headers: CORS_HEADERS };
     }
 
     // Embed the full bundle if ?bundle=true — fetched server-side from private container.
@@ -21,7 +31,7 @@ async function getCatalogueHandler(
       return {
         status: 200,
         jsonBody: { ...safeCourse, bundle },
-        headers: { 'Cache-Control': 'public, max-age=60' },
+        headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
       };
     }
 
@@ -29,7 +39,7 @@ async function getCatalogueHandler(
     return {
       status: 200,
       jsonBody: safeCourse,
-      headers: { 'Cache-Control': 'public, max-age=60' },
+      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
     };
   }
 
@@ -49,12 +59,12 @@ async function getCatalogueHandler(
   return {
     status: 200,
     jsonBody: { courses: safeCourses, total: safeCourses.length },
-    headers: { 'Cache-Control': 'public, max-age=30' },
+    headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=30' },
   };
 }
 
 app.http('getCatalogue', {
-  methods: ['GET'],
+  methods: ['GET', 'OPTIONS'],
   authLevel: 'anonymous',
   route: 'catalogue/{slug?}',
   handler: getCatalogueHandler,
