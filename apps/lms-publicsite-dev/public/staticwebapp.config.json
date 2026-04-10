@@ -9,12 +9,25 @@
       "statusCode": 200
     }
   },
+  "routes": [
+    {
+      "route": "/assets/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    }
+  ],
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "geolocation=(), microphone=()",
-    "Cache-Control": "no-cache"
+    "Permissions-Policy": "geolocation=(), microphone=()"
   },
   "mimeTypes": {
     ".json": "application/json"
