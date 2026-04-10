@@ -36,3 +36,5 @@ local.settings.json
 *.log
 npm-debug.log*
 localhost.har
+lms.365evergreendev.com.har
+func-deploy.zip
