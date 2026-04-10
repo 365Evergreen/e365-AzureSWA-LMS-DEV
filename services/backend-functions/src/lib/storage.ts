@@ -214,6 +214,7 @@ export interface SitePageMetadata {
   updatedAt: string;
   author?: string;
   tags?: string[];
+  featuredImage?: string;
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;
@@ -270,6 +271,7 @@ export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<vo
       updatedAt: meta.updatedAt,
       author: meta.author ?? '',
       tags: (meta.tags ?? []).join(','),
+      featuredImage: meta.featuredImage ?? '',
       inNav: meta.inNav ?? false,
       navLabel: meta.navLabel ?? '',
       navParent: meta.navParent ?? '',
@@ -324,6 +326,7 @@ function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata 
     updatedAt: e.updatedAt as string,
     author: (e.author as string) || undefined,
     tags: ((e.tags as string) || '').split(',').filter(Boolean),
+    featuredImage: (e.featuredImage as string) || undefined,
     inNav: (e.inNav as boolean) ?? false,
     navLabel: (e.navLabel as string) || undefined,
     navParent: (e.navParent as string) || undefined,
@@ -351,7 +354,7 @@ export async function listAllSitePages(
 export async function patchSitePageMeta(
   slug: string,
   contentType: 'page' | 'post' | 'knowledge',
-  patch: Partial<Pick<SitePageMetadata, 'title' | 'description' | 'status' | 'inNav' | 'navLabel' | 'navParent' | 'navOrder'>>
+  patch: Partial<Pick<SitePageMetadata, 'title' | 'description' | 'status' | 'featuredImage' | 'inNav' | 'navLabel' | 'navParent' | 'navOrder'>>
 ): Promise<void> {
   const client = siteContentTable();
   await client.createTable().catch(() => {});

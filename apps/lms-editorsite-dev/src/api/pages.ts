@@ -13,6 +13,7 @@ export interface SavePageRequest {
   blocks: { id: string; type: string; version?: number; payload: Record<string, unknown> }[];
   status: 'draft' | 'published';
   tags?: string[];
+  featuredImage?: string;
   // Navigation (web pages only)
   inNav?: boolean;
   navLabel?: string;
@@ -86,6 +87,7 @@ export interface PageSummary {
   updatedAt: string;
   author?: string;
   tags?: string[];
+  featuredImage?: string;
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;

@@ -28,6 +28,7 @@ export default function EditBlogPostPage() {
             type: b.type as BlockType,
             payload: b.payload,
           })),
+          featuredImage: metadata.featuredImage,
         });
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load post'));

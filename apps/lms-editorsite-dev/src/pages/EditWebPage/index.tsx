@@ -35,6 +35,7 @@ export default function EditWebPage() {
           linkedCourseId: metadata.linkedCourseId,
           linkedCourseSlug: metadata.linkedCourseSlug,
           linkedCourseTitle: metadata.linkedCourseTitle,
+          featuredImage: metadata.featuredImage,
         });
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load page'));

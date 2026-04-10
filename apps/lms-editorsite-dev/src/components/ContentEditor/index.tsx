@@ -37,6 +37,7 @@ export interface ContentEditorInitialData {
   linkedCourseId?: string;
   linkedCourseSlug?: string;
   linkedCourseTitle?: string;
+  featuredImage?: string;
 }
 
 interface ContentEditorProps {
@@ -81,6 +82,7 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
       linkedCourseId: initialData.linkedCourseId,
       linkedCourseSlug: initialData.linkedCourseSlug,
       linkedCourseTitle: initialData.linkedCourseTitle,
+      featuredImageUrl: initialData.featuredImage ?? '',
     } : { ...defaultCourseProperties, templateId: initialTemplateId },
     rightTab: 'layout',
     showTemplateGallery: needsTemplateSelection,
@@ -160,6 +162,7 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
       description: courseProperties.description,
       templateId: courseProperties.templateId,
       contentType,
+      featuredImage: courseProperties.featuredImageUrl || undefined,
       blocks: blocks.map((b) => ({
         id: b.id,
         type: b.type,

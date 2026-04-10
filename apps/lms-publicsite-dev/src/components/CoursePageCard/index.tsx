@@ -20,7 +20,10 @@ export function CoursePageCard({ page, view = 'grid' }: CoursePageCardProps) {
       aria-label={`View course: ${page.title}`}
     >
       <div className={styles.thumbnail} aria-hidden="true">
-        <span className={styles.initials}>{initials}</span>
+        {page.featuredImage
+          ? <img src={page.featuredImage} alt="" className={styles.thumbnailImg} />
+          : <span className={styles.initials}>{initials}</span>
+        }
       </div>
 
       <div className={styles.body}>

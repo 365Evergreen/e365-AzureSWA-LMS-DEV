@@ -8,6 +8,7 @@ export interface BlogPost {
   description: string
   status: string
   tags: string[]
+  featuredImage?: string
   publishedAt: string
 }
 

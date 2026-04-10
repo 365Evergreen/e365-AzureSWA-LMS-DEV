@@ -19,6 +19,7 @@ const SavePageSchema = z.object({
   blocks: z.array(BlockSchema),
   status: z.enum(['draft', 'published']),
   tags: z.array(z.string()).optional().default([]),
+  featuredImage: z.string().optional().default(''),
   inNav: z.boolean().optional().default(false),
   navLabel: z.string().optional().default(''),
   navParent: z.string().optional().default(''),
@@ -59,7 +60,7 @@ async function savePageHandler(
     };
   }
 
-  const { slug, title, description, templateId, contentType, blocks, status, tags,
+  const { slug, title, description, templateId, contentType, blocks, status, tags, featuredImage,
           inNav, navLabel, navParent, navOrder } = parsed.data;
   const pageId = `${contentType}-${slug}`;
   const now = new Date().toISOString();
@@ -76,6 +77,7 @@ async function savePageHandler(
     contentType,
     templateId,
     bundleUrl,
+    featuredImage: featuredImage || undefined,
     publishedAt: status === 'published' ? now : '',
     updatedAt: now,
     author: claims.oid as string | undefined,

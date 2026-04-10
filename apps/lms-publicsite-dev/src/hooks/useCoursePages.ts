@@ -9,6 +9,7 @@ export interface CoursePage {
   status: string
   templateId: string
   tags: string[]
+  featuredImage?: string
   publishedAt: string
 }
 
