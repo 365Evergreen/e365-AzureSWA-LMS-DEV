@@ -125,3 +125,75 @@
 .statusDot.published {
   background: #22c55e;
 }
+
+/* Linked course section */
+.linkedCourse {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--color-brand-primary) 6%, transparent);
+  border: 1px solid var(--color-brand-primary);
+  border-radius: var(--radius-md);
+}
+
+.linkedCourseInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.linkedCourseTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linkedCourseSlug {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono, monospace);
+}
+
+.changeCourseBtn {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-family: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-primary);
+  background: transparent;
+  border: 1px solid var(--color-brand-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.changeCourseBtn:hover {
+  background: var(--color-brand-primary);
+  color: white;
+}
+
+.selectCourseBtn {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-primary);
+  background: transparent;
+  border: 1px dashed var(--color-brand-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.selectCourseBtn:hover {
+  background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent);
+}

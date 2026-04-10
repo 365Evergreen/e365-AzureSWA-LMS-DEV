@@ -6,6 +6,10 @@ export interface CourseProperties {
   status: 'draft' | 'published';
   templateId: string;
   contentWidth?: string;
+  // Course overview link (course-overview template only)
+  linkedCourseId?: string;
+  linkedCourseSlug?: string;
+  linkedCourseTitle?: string;
   // Navigation (web pages only)
   inNav: boolean;
   navLabel: string;
@@ -20,6 +24,9 @@ export const defaultCourseProperties: CourseProperties = {
   featuredImageUrl: '',
   status: 'draft',
   templateId: 'content-page-fse',
+  linkedCourseId: undefined,
+  linkedCourseSlug: undefined,
+  linkedCourseTitle: undefined,
   inNav: false,
   navLabel: '',
   navParent: '',

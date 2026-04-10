@@ -27,6 +27,7 @@ export const BlockType = {
   GALLERY: 'gallery',
   AUDIO: 'audio',
   VIDEO: 'video',
+  VIDEO_EMBED: 'video-embed',
   IMAGE_TEXT: 'image-text',
   FILE: 'file',
   // Design
@@ -37,6 +38,7 @@ export const BlockType = {
   ROW: 'row',
   STACK: 'stack',
   GRID: 'grid',
+  HERO: 'hero',
   SEPARATOR: 'separator',
   SPACER: 'spacer',
   // Learning (LMS-specific)
@@ -93,6 +95,39 @@ export interface DetailPayload { summary: string; body: string }
 export interface ImagePayload { src: string; alt: string; caption?: string }
 
 export interface VideoPayload { src: string; title: string; posterSrc?: string }
+
+export interface VideoEmbedPayload { url: string; title?: string; aspectRatio?: '16:9' | '4:3' | '1:1' }
+
+export interface HeroPayload {
+  layout: 'left' | 'center' | 'right';
+  height: 'small' | 'medium' | 'large' | 'full';
+  heading: string;
+  subheading?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  backgroundImage?: string;
+  overlayOpacity?: number;
+  backgroundColor?: string;
+  textColor?: 'light' | 'dark';
+}
+
+export interface GridCellBlock {
+  id: string;
+  type: BlockType;
+  payload: unknown;
+}
+
+export interface GridCell {
+  id: string;
+  blocks: GridCellBlock[];
+}
+
+export interface GridPayload {
+  columns: 2 | 3 | 4;
+  rows: 1 | 2 | 3;
+  cells: GridCell[];
+}
 
 export interface QuizPayload {
   question: string;
@@ -173,6 +208,12 @@ export const VideoPayloadSchema = z.object({
   posterSrc: z.string().url().optional(),
 });
 
+export const VideoEmbedPayloadSchema = z.object({
+  url: z.string().url(),
+  title: z.string().optional().default(''),
+  aspectRatio: z.enum(['16:9', '4:3', '1:1']).optional().default('16:9'),
+});
+
 export const QuizPayloadSchema = z.object({
   question: z.string(),
   options: z.array(z.object({ id: z.string(), label: z.string() })),
@@ -187,6 +228,37 @@ export const CalloutPayloadSchema = z.object({
 });
 
 export const DividerPayloadSchema = z.object({});
+
+export const HeroPayloadSchema = z.object({
+  layout: z.enum(['left', 'center', 'right']).optional().default('center'),
+  height: z.enum(['small', 'medium', 'large', 'full']).optional().default('medium'),
+  heading: z.string().optional().default(''),
+  subheading: z.string().optional().default(''),
+  body: z.string().optional().default(''),
+  ctaLabel: z.string().optional().default(''),
+  ctaUrl: z.string().optional().default(''),
+  backgroundImage: z.string().optional().default(''),
+  overlayOpacity: z.number().min(0).max(100).optional().default(0),
+  backgroundColor: z.string().optional().default('#1a1a2e'),
+  textColor: z.enum(['light', 'dark']).optional().default('light'),
+});
+
+const GridCellBlockSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  payload: z.any(),
+});
+
+const GridCellSchema = z.object({
+  id: z.string(),
+  blocks: z.array(GridCellBlockSchema).default([]),
+});
+
+export const GridPayloadSchema = z.object({
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(3 as 3),
+  rows: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1 as 1),
+  cells: z.array(GridCellSchema).default([]),
+});
 
 // ─── Block Definition ─────────────────────────────────────────────────────────
 

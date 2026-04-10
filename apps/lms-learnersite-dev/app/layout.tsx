@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '../components/Providers';
+import { AppNav } from '../components/AppNav';
+import { Footer } from '../components/Footer';
 
 export const metadata: Metadata = {
   title: 'LMS Learner',
@@ -15,7 +17,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="app-shell">
+            <AppNav />
+            <main className="app-main">{children}</main>
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -1,11 +1,11 @@
 'use client';
 
 import { CourseCard } from '../CourseCard';
-import type { MockCourse } from '../../lib/mockData';
+import type { LearnerCourse } from '../../lib/apiClient';
 import styles from './CourseGrid.module.css';
 
 interface CourseGridProps {
-  courses: MockCourse[];
+  courses: LearnerCourse[];
 }
 
 export function CourseGrid({ courses }: CourseGridProps) {

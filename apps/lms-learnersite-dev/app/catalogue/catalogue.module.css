@@ -14,3 +14,7 @@
   margin: 0 0 var(--space-8);
   line-height: var(--line-height-tight);
 }
+
+.error {
+  color: var(--color-feedback-danger);
+}

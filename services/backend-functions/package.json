@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@azure/functions --external:@azure/data-tables --external:@azure/storage-blob --external:jsonwebtoken --external:jwks-rsa --external:sharp",
     "watch": "npm run build -- --watch",
-    "start": "\"C:/Users/Pauli/AppData/Local/Microsoft/WinGet/Packages/Microsoft.Azure.FunctionsCoreTools_Microsoft.Winget.Source_8wekyb3d8bbwe/func.exe\" start",
+    "start": "func start",
     "dev": "npm run build && npm run start",
     "seed": "npx tsx scripts/seedContent.ts",
     "lint": "tsc --noEmit"

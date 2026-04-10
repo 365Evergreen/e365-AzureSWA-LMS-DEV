@@ -1,6 +1,9 @@
 import { getBlock, BlockType } from '@lms/block-registry';
+import type { HeroPayload, GridPayload } from '@lms/block-registry';
 import ImageBlockEditor from '../ImageBlockEditor';
 import VideoBlockEditor from '../VideoBlockEditor';
+import HeroBlockEditor from '../HeroBlockEditor';
+import GridBlockEditor from '../GridBlockEditor';
 import TextBlockPropertyEditor, { isTextBlock } from '../TextBlockPropertyEditor';
 import styles from './BlockPropertyEditor.module.css';
 
@@ -25,6 +28,30 @@ export default function BlockPropertyEditor({ block, onUpdatePayload }: BlockPro
   }
 
   const def = getBlock(block.type);
+
+  if (block.type === BlockType.GRID) {
+    return (
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <GridBlockEditor
+          payload={block.payload as GridPayload}
+          onChange={onUpdatePayload}
+        />
+      </div>
+    );
+  }
+
+  if (block.type === BlockType.HERO) {
+    return (
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <HeroBlockEditor
+          payload={block.payload as HeroPayload}
+          onChange={onUpdatePayload}
+        />
+      </div>
+    );
+  }
 
   if (block.type === BlockType.IMAGE) {
     return (

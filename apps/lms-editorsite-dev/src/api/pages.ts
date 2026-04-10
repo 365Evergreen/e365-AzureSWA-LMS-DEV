@@ -18,6 +18,10 @@ export interface SavePageRequest {
   navLabel?: string;
   navParent?: string;
   navOrder?: number;
+  // Course overview link
+  linkedCourseId?: string;
+  linkedCourseSlug?: string;
+  linkedCourseTitle?: string;
 }
 
 export interface SavePageResponse {
@@ -86,6 +90,9 @@ export interface PageSummary {
   navLabel?: string;
   navParent?: string;
   navOrder?: number;
+  linkedCourseId?: string;
+  linkedCourseSlug?: string;
+  linkedCourseTitle?: string;
 }
 
 export interface PatchPageMetaRequest {

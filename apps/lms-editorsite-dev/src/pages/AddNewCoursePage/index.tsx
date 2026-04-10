@@ -26,6 +26,7 @@ export default function AddNewCoursePage() {
   const [tags, setTags] = useState('');
   const [language, setLanguage] = useState('en');
   const [visibility, setVisibility] = useState<CatalogueItem['visibility']>('Public');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
 
   // Structure (optimistic local state — created in backend after save)
   const [modules, setModules] = useState<ModuleStub[]>([]);
@@ -122,6 +123,7 @@ export default function AddNewCoursePage() {
         estimatedMinutes,
         visibility,
         language,
+        thumbnailUrl: thumbnailUrl.trim() || undefined,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       });
 
@@ -243,6 +245,26 @@ export default function AddNewCoursePage() {
                 placeholder="react, typescript, beginner"
               />
               <span className={styles.hint}>Comma-separated</span>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Featured image URL</label>
+              <input
+                className={styles.input}
+                type="url"
+                value={thumbnailUrl}
+                onChange={e => setThumbnailUrl(e.target.value)}
+                placeholder="https://..."
+              />
+              <span className={styles.hint}>Displayed on catalogue card</span>
+              {thumbnailUrl && (
+                <img
+                  src={thumbnailUrl}
+                  alt="Featured"
+                  className={styles.imagePreview}
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
             </div>
           </section>
         </aside>

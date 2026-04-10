@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import type { CourseProperties } from './types';
+import CourseSelectorModal from '../CourseSelectorModal';
+import type { SelectedCourse } from '../CourseSelectorModal';
 import styles from './CoursePropertiesPane.module.css';
 
 interface CoursePropertiesPaneProps {
@@ -16,6 +19,8 @@ function slugify(value: string): string {
 }
 
 export default function CoursePropertiesPane({ properties, onChange }: CoursePropertiesPaneProps) {
+  const [selectorOpen, setSelectorOpen] = useState(false);
+
   function update<K extends keyof CourseProperties>(key: K, value: CourseProperties[K]) {
     onChange({ ...properties, [key]: value });
   }
@@ -28,6 +33,16 @@ export default function CoursePropertiesPane({ properties, onChange }: CoursePro
       title: value,
       slug: properties.slug === slugify(properties.title) ? autoSlug : properties.slug,
     });
+  }
+
+  function handleCourseSelected(course: SelectedCourse) {
+    onChange({
+      ...properties,
+      linkedCourseId: course.itemId,
+      linkedCourseSlug: course.slug,
+      linkedCourseTitle: course.title,
+    });
+    setSelectorOpen(false);
   }
 
   return (
@@ -115,6 +130,46 @@ export default function CoursePropertiesPane({ properties, onChange }: CoursePro
           ))}
         </div>
       </div>
+
+      {properties.templateId === 'course-overview' && (
+        <div className={styles.field}>
+          <label className={styles.label}>
+            Linked course
+            <span className={styles.hint}>Associates this page with a course</span>
+          </label>
+          {properties.linkedCourseId ? (
+            <div className={styles.linkedCourse}>
+              <div className={styles.linkedCourseInfo}>
+                <span className={styles.linkedCourseTitle}>{properties.linkedCourseTitle}</span>
+                <span className={styles.linkedCourseSlug}>/{properties.linkedCourseSlug}</span>
+              </div>
+              <button
+                type="button"
+                className={styles.changeCourseBtn}
+                onClick={() => setSelectorOpen(true)}
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.selectCourseBtn}
+              onClick={() => setSelectorOpen(true)}
+            >
+              Select course…
+            </button>
+          )}
+        </div>
+      )}
+
+      {selectorOpen && (
+        <CourseSelectorModal
+          currentCourseId={properties.linkedCourseId}
+          onSelect={handleCourseSelected}
+          onClose={() => setSelectorOpen(false)}
+        />
+      )}
     </div>
   );
 }

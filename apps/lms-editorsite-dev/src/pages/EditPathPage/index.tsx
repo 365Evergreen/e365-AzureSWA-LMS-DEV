@@ -29,12 +29,21 @@ export default function EditPathPage() {
 
   // Quick metadata edit
   const [editTitle, setEditTitle] = useState('');
+  const [editSlug, setEditSlug] = useState('');
   const [editSummary, setEditSummary] = useState('');
   const [editTags, setEditTags] = useState('');
   const [editDifficulty, setEditDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
   const [editMinutes, setEditMinutes] = useState(0);
+  const [editLanguage, setEditLanguage] = useState('en');
+  const [editVisibility, setEditVisibility] = useState<CatalogueItem['visibility']>('Public');
+  const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
   const [metaSaving, setMetaSaving] = useState(false);
   const [metaSaved, setMetaSaved] = useState(false);
+
+  // Inline module rename
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+  const [editingModuleTitle, setEditingModuleTitle] = useState('');
+  const [moduleRenameSaving, setModuleRenameSaving] = useState(false);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -46,10 +55,14 @@ export default function EditPathPage() {
       const detail = await loadEditorCatalogueItem('PATH', pathId) as PathDetail;
       setPath(detail);
       setEditTitle(detail.title);
+      setEditSlug(detail.slug ?? '');
       setEditSummary(detail.summary ?? '');
       setEditTags(detail.tagsCsv.split(',').filter(Boolean).join(', '));
       setEditDifficulty(detail.difficulty ?? 'Beginner');
       setEditMinutes(detail.estimatedMinutes ?? 0);
+      setEditLanguage(detail.language ?? 'en');
+      setEditVisibility(detail.visibility ?? 'Public');
+      setEditThumbnailUrl(detail.thumbnailUrl ?? '');
 
       const mods: ModuleRow[] = (detail.modules ?? []).map((m) => ({
         ...(m as ModuleRow),
@@ -80,10 +93,14 @@ export default function EditPathPage() {
     try {
       await patchCatalogueItem('PATH', pathId, {
         title: editTitle,
+        slug: editSlug,
         summary: editSummary,
         tags: editTags.split(',').map(t => t.trim()).filter(Boolean),
         difficulty: editDifficulty,
         estimatedMinutes: editMinutes,
+        language: editLanguage,
+        visibility: editVisibility,
+        thumbnailUrl: editThumbnailUrl,
       });
       setMetaSaved(true);
       setTimeout(() => setMetaSaved(false), 2000);
@@ -122,6 +139,31 @@ export default function EditPathPage() {
       await load();
     } catch (err) {
       setActionError((err as Error).message);
+    }
+  };
+
+  const startEditingModule = (mod: ModuleRow) => {
+    setEditingModuleId(mod.itemId);
+    setEditingModuleTitle(mod.title);
+  };
+
+  const cancelEditingModule = () => {
+    setEditingModuleId(null);
+    setEditingModuleTitle('');
+  };
+
+  const handleRenameModule = async (moduleId: string) => {
+    const trimmed = editingModuleTitle.trim();
+    if (!trimmed) return;
+    setModuleRenameSaving(true);
+    try {
+      await patchCatalogueItem('MODULE', moduleId, { title: trimmed });
+      setEditingModuleId(null);
+      await load();
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setModuleRenameSaving(false);
     }
   };
 
@@ -195,6 +237,19 @@ export default function EditPathPage() {
             </div>
 
             <div className={styles.field}>
+              <label className={styles.label}>
+                Slug
+                <span className={styles.fieldHint}>Changing breaks existing links</span>
+              </label>
+              <input
+                className={styles.input}
+                value={editSlug}
+                onChange={e => setEditSlug(e.target.value)}
+                placeholder="intro-to-react"
+              />
+            </div>
+
+            <div className={styles.field}>
               <label className={styles.label}>Summary</label>
               <textarea className={styles.textarea} value={editSummary} onChange={e => setEditSummary(e.target.value)} rows={3} />
             </div>
@@ -214,8 +269,48 @@ export default function EditPathPage() {
             </div>
 
             <div className={styles.field}>
+              <label className={styles.label}>Language</label>
+              <select className={styles.select} value={editLanguage} onChange={e => setEditLanguage(e.target.value)}>
+                <option value="en">English</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="es">Spanish</option>
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Visibility</label>
+              <select className={styles.select} value={editVisibility} onChange={e => setEditVisibility(e.target.value as CatalogueItem['visibility'])}>
+                <option value="Public">Public</option>
+                <option value="Enrolled">Enrolled learners only</option>
+              </select>
+            </div>
+
+            <div className={styles.field}>
               <label className={styles.label}>Tags</label>
               <input className={styles.input} value={editTags} onChange={e => setEditTags(e.target.value)} placeholder="comma-separated" />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>
+                Featured image URL
+                <span className={styles.fieldHint}>Displayed on catalogue card</span>
+              </label>
+              <input
+                className={styles.input}
+                type="url"
+                value={editThumbnailUrl}
+                onChange={e => setEditThumbnailUrl(e.target.value)}
+                placeholder="https://..."
+              />
+              {editThumbnailUrl && (
+                <img
+                  src={editThumbnailUrl}
+                  alt="Featured"
+                  className={styles.imagePreview}
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
             </div>
 
             <Button onClick={handleSaveMeta} disabled={metaSaving}>
@@ -245,9 +340,43 @@ export default function EditPathPage() {
                     {expandedModules.has(mod.itemId) ? '▼' : '▶'}
                   </button>
                   <span className={styles.moduleIndex}>M{mi + 1}</span>
-                  <span className={styles.moduleTitle}>{mod.title}</span>
+
+                  {editingModuleId === mod.itemId ? (
+                    <input
+                      className={styles.moduleTitleInput}
+                      value={editingModuleTitle}
+                      onChange={e => setEditingModuleTitle(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleRenameModule(mod.itemId);
+                        if (e.key === 'Escape') cancelEditingModule();
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <span className={styles.moduleTitle}>{mod.title}</span>
+                  )}
+
                   <span className={styles.statusDot} style={{ background: statusColors[mod.status] }} title={mod.status} />
                   <span className={styles.unitCount}>{mod.units.length} unit{mod.units.length !== 1 ? 's' : ''}</span>
+
+                  {editingModuleId === mod.itemId ? (
+                    <>
+                      <button
+                        className={styles.renameSaveBtn}
+                        onClick={() => handleRenameModule(mod.itemId)}
+                        disabled={moduleRenameSaving}
+                        title="Save"
+                      >✓</button>
+                      <button className={styles.renameCancelBtn} onClick={cancelEditingModule} title="Cancel">✕</button>
+                    </>
+                  ) : (
+                    <button
+                      className={styles.editModuleBtn}
+                      onClick={() => startEditingModule(mod)}
+                      title="Rename module"
+                    >✎</button>
+                  )}
+
                   <button className={styles.removeBtn} onClick={() => handleRemoveModule(mod.itemId)} title="Remove module">✕</button>
                 </div>
 
@@ -286,3 +415,4 @@ export default function EditPathPage() {
     </div>
   );
 }
+

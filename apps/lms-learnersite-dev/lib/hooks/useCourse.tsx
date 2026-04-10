@@ -2,22 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { createApiClient } from '../apiClient';
+import type { CourseDetail } from '../apiClient';
 import { useAuth } from '@lms/shared-auth';
 import { msalInstance } from '../msalConfig';
 
-export function useCourse(id: string) {
+const API_SCOPE = process.env.NEXT_PUBLIC_API_SCOPE ?? '';
+
+export function useCourse(slug: string) {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any | null>(null);
+  const [data, setData] = useState<CourseDetail | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const auth = useAuth(msalInstance) as any;
+  const { getAccessToken } = useAuth(msalInstance);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const getToken = auth?.getAccessToken ? async () => await auth.getAccessToken() : undefined;
+        const getToken = API_SCOPE ? () => getAccessToken([API_SCOPE]) : undefined;
         const client = createApiClient({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL, getToken });
-        const res = await client.getCourse(id);
+        const res = await client.getCourse(slug);
         if (mounted) setData(res);
       } catch (err: any) {
         if (mounted) setError(err);
@@ -28,7 +31,7 @@ export function useCourse(id: string) {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [slug, getAccessToken]);
 
   return { loading, data, error };
 }

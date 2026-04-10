@@ -1,10 +1,12 @@
 .page {
-  padding: var(--space-16) var(--space-6);
+  /* top padding removed — ArchiveHeader provides it */
+  padding: 0 0 var(--space-16);
 }
 
 .inner {
   max-width: var(--max-width-content);
   margin: 0 auto;
+  padding: var(--space-10) var(--space-6) 0;
 }
 
 .heading {

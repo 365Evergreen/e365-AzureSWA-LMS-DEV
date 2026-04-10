@@ -1,6 +1,7 @@
 @import '@lms/shared-ui/src/tokens.css';
 
 *, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
 html { font-size: 16px; }
 body {
   margin: 0;
@@ -11,3 +12,13 @@ body {
 }
 a { color: var(--color-text-link); text-decoration: none; }
 img, svg { display: block; max-width: 100%; }
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+}

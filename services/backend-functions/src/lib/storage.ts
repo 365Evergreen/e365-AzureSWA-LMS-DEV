@@ -1,3 +1,4 @@
+// Last deployed: 2026-04-10
 import { BlobServiceClient } from '@azure/storage-blob';
 import { TableClient, TableEntity } from '@azure/data-tables';
 import { randomUUID } from 'crypto';
@@ -14,7 +15,7 @@ function connectionString(): string {
 export async function uploadBundle(bundleId: string, content: unknown): Promise<string> {
   const client = BlobServiceClient.fromConnectionString(connectionString());
   const container = client.getContainerClient('content-bundles');
-  await container.createIfNotExists({ access: 'blob' });
+  await container.createIfNotExists(); // private — served via backend only
   const blob = container.getBlockBlobClient(`${bundleId}.json`);
   const json = JSON.stringify(content);
   await blob.upload(json, Buffer.byteLength(json), {
@@ -606,7 +607,7 @@ export async function uploadUnitContent(
 ): Promise<string> {
   const blobClient = BlobServiceClient.fromConnectionString(connectionString());
   const container = blobClient.getContainerClient(UNIT_CONTENT_CONTAINER);
-  await container.createIfNotExists({ access: 'blob' });
+  await container.createIfNotExists(); // private — served via backend only
   const blobName = `${unitId}/${randomUUID()}.json`;
   const blob = container.getBlockBlobClient(blobName);
   const json = JSON.stringify({ blocks });

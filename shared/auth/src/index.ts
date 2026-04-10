@@ -59,6 +59,7 @@ function parseRoles(account: AccountInfo): AppRole[] {
 export function useAuth(msalInstance: PublicClientApplication): {
   user: AuthUser | null;
   isLoading: boolean;
+  getAccessToken: (scopes: string[]) => Promise<string | null>;
 } {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,12 +67,28 @@ export function useAuth(msalInstance: PublicClientApplication): {
   useEffect(() => {
     msalInstance.initialize().then(async () => {
       // Process the redirect response (auth code) returned by Entra after loginRedirect.
-      // Without this, getActiveAccount() always returns null on the redirect-back load.
       const result = await msalInstance.handleRedirectPromise();
       if (result?.account) {
         msalInstance.setActiveAccount(result.account);
       }
-      const account = msalInstance.getActiveAccount();
+
+      let account = msalInstance.getActiveAccount();
+
+      // If no cached account, attempt SSO silent using the existing Entra browser session.
+      // This signs in the user automatically if they are already authenticated with Microsoft
+      // (e.g. logged into Microsoft 365 in the same browser) without any redirect or popup.
+      if (!account) {
+        try {
+          const ssoResult = await msalInstance.ssoSilent({ scopes: ['User.Read'] });
+          if (ssoResult?.account) {
+            msalInstance.setActiveAccount(ssoResult.account);
+            account = ssoResult.account;
+          }
+        } catch {
+          // No existing Entra session — user will need to sign in manually.
+        }
+      }
+
       if (account) {
         setUser({ account, roles: parseRoles(account) });
       }
@@ -79,7 +96,11 @@ export function useAuth(msalInstance: PublicClientApplication): {
     });
   }, [msalInstance]);
 
-  return { user, isLoading };
+  async function getAccessToken(scopes: string[]): Promise<string | null> {
+    return acquireToken(msalInstance, { scopes });
+  }
+
+  return { user, isLoading, getAccessToken };
 }
 
 export { type Configuration, type AccountInfo, type SilentRequest };

@@ -231,8 +231,101 @@ details[open] > .accordionSummary::before { transform: rotate(90deg); }
   margin: var(--space-2) 0;
 }
 
-/* Spacer */
-.spacer { display: block; }
+/* Video embed */
+.embedWrapper {
+  position: relative;
+  width: 100%;
+  height: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.embed {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+
+/* Hero — rendered outside constrained containers at page level, so width: 100% is full-bleed */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+.heroBg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+.heroContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: var(--max-width-content, 860px);
+  margin: 0;
+  padding: var(--space-12) var(--space-6);
+}
+.heroLight { color: #fff; }
+.heroDark  { color: #111; }
+.heroHeading {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+.heroSubheading {
+  font-size: var(--font-size-xl);
+  margin: 0;
+  opacity: 0.9;
+}
+.heroBody {
+  font-size: var(--font-size-base);
+  margin: 0;
+  opacity: 0.85;
+  max-width: 60ch;
+}
+.heroCta {
+  display: inline-block;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+.heroCta:hover { opacity: 0.85; }
+
+/* Grid block */
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+.gridCell {
+  min-height: 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.gridCellEmpty {
+  flex: 1;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  min-height: 4rem;
+}
 
 /* Quiz */
 .quiz {

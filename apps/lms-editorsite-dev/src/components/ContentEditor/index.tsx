@@ -34,6 +34,9 @@ export interface ContentEditorInitialData {
   navLabel?: string;
   navParent?: string;
   navOrder?: number;
+  linkedCourseId?: string;
+  linkedCourseSlug?: string;
+  linkedCourseTitle?: string;
 }
 
 interface ContentEditorProps {
@@ -75,6 +78,9 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
       navLabel: initialData.navLabel ?? '',
       navParent: initialData.navParent ?? '',
       navOrder: initialData.navOrder ?? 0,
+      linkedCourseId: initialData.linkedCourseId,
+      linkedCourseSlug: initialData.linkedCourseSlug,
+      linkedCourseTitle: initialData.linkedCourseTitle,
     } : { ...defaultCourseProperties, templateId: initialTemplateId },
     rightTab: 'layout',
     showTemplateGallery: needsTemplateSelection,
@@ -166,6 +172,11 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
         navLabel: courseProperties.navLabel || courseProperties.title,
         navParent: courseProperties.navParent || undefined,
         navOrder: courseProperties.navOrder,
+      } : {}),
+      ...(courseProperties.templateId === 'course-overview' ? {
+        linkedCourseId: courseProperties.linkedCourseId,
+        linkedCourseSlug: courseProperties.linkedCourseSlug,
+        linkedCourseTitle: courseProperties.linkedCourseTitle,
       } : {}),
     });
 

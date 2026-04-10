@@ -1,6 +1,6 @@
 import React from 'react';
-import { registerBlock, BlockGroup, BlockType, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema } from '@lms/block-registry';
-import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, QuizPayload, CalloutPayload } from '@lms/block-registry';
+import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema } from '@lms/block-registry';
+import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload } from '@lms/block-registry';
 import { z } from 'zod';
 
 // ─── Stub renderer for blocks not yet implemented ─────────────────────────────
@@ -13,6 +13,34 @@ function makeStub(label: string) {
       </p>
     );
   };
+}
+
+// ─── Video embed URL normalizer ───────────────────────────────────────────────
+
+function toEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    // YouTube: youtube.com/watch?v=ID or youtu.be/ID
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      // Already an embed URL
+      if (u.pathname.startsWith('/embed/')) return url;
+    }
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.replace('/', '');
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+    // Vimeo: vimeo.com/ID
+    if (u.hostname.includes('vimeo.com')) {
+      const id = u.pathname.replace('/', '');
+      if (id && /^\d+$/.test(id)) return `https://player.vimeo.com/video/${id}`;
+      if (u.pathname.startsWith('/video/')) return url;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Text blocks ──────────────────────────────────────────────────────────────
@@ -177,6 +205,42 @@ export function registerDefaultBlocks(): void {
   });
 
   registerBlock({
+    type: BlockType.VIDEO_EMBED,
+    group: BlockGroup.MEDIA,
+    label: 'Video embed',
+    icon: '▶︎',
+    payloadSchema: VideoEmbedPayloadSchema,
+    defaultPayload: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', title: '', aspectRatio: '16:9' } as VideoEmbedPayload,
+    Renderer: ({ payload }) => {
+      const embedUrl = toEmbedUrl(payload.url);
+      const paddingTop = payload.aspectRatio === '4:3' ? '75%' : payload.aspectRatio === '1:1' ? '100%' : '56.25%';
+      if (!embedUrl) {
+        return (
+          <p style={{ color: 'var(--color-text-secondary, #888)', fontStyle: 'italic', fontSize: '0.85rem', margin: 0 }}>
+            [Video embed — unsupported URL: {payload.url}]
+          </p>
+        );
+      }
+      return (
+        <figure style={{ margin: 0 }}>
+          <div style={{ position: 'relative', paddingTop, width: '100%', overflow: 'hidden', borderRadius: '4px', background: '#000' }}>
+            <iframe
+              src={embedUrl}
+              title={payload.title || 'Embedded video'}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+            />
+          </div>
+          {payload.title && (
+            <figcaption style={{ fontSize: '0.85em', color: '#666', marginTop: '0.25rem' }}>{payload.title}</figcaption>
+          )}
+        </figure>
+      );
+    },
+  });
+
+  registerBlock({
     type: BlockType.IMAGE_TEXT,
     group: BlockGroup.MEDIA,
     label: 'Image and text',
@@ -197,6 +261,115 @@ export function registerDefaultBlocks(): void {
   });
 
   // ─── Design blocks ────────────────────────────────────────────────────────
+
+  registerBlock({
+    type: BlockType.HERO,
+    group: BlockGroup.DESIGN,
+    label: 'Hero',
+    icon: '⬛',
+    payloadSchema: HeroPayloadSchema,
+    defaultPayload: {
+      layout: 'center',
+      height: 'medium',
+      heading: 'Hero Heading',
+      subheading: 'A compelling subheading goes here',
+      body: '',
+      ctaLabel: 'Get started',
+      ctaUrl: '#',
+      backgroundImage: '',
+      overlayOpacity: 40,
+      backgroundColor: '#1a1a2e',
+      textColor: 'light',
+    } as HeroPayload,
+    Renderer: ({ payload }) => {
+      const heightMap: Record<string, string> = {
+        small: '25vw',
+        medium: '50vw',
+        large: '75vw',
+        full: '100vw',
+      };
+      const minHeight = heightMap[payload.height ?? 'medium'];
+      const textColor = payload.textColor === 'dark' ? '#111' : '#fff';
+      const overlayOpacity = (payload.overlayOpacity ?? 0) / 100;
+      const justifyContent = payload.layout === 'right' ? 'flex-end' : payload.layout === 'left' ? 'flex-start' : 'center';
+      const textAlign: 'left' | 'center' | 'right' = payload.layout ?? 'center';
+
+      return (
+        <div style={{
+          margin: '-1rem',
+          width: 'calc(100% + 2rem)',
+          minHeight,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: payload.backgroundColor || '#1a1a2e',
+          backgroundImage: payload.backgroundImage ? `url(${payload.backgroundImage})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          borderRadius: 'var(--radius-md, 4px)',
+          overflow: 'hidden',
+        }}>
+          {overlayOpacity > 0 && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
+              pointerEvents: 'none',
+            }} />
+          )}
+          <div style={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            display: 'flex',
+            justifyContent,
+            padding: '3rem 4rem',
+          }}>
+            <div style={{
+              maxWidth: payload.layout === 'center' ? '60%' : '50%',
+              textAlign,
+              color: textColor,
+            }}>
+              {payload.heading && (
+                <h2 style={{ margin: '0 0 0.5rem', fontSize: 'clamp(1.5rem, 4vw, 3rem)', fontWeight: 700, lineHeight: 1.2 }}>
+                  {payload.heading}
+                </h2>
+              )}
+              {payload.subheading && (
+                <p style={{ margin: '0 0 0.75rem', fontSize: 'clamp(1rem, 2vw, 1.4rem)', opacity: 0.9, fontWeight: 400 }}>
+                  {payload.subheading}
+                </p>
+              )}
+              {payload.body && (
+                <p style={{ margin: '0 0 1.25rem', fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
+                  {payload.body}
+                </p>
+              )}
+              {payload.ctaLabel && payload.ctaUrl && (
+                <a
+                  href={payload.ctaUrl}
+                  style={{
+                    display: 'inline-block',
+                    padding: '0.625rem 1.75rem',
+                    background: textColor === '#fff' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+                    border: `2px solid ${textColor}`,
+                    color: textColor,
+                    textDecoration: 'none',
+                    borderRadius: '4px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  {payload.ctaLabel}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    },
+  });
 
   registerBlock({
     type: BlockType.ACCORDION,
@@ -398,23 +571,57 @@ export function registerDefaultBlocks(): void {
     group: BlockGroup.DESIGN,
     label: 'Grid',
     icon: '⊞',
-    payloadSchema: z.object({
-      columns: z.number().int().min(2).max(6).default(3),
-      gap: z.enum(['sm', 'md', 'lg']).optional().default('md'),
-      rows: z.number().int().min(1).max(6).default(2),
-    }),
-    defaultPayload: { columns: 3, gap: 'md' as const, rows: 2 },
+    payloadSchema: GridPayloadSchema,
+    defaultPayload: {
+      columns: 3,
+      rows: 1,
+      cells: [
+        { id: crypto.randomUUID(), blocks: [] },
+        { id: crypto.randomUUID(), blocks: [] },
+        { id: crypto.randomUUID(), blocks: [] },
+      ],
+    } as GridPayload,
     Renderer: ({ payload }) => {
-      const p = payload as { columns: number; gap?: string; rows: number };
-      const gapMap: Record<string, string> = { sm: '0.5rem', md: '1rem', lg: '2rem' };
-      const cells = p.columns * p.rows;
+      const p = payload as GridPayload;
+      const gapMap: Record<string, string> = { sm: '0.5rem', md: '1rem', lg: '1.5rem' };
+      const gap = gapMap['md'];
+      const totalCells = p.columns * p.rows;
+      const cells = (p.cells ?? []).slice(0, totalCells);
+
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${p.columns}, 1fr)`, gap: gapMap[p.gap ?? 'md'] }}>
-          {Array.from({ length: cells }).map((_, i) => (
-            <div key={i} style={{ border: '1px dashed var(--color-border, #d1d5db)', borderRadius: '4px', minHeight: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary, #9ca3af)', fontSize: '0.75rem' }}>
-              {i + 1}
-            </div>
-          ))}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${p.columns}, 1fr)`,
+          gap,
+        }}>
+          {Array.from({ length: totalCells }).map((_, i) => {
+            const cell = cells[i];
+            const hasContent = cell && cell.blocks && cell.blocks.length > 0;
+            return (
+              <div key={cell?.id ?? i} style={{
+                border: '1px dashed var(--color-border, #d1d5db)',
+                borderRadius: '6px',
+                padding: '0.75rem',
+                minHeight: '80px',
+                background: 'var(--color-surface, #fff)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}>
+                {hasContent ? (
+                  cell.blocks.map((block) => {
+                    const def = getBlock(block.type as Parameters<typeof getBlock>[0]);
+                    if (!def) return <p key={block.id} style={{ margin: 0, fontSize: '0.75rem', color: '#aaa' }}>Unknown block</p>;
+                    return <def.Renderer key={block.id} payload={block.payload} blockId={block.id} />;
+                  })
+                ) : (
+                  <p style={{ margin: 0, color: 'var(--color-text-secondary, #9ca3af)', fontSize: '0.75rem', textAlign: 'center', alignSelf: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Empty — click to edit
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     },

@@ -1,4 +1,4 @@
-export type TemplateCategory = 'page' | 'post';
+export type TemplateCategory = 'page' | 'post' | 'course';
 
 export interface TemplateDefinition {
   id: string;
@@ -56,6 +56,22 @@ export const templates: TemplateDefinition[] = [
     description: 'Prose-width layout with a metadata header (title, date, tags). Used for blog posts and news articles.',
     category: 'post',
     layout: 'post',
+    hasSidebar: false,
+  },
+  {
+    id: 'course-overview',
+    label: 'Course overview',
+    description: 'Content-width layout for course overview pages. Shows a course hero, description, curriculum outline, and enrolment call to action. Mirrors the content page layout.',
+    category: 'page',
+    layout: 'content-fse',
+    hasSidebar: false,
+  },
+  {
+    id: 'archive-header',
+    label: 'Archive header',
+    description: 'Header-only layout for blog and course listing pages. Editors configure the hero and intro text; the listing content below is always rendered by the application. Use reserved slugs: archive-blog, archive-courses.',
+    category: 'page',
+    layout: 'landing',
     hasSidebar: false,
   },
 ];

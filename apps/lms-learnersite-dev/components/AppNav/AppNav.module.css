@@ -11,7 +11,27 @@
   gap: var(--space-4);
 }
 
-.userName {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.avatarLink {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+  transition: opacity var(--transition-fast);
+}
+
+.avatarLink:hover .avatar {
+  opacity: 0.85;
 }

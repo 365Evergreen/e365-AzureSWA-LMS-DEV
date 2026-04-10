@@ -231,6 +231,128 @@ function DividerBlock() {
   return <hr className={styles.divider} />
 }
 
+// ─── Video embed block ────────────────────────────────────────────────────────
+
+function VideoEmbedBlock({ payload }: { payload: Record<string, unknown> }) {
+  const url = (payload.url as string) ?? ''
+  const title = (payload.title as string) ?? 'Video'
+  const aspectRatio = (payload.aspectRatio as string) ?? '16:9'
+  const paddingMap: Record<string, string> = { '16:9': '56.25%', '4:3': '75%', '1:1': '100%' }
+  const paddingTop = paddingMap[aspectRatio] ?? '56.25%'
+
+  // Convert YouTube/Vimeo watch URLs to embed URLs
+  let embedUrl = url
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/)
+  if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+  if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`
+
+  return (
+    <div className={styles.embedWrapper} style={{ paddingTop }}>
+      <iframe
+        src={embedUrl}
+        title={title}
+        className={styles.embed}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    </div>
+  )
+}
+
+// ─── Hero block ───────────────────────────────────────────────────────────────
+
+function HeroBlock({ payload }: { payload: Record<string, unknown> }) {
+  const layout = (payload.layout as string) ?? 'left'
+  const height = (payload.height as string) ?? 'medium'
+  const heading = (payload.heading as string) ?? ''
+  const subheading = payload.subheading as string | undefined
+  const body = payload.body as string | undefined
+  const ctaLabel = payload.ctaLabel as string | undefined
+  const ctaUrl = payload.ctaUrl as string | undefined
+  const backgroundImage = payload.backgroundImage as string | undefined
+  const overlayOpacity = (payload.overlayOpacity as number) ?? 40
+  const backgroundColor = (payload.backgroundColor as string) ?? '#1a1a2e'
+  const textColor = (payload.textColor as string) ?? 'light'
+
+  const heightMap: Record<string, string> = {
+    small: '40vh',
+    medium: '60vh',
+    large: '80vh',
+    full: '100vh',
+  }
+  const alignMap: Record<string, string> = {
+    left: 'flex-start',
+    center: 'center',
+    right: 'flex-end',
+  }
+  const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
+    left: 'left',
+    center: 'center',
+    right: 'right',
+  }
+
+  return (
+    <div
+      className={styles.hero}
+      style={{
+        minHeight: heightMap[height] ?? '60vh',
+        backgroundColor,
+      }}
+    >
+      {backgroundImage && (
+        <div
+          className={styles.heroBg}
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+      )}
+      {backgroundImage && (
+        <div
+          className={styles.heroOverlay}
+          style={{ opacity: overlayOpacity / 100 }}
+        />
+      )}
+      <div
+        className={`${styles.heroContent} ${textColor === 'dark' ? styles.heroDark : styles.heroLight}`}
+        style={{ alignItems: alignMap[layout] ?? 'flex-start', textAlign: textAlignMap[layout] ?? 'left' }}
+      >
+        {heading && <h1 className={styles.heroHeading}>{heading}</h1>}
+        {subheading && <p className={styles.heroSubheading}>{subheading}</p>}
+        {body && <p className={styles.heroBody}>{body}</p>}
+        {ctaLabel && ctaUrl && (
+          <a href={ctaUrl} className={styles.heroCta}>{ctaLabel}</a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Grid block ───────────────────────────────────────────────────────────────
+
+function GridBlock({ payload }: { payload: Record<string, unknown> }) {
+  type CellBlock = { id: string; type: string; payload: Record<string, unknown> }
+  type Cell = { id: string; blocks: CellBlock[] }
+  const columns = (payload.columns as number) ?? 2
+  const cells = (payload.cells as Cell[]) ?? []
+
+  return (
+    <div
+      className={styles.grid}
+      style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+    >
+      {cells.map((cell) => (
+        <div key={cell.id} className={styles.gridCell}>
+          {cell.blocks.length === 0 ? (
+            <div className={styles.gridCellEmpty} />
+          ) : (
+            cell.blocks.map((b) => renderBlock(b as Block))
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Quiz block ───────────────────────────────────────────────────────────────
 
 function QuizBlock({ payload }: { payload: Record<string, unknown> }) {
@@ -270,7 +392,9 @@ function renderBlock(block: Block) {
     case 'spacer':         return <SpacerBlock key={block.id} payload={p} />
     case 'divider':        return <DividerBlock key={block.id} />
     case 'quiz':           return <QuizBlock key={block.id} payload={p} />
-    // Layout containers (columns, row, stack, grid, group) have no flat-list children — skip
+    case 'video-embed':    return <VideoEmbedBlock key={block.id} payload={p} />
+    case 'hero':           return <HeroBlock key={block.id} payload={p} />
+    case 'grid':           return <GridBlock key={block.id} payload={p} />
     default:               return null
   }
 }

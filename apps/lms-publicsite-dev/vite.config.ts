@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiHost =
     (env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '') ||
-    'https://lms-func-365ev-dev.azurewebsites.net'
+    'http://localhost:7071'
 
   return {
     plugins: [react()],

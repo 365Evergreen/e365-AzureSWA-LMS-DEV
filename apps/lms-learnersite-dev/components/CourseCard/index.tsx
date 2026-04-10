@@ -4,35 +4,63 @@ import Link from 'next/link';
 import { Card } from '@lms/shared-ui';
 import { Button } from '@lms/shared-ui';
 import { ProgressBar } from '../ProgressBar';
-import { StatusBadge } from '../StatusBadge';
-import type { MockCourse } from '../../lib/mockData';
+import type { LearnerCourse } from '../../lib/apiClient';
 import styles from './CourseCard.module.css';
 
+const LEVEL_LABEL: Record<string, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+
 interface CourseCardProps {
-  course: MockCourse;
+  course: LearnerCourse;
 }
 
 export function CourseCard({ course }: CourseCardProps) {
+  const durationLabel = course.durationMinutes
+    ? course.durationMinutes >= 60
+      ? `${Math.round(course.durationMinutes / 60)}h`
+      : `${course.durationMinutes}m`
+    : null;
+
   return (
     <Card className={styles.card}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{course.title}</h2>
-        <StatusBadge enrolled={course.enrolled} />
-      </div>
-      <p className={styles.description}>{course.description}</p>
-      <ProgressBar value={course.progress} />
-      <div className={styles.actions}>
-        {course.enrolled ? (
-          <Link href={`/courses/${course.id}`} className={styles.link}>
+      {course.thumbnailUrl && (
+        <img src={course.thumbnailUrl} alt="" className={styles.thumbnail} />
+      )}
+      <div className={styles.body}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>{course.title}</h2>
+          {course.level && (
+            <span className={styles.levelBadge}>{LEVEL_LABEL[course.level] ?? course.level}</span>
+          )}
+        </div>
+        <p className={styles.description}>{course.description}</p>
+        <div className={styles.meta}>
+          {durationLabel && <span className={styles.metaItem}>⏱ {durationLabel}</span>}
+          {course.moduleCount > 0 && (
+            <span className={styles.metaItem}>{course.moduleCount} module{course.moduleCount !== 1 ? 's' : ''}</span>
+          )}
+          {course.tags.slice(0, 2).map((tag) => (
+            <span key={tag} className={styles.tag}>{tag}</span>
+          ))}
+        </div>
+        {course.enrolled && course.progress > 0 && (
+          <ProgressBar value={course.progress} />
+        )}
+        <div className={styles.actions}>
+          <Link href={`/courses/${course.slug}`} className={styles.link}>
             <Button variant="primary" size="sm">
-              Open Course
+              {course.enrolled && course.progress > 0 ? 'Continue' : 'See more'}
             </Button>
           </Link>
-        ) : (
-          <Button variant="secondary" size="sm" disabled>
-            Not enrolled
-          </Button>
-        )}
+          {!course.enrolled && (
+            <Button variant="secondary" size="sm" disabled>
+              Not enrolled
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );
