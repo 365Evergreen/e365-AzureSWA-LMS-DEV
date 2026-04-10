@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import styles from './PublicBlockRenderer.module.css'
 
 export interface Block {
@@ -371,6 +372,106 @@ function QuizBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
+// ─── Form block ───────────────────────────────────────────────────────────────
+
+type FormFieldType = 'text' | 'email' | 'phone' | 'number' | 'textarea' | 'select'
+
+interface FormFieldDef {
+  id: string
+  type: FormFieldType
+  label: string
+  placeholder?: string
+  required?: boolean
+  options?: string[]
+  fullWidth?: boolean
+}
+
+function FormBlock({ payload }: { payload: Record<string, unknown> }) {
+  const title = payload.title as string | undefined
+  const fields = (payload.fields as FormFieldDef[]) ?? []
+  const layout = (payload.layout as string) ?? '1col'
+  const labelPosition = (payload.labelPosition as string) ?? 'above'
+  const submitLabel = (payload.submitLabel as string) || 'Submit'
+  const cols = layout === '2col' ? 2 : 1
+
+  const [submitted, setSubmitted] = useState(false)
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setSubmitted(true)
+  }
+
+  if (submitted) {
+    return (
+      <div className={styles.formSuccess}>
+        <span className={styles.formSuccessIcon}>✓</span>
+        <p className={styles.formSuccessText}>Thank you! Your submission has been received.</p>
+      </div>
+    )
+  }
+
+  return (
+    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      {title && <h3 className={styles.formTitle}>{title}</h3>}
+      <div
+        className={styles.formGrid}
+        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+      >
+        {fields.map((field) => (
+          <div
+            key={field.id}
+            className={`${styles.formField} ${field.fullWidth ? styles.formFieldFull : ''} ${labelPosition === 'inline' ? styles.formFieldInline : ''}`}
+          >
+            <label className={styles.formLabel} htmlFor={`field-${field.id}`}>
+              {field.label || 'Field'}
+              {field.required && <span className={styles.formRequired} aria-hidden>*</span>}
+            </label>
+            {field.type === 'textarea' ? (
+              <textarea
+                id={`field-${field.id}`}
+                name={field.id}
+                placeholder={field.placeholder}
+                required={field.required}
+                rows={4}
+                className={styles.formControl}
+              />
+            ) : field.type === 'select' ? (
+              <select
+                id={`field-${field.id}`}
+                name={field.id}
+                required={field.required}
+                className={styles.formControl}
+                defaultValue=""
+              >
+                <option value="" disabled>{field.placeholder || 'Select an option'}</option>
+                {(field.options ?? []).map((opt, i) => (
+                  <option key={i} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id={`field-${field.id}`}
+                name={field.id}
+                type={field.type === 'phone' ? 'tel' : field.type}
+                placeholder={field.placeholder}
+                required={field.required}
+                className={styles.formControl}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      {fields.length > 0 && (
+        <div className={styles.formActions}>
+          <button type="submit" className={styles.formSubmit}>
+            {submitLabel}
+          </button>
+        </div>
+      )}
+    </form>
+  )
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 function renderBlock(block: Block) {
@@ -395,6 +496,7 @@ function renderBlock(block: Block) {
     case 'video-embed':    return <VideoEmbedBlock key={block.id} payload={p} />
     case 'hero':           return <HeroBlock key={block.id} payload={p} />
     case 'grid':           return <GridBlock key={block.id} payload={p} />
+    case 'form':           return <FormBlock key={block.id} payload={p} />
     default:               return null
   }
 }
