@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@azure/functions --external:@azure/data-tables --external:@azure/storage-blob --external:jsonwebtoken --external:jwks-rsa --external:sharp",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@azure/functions --external:sharp",
     "watch": "npm run build -- --watch",
     "start": "func start",
     "dev": "npm run build && npm run start",
