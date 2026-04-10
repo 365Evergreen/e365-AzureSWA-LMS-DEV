@@ -4,8 +4,8 @@ import type { Block } from '../PublicBlockRenderer'
 import styles from './ArchiveHeader.module.css'
 
 interface ArchiveHeaderProps {
-  /** Matches the slug suffix: 'blog' → fetches 'archive-blog', 'courses' → 'archive-courses' */
-  section: string
+  /** The exact CMS page slug to fetch blocks from (e.g. 'course-catalogue', 'latest-posts') */
+  slug: string
   /** Shown when no CMS header has been published yet */
   fallbackTitle: string
   fallbackSubtitle?: string
@@ -16,8 +16,8 @@ interface ArchiveHeaderProps {
  * Falls back to a plain hardcoded heading if the page hasn't been published.
  * Never blocks rendering of the listing content below it.
  */
-export function ArchiveHeader({ section, fallbackTitle, fallbackSubtitle }: ArchiveHeaderProps) {
-  const { blocks, loading } = useArchiveHeader(section)
+export function ArchiveHeader({ slug, fallbackTitle, fallbackSubtitle }: ArchiveHeaderProps) {
+  const { blocks, loading } = useArchiveHeader(slug)
 
   // Still fetching on first load — render nothing rather than a flicker.
   // The listing below renders immediately regardless.

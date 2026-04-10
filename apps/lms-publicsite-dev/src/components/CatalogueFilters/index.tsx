@@ -1,31 +1,37 @@
 import styles from './CatalogueFilters.module.css'
 
 interface CatalogueFiltersProps {
-  audience: string
+  role: string
   level: string
-  onAudienceChange: (v: string) => void
+  courseType: string
+  onRoleChange: (v: string) => void
   onLevelChange: (v: string) => void
+  onCourseTypeChange: (v: string) => void
   onReset: () => void
 }
 
 export function CatalogueFilters({
-  audience,
+  role,
   level,
-  onAudienceChange,
+  courseType,
+  onRoleChange,
   onLevelChange,
+  onCourseTypeChange,
   onReset,
 }: CatalogueFiltersProps) {
+  const hasFilters = !!(role || level || courseType)
+
   return (
     <div className={styles.filters} role="search" aria-label="Filter courses">
       <span className={styles.label}>Filter:</span>
 
       <select
         className={styles.select}
-        value={audience}
-        onChange={(e) => onAudienceChange(e.target.value)}
-        aria-label="Audience"
+        value={role}
+        onChange={(e) => onRoleChange(e.target.value)}
+        aria-label="Role"
       >
-        <option value="">All audiences</option>
+        <option value="">All roles</option>
         <option value="developer">Developer</option>
         <option value="manager">Manager</option>
         <option value="designer">Designer</option>
@@ -43,7 +49,21 @@ export function CatalogueFilters({
         <option value="advanced">Advanced</option>
       </select>
 
-      {(audience || level) && (
+      <select
+        className={styles.select}
+        value={courseType}
+        onChange={(e) => onCourseTypeChange(e.target.value)}
+        aria-label="Course type"
+      >
+        <option value="">All types</option>
+        <option value="compliance">Compliance</option>
+        <option value="technical">Technical</option>
+        <option value="leadership">Leadership</option>
+        <option value="onboarding">Onboarding</option>
+        <option value="soft-skills">Soft skills</option>
+      </select>
+
+      {hasFilters && (
         <button type="button" className={styles.resetButton} onClick={onReset}>
           Clear filters
         </button>

@@ -9,13 +9,11 @@ interface UseArchiveHeaderResult {
 }
 
 /**
- * Silently fetches a CMS-managed archive header page for a given section.
- * The slug convention is:  archive-blog  /  archive-courses
- *
- * Returns an empty blocks array (not an error) when the page doesn't exist yet,
- * so callers can fall back to a hardcoded default heading without any error UI.
+ * Silently fetches a CMS-managed archive header page by its exact slug.
+ * Returns an empty blocks array (not an error) when the page doesn't exist,
+ * so callers can fall back to a hardcoded heading without any error UI.
  */
-export function useArchiveHeader(section: string): UseArchiveHeaderResult {
+export function useArchiveHeader(slug: string): UseArchiveHeaderResult {
   const [blocks, setBlocks] = useState<Block[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -23,7 +21,7 @@ export function useArchiveHeader(section: string): UseArchiveHeaderResult {
     let cancelled = false
     setLoading(true)
 
-    fetch(`${apiBase()}/api/pages/archive-${section}?type=page`)
+    fetch(`${apiBase()}/api/pages/${slug}?type=page`)
       .then(async (res) => {
         if (!res.ok) return // 404 → fall back silently
         const data = await res.json() as { bundle?: { blocks?: Block[] } }
@@ -33,7 +31,7 @@ export function useArchiveHeader(section: string): UseArchiveHeaderResult {
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
-  }, [section])
+  }, [slug])
 
   return { blocks, loading }
 }

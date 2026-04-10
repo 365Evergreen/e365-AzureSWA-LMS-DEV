@@ -1,48 +1,46 @@
-import { useState } from 'react'
-import { useCatalogue } from '../../hooks/useCatalogue'
-import { CourseCard } from '../../components/CourseCard'
-import { CatalogueFilters } from '../../components/CatalogueFilters'
+import { useState, useMemo } from 'react'
+import { useCoursePages } from '../../hooks/useCoursePages'
+import { CoursePageCard } from '../../components/CoursePageCard'
+import { BlogFilters } from '../../components/BlogFilters'
+import { ViewToggle, type ViewMode } from '../../components/ViewToggle'
 import { ArchiveHeader } from '../../components/ArchiveHeader'
 import styles from './CataloguePage.module.css'
 
-const LEARNER_BASE_URL = import.meta.env.VITE_LEARNER_BASE_URL ?? ''
-
 export default function CataloguePage() {
-  const [audience, setAudience] = useState('')
-  const [level, setLevel] = useState('')
+  const [tag, setTag] = useState('')
+  const [view, setView] = useState<ViewMode>('grid')
 
-  const { courses, total, loading, error, refetch } = useCatalogue({
-    audience: audience || undefined,
-    level: level || undefined,
-  })
+  const { pages, allTags, loading, error, refetch } = useCoursePages()
 
-  function handleReset() {
-    setAudience('')
-    setLevel('')
-  }
+  const filtered = useMemo(
+    () => tag ? pages.filter((p) => p.tags.includes(tag)) : pages,
+    [pages, tag],
+  )
 
   return (
     <div className={styles.page}>
       <ArchiveHeader
-        section="courses"
+        slug="course-catalogue"
         fallbackTitle="Course Catalogue"
         fallbackSubtitle="Browse our library of courses and start learning today."
       />
 
       <div className={styles.listing}>
         <div className={styles.toolbar}>
-          <CatalogueFilters
-            audience={audience}
-            level={level}
-            onAudienceChange={setAudience}
-            onLevelChange={setLevel}
-            onReset={handleReset}
+          <BlogFilters
+            categories={allTags}
+            selectedCategory={tag}
+            onCategoryChange={setTag}
+            onReset={() => setTag('')}
           />
-          {!loading && !error && (
-            <span className={styles.count}>
-              {total} {total === 1 ? 'course' : 'courses'}
-            </span>
-          )}
+          <div className={styles.toolbarRight}>
+            {!loading && !error && (
+              <span className={styles.count}>
+                {filtered.length} {filtered.length === 1 ? 'course' : 'courses'}
+              </span>
+            )}
+            <ViewToggle view={view} onViewChange={setView} />
+          </div>
         </div>
 
         {loading && (
@@ -62,15 +60,11 @@ export default function CataloguePage() {
         )}
 
         {!loading && !error && (
-          <div className={styles.grid}>
-            {courses.length === 0
-              ? <p className={styles.empty}>No courses match your filters.</p>
-              : courses.map((course) => (
-                  <CourseCard
-                    key={course.courseId}
-                    course={course}
-                    learnerBaseUrl={LEARNER_BASE_URL}
-                  />
+          <div className={view === 'grid' ? styles.grid : styles.listView}>
+            {filtered.length === 0
+              ? <p className={styles.empty}>No courses published yet.</p>
+              : filtered.map((page) => (
+                  <CoursePageCard key={page.pageId} page={page} view={view} />
                 ))
             }
           </div>

@@ -20,6 +20,13 @@
   margin-bottom: var(--space-8);
 }
 
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
 .count {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -31,6 +38,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-6);
+}
+
+.listView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 /* ── States ─────────────────────────────────────────────────── */

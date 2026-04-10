@@ -1,33 +1,39 @@
-import type { BlogArticle } from '../../data/blog'
+import type { ViewMode } from '../ViewToggle'
+import type { BlogPost } from '../../hooks/useBlogPosts'
 import styles from './ArticleCard.module.css'
 
 interface ArticleCardProps {
-  article: BlogArticle
+  article: BlogPost
+  view?: ViewMode
 }
 
-export function ArticleCard({ article }: ArticleCardProps) {
+export function ArticleCard({ article, view = 'grid' }: ArticleCardProps) {
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${view === 'list' ? styles.cardList : ''}`}>
       <div className={styles.meta}>
-        <time className={styles.date} dateTime={article.date}>
-          {new Date(article.date).toLocaleDateString('en-US', {
+        <time className={styles.date} dateTime={article.publishedAt}>
+          {new Date(article.publishedAt).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
           })}
         </time>
-        <div className={styles.tags}>
-          {article.tags.map((tag) => (
-            <span key={tag} className={styles.tag}>{tag}</span>
-          ))}
-        </div>
+        {article.tags.length > 0 && (
+          <div className={styles.tags}>
+            {article.tags.map((tag) => (
+              <span key={tag} className={styles.tag}>{tag}</span>
+            ))}
+          </div>
+        )}
       </div>
       <h2 className={styles.title}>
         <a href={`/blog/${article.slug}`} className={styles.titleLink}>
           {article.title}
         </a>
       </h2>
-      <p className={styles.excerpt}>{article.excerpt}</p>
+      {article.description && (
+        <p className={styles.excerpt}>{article.description}</p>
+      )}
       <a href={`/blog/${article.slug}`} className={styles.readMore}>
         Read more →
       </a>

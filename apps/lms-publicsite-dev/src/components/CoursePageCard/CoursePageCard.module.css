@@ -5,8 +5,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
   text-decoration: none;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 
 .card:hover {
@@ -17,54 +17,44 @@
 .thumbnail {
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
-  background-color: var(--color-surface-muted);
-}
-
-.thumbnailPlaceholder {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary) 100%);
+  background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary, #6366f1) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-inverse);
+  flex-shrink: 0;
+}
+
+.initials {
+  color: #fff;
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.02em;
+  opacity: 0.85;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-5);
   flex: 1;
 }
 
-.badges {
+.tags {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-.badge {
+.tag {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
+  background: var(--color-info-bg, #eff6ff);
+  color: var(--color-info, #2563eb);
   text-transform: capitalize;
-}
-
-.badgeLevel {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-.badgeAudience {
-  background: var(--color-surface-muted);
-  color: var(--color-text-secondary);
 }
 
 .title {
@@ -90,46 +80,34 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-5);
   border-top: 1px solid var(--color-border);
   margin-top: auto;
 }
 
-.meta {
-  display: flex;
-  gap: var(--space-4);
-}
-
-.metaItem {
+.date {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
 }
 
-.ctaLabel {
+.cta {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-brand-primary);
 }
 
-/* ---- List variant ---- */
+/* ── List variant ─────────────────────────────────────────── */
 .cardList {
   flex-direction: row;
 }
 
-.cardList .thumbnail,
-.cardList .thumbnailPlaceholder {
-  width: 200px;
-  min-width: 200px;
-  aspect-ratio: 16 / 9;
-  height: auto;
-  border-radius: 0;
+.cardList .thumbnail {
+  width: 180px;
+  min-width: 180px;
+  aspect-ratio: unset;
 }
 
 .cardList .body {
-  flex: 1;
   padding: var(--space-4) var(--space-5);
 }
 

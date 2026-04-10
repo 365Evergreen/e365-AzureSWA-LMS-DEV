@@ -70,6 +70,34 @@
   align-self: flex-start;
 }
 
-.readMore:hover {
-  color: var(--color-brand-primary-hover);
+/* ---- List variant ---- */
+.cardList {
+  flex-direction: row;
+  gap: 0;
+}
+
+.cardList .meta {
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 140px;
+  max-width: 180px;
+  padding: var(--space-6);
+  border-right: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.cardList .title {
+  font-size: var(--font-size-lg);
+}
+
+.cardList .excerpt {
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardList .readMore {
+  margin-top: auto;
 }

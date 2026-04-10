@@ -20,7 +20,9 @@ function App() {
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/course-catalogue" element={<CataloguePage />} />
               <Route path="/catalogue" element={<CataloguePage />} />
+              <Route path="/latest-posts" element={<BlogPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/kb" element={<KBPage />} />

@@ -1,12 +1,14 @@
+import type { ViewMode } from '../ViewToggle'
 import type { CourseMetadata } from '@lms/shared-schemas'
 import styles from './CourseCard.module.css'
 
 interface CourseCardProps {
   course: CourseMetadata
   learnerBaseUrl?: string
+  view?: ViewMode
 }
 
-export function CourseCard({ course, learnerBaseUrl = '#' }: CourseCardProps) {
+export function CourseCard({ course, learnerBaseUrl = '#', view = 'grid' }: CourseCardProps) {
   const href = `${learnerBaseUrl}/courses/${course.slug}`
   const initials = course.title.slice(0, 2).toUpperCase()
   const duration = course.durationMinutes >= 60
@@ -14,7 +16,7 @@ export function CourseCard({ course, learnerBaseUrl = '#' }: CourseCardProps) {
     : `${course.durationMinutes}m`
 
   return (
-    <a href={href} className={styles.card} aria-label={`View course: ${course.title}`}>
+    <a href={href} className={`${styles.card} ${view === 'list' ? styles.cardList : ''}`} aria-label={`View course: ${course.title}`}>
       {course.thumbnailUrl
         ? <img src={course.thumbnailUrl} alt="" className={styles.thumbnail} loading="lazy" />
         : <div className={styles.thumbnailPlaceholder} aria-hidden="true">{initials}</div>

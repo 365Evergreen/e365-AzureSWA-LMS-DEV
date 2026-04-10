@@ -1,27 +1,10 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { extractBearerToken, validateToken } from '../middleware/validateToken';
 import { listPublishedCourses, getCourseBySlug, fetchBundle } from '../lib/storage';
-
-async function requireAuth(req: HttpRequest): Promise<
-  { claims: Awaited<ReturnType<typeof validateToken>> } | HttpResponseInit
-> {
-  const token = extractBearerToken(req);
-  if (!token) return { status: 401, jsonBody: { error: 'Missing bearer token' } };
-  try {
-    const claims = await validateToken(token);
-    return { claims };
-  } catch {
-    return { status: 401, jsonBody: { error: 'Invalid or expired token' } };
-  }
-}
 
 async function getCatalogueHandler(
   req: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
-  const auth = await requireAuth(req);
-  if ('status' in auth) return auth;
-
   const slug = req.params.slug;
 
   if (slug) {
@@ -38,7 +21,7 @@ async function getCatalogueHandler(
       return {
         status: 200,
         jsonBody: { ...safeCourse, bundle },
-        headers: { 'Cache-Control': 'private, max-age=60' },
+        headers: { 'Cache-Control': 'public, max-age=60' },
       };
     }
 
@@ -46,7 +29,7 @@ async function getCatalogueHandler(
     return {
       status: 200,
       jsonBody: safeCourse,
-      headers: { 'Cache-Control': 'private, max-age=60' },
+      headers: { 'Cache-Control': 'public, max-age=60' },
     };
   }
 
@@ -66,7 +49,7 @@ async function getCatalogueHandler(
   return {
     status: 200,
     jsonBody: { courses: safeCourses, total: safeCourses.length },
-    headers: { 'Cache-Control': 'private, max-age=30' },
+    headers: { 'Cache-Control': 'public, max-age=30' },
   };
 }
 
