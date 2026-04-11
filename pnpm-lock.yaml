@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
 
   apps/lms-editorsite-dev:
     dependencies:
