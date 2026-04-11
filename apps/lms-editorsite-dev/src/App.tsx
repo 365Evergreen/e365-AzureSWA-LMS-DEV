@@ -1,12 +1,11 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { LoadingSpinner } from '@lms/shared-ui';
 import LoginPage from './pages/LoginPage';
 import AuthGuard from './components/AuthGuard';
 
 const AuthCallbackPage = React.lazy(() => import('./pages/AuthCallbackPage'));
 const WelcomePage = React.lazy(() => import('./pages/WelcomePage'));
-const HomePage = React.lazy(() => import('./pages/HomePage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const CoursesPage = React.lazy(() => import('./pages/CoursesPage'));
 const KnowledgeBasePage = React.lazy(() => import('./pages/KnowledgeBasePage'));
@@ -33,7 +32,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/welcome" element={<AuthGuard><WelcomePage /></AuthGuard>} />
-          <Route path="/" element={<AuthGuard><HomePage /></AuthGuard>} />
+          <Route path="/" element={<AuthGuard><Navigate to="/dashboard" replace /></AuthGuard>} />
           <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
           <Route path="/courses" element={<AuthGuard><CoursesPage /></AuthGuard>} />
           <Route path="/courses/new" element={<AuthGuard><AddNewCoursePage /></AuthGuard>} />

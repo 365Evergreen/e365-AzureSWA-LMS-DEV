@@ -65,35 +65,50 @@ export function useAuth(msalInstance: PublicClientApplication): {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    msalInstance.initialize().then(async () => {
-      // Process the redirect response (auth code) returned by Entra after loginRedirect.
-      const result = await msalInstance.handleRedirectPromise();
-      if (result?.account) {
-        msalInstance.setActiveAccount(result.account);
-      }
+    let cancelled = false;
 
-      let account = msalInstance.getActiveAccount();
+    (async () => {
+      try {
+        await msalInstance.initialize();
 
-      // If no cached account, attempt SSO silent using the existing Entra browser session.
-      // This signs in the user automatically if they are already authenticated with Microsoft
-      // (e.g. logged into Microsoft 365 in the same browser) without any redirect or popup.
-      if (!account) {
-        try {
-          const ssoResult = await msalInstance.ssoSilent({ scopes: ['User.Read'] });
-          if (ssoResult?.account) {
-            msalInstance.setActiveAccount(ssoResult.account);
-            account = ssoResult.account;
+        // Process the redirect response (auth code) returned by Entra after loginRedirect.
+        const result = await msalInstance.handleRedirectPromise();
+        if (result?.account) {
+          msalInstance.setActiveAccount(result.account);
+        }
+
+        let account = msalInstance.getActiveAccount();
+
+        // If no cached account, attempt SSO silent using the existing Entra browser session.
+        // This signs in the user automatically if they are already authenticated with Microsoft
+        // (e.g. logged into Microsoft 365 in the same browser) without any redirect or popup.
+        if (!account) {
+          try {
+            const ssoResult = await msalInstance.ssoSilent({ scopes: ['User.Read'] });
+            if (ssoResult?.account) {
+              msalInstance.setActiveAccount(ssoResult.account);
+              account = ssoResult.account;
+            }
+          } catch {
+            // No existing Entra session — user will need to sign in manually.
           }
-        } catch {
-          // No existing Entra session — user will need to sign in manually.
+        }
+
+        if (!cancelled && account) {
+          setUser({ account, roles: parseRoles(account) });
+        }
+      } catch (error) {
+        console.error('[auth] failed to initialise MSAL', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
         }
       }
+    })();
 
-      if (account) {
-        setUser({ account, roles: parseRoles(account) });
-      }
-      setIsLoading(false);
-    });
+    return () => {
+      cancelled = true;
+    };
   }, [msalInstance]);
 
   async function getAccessToken(scopes: string[]): Promise<string | null> {

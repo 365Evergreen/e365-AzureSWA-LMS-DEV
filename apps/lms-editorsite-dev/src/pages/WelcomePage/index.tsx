@@ -28,7 +28,7 @@ export default function WelcomePage() {
 
         {isEditor && (
           <div className={styles.actions}>
-            <div className={styles.card} onClick={() => navigate('/')} role="button" tabIndex={0}>
+            <div className={styles.card} onClick={() => navigate('/dashboard')} role="button" tabIndex={0}>
               <div className={styles.cardIcon}>📚</div>
               <h2 className={styles.cardTitle}>My Courses</h2>
               <p className={styles.cardDesc}>View and manage your course library</p>
