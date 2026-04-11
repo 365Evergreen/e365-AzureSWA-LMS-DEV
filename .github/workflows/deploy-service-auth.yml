@@ -1,0 +1,30 @@
+name: Deploy Auth Service
+
+on:
+  push:
+    branches:
+      - main
+      - feature/project-setup
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Build and deploy auth service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy auth service
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            az deployment group create \
+              --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+              --template-file services/auth/deploy.bicep \
+              --parameters @services/auth/deploy.parameters.json
