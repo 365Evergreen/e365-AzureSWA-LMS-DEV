@@ -1,4 +1,4 @@
-name: Deploy Editor Site
+name: Deploy Knowledge Site
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    name: Build and deploy editor site
+    name: Build and deploy knowledge site
     permissions:
       contents: read
 
@@ -32,15 +32,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build editor site
-        run: pnpm run build:editor
+      - name: Build knowledge site
+        run: pnpm run build:knowledge
 
       - name: Build and deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_EDITOR_APP }}
+          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_KNOWLEDGE_SITE }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           skip_app_build: true
-          app_location: apps/lms-editorsite-dev
+          app_location: apps/lms-knowledge-site
           output_location: dist
