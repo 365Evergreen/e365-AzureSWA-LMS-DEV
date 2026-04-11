@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { Nav } from '@lms/shared-ui';
 import { Button } from '@lms/shared-ui';
-import { useAuth, logout } from '@lms/shared-auth';
+import { useAuth, login, logout } from '@lms/shared-auth';
 import { msalInstance } from '../../lib/msalConfig';
+import { loginScopes } from '../../lib/authScopes';
 import styles from './AppNav.module.css';
 
 function getInitials(name: string): string {
@@ -30,13 +31,23 @@ export function AppNav() {
           <span className={styles.avatar}>{initials}</span>
         </Link>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => logout(msalInstance)}
-      >
-        Sign out
-      </Button>
+      {user ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => logout(msalInstance)}
+        >
+          Sign out
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => login(msalInstance, loginScopes)}
+        >
+          Sign in
+        </Button>
+      )}
     </div>
   );
 

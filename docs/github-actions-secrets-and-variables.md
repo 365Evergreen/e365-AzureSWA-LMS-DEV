@@ -43,14 +43,14 @@ Variables are for non-secret configuration values used at build time.
 | `ENTRA_CLIENT_ID_EDITOR` | editor build | `<editor app registration client ID>` | Microsoft Entra ID -> App registrations -> editor app |
 | `ENTRA_CLIENT_ID_LEARNER` | learner build | `<learner app registration client ID>` | Microsoft Entra ID -> App registrations -> learner app |
 | `ENTRA_CLIENT_ID_KNOWLEDGE` | optional knowledge build | `<knowledge app registration client ID>` | Microsoft Entra ID -> App registrations -> knowledge app |
-| `API_SCOPE` | editor build | `<backend API scope>` | Microsoft Entra ID -> backend API app registration -> **Expose an API** |
+| `API_SCOPE` | editor + learner builds | `<backend API scope>` | Microsoft Entra ID -> backend API app registration -> **Expose an API** |
 | `AZURE_FUNCTIONS_APP_NAME` | backend deploy | `<function app resource name>` | Azure Portal -> Function App -> Overview -> **Name** |
 
 ### Notes
 
 - `API_BASE_URL` should **not** end with a trailing slash unless the workflows or app config explicitly expect one.
 - `AZURE_FUNCTIONS_APP_NAME` is the **resource name**, not `https://...azurewebsites.net`.
-- `API_SCOPE` must match the scope exposed by the backend API registration and granted to the editor app registration.
+- `API_SCOPE` must match the scope exposed by the backend API registration and be granted to both the editor and learner app registrations.
 
 ---
 

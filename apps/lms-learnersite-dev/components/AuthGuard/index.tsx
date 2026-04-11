@@ -3,6 +3,7 @@
 import { LoadingSpinner, Button } from '@lms/shared-ui';
 import { useAuth, login } from '@lms/shared-auth';
 import { msalInstance } from '../../lib/msalConfig';
+import { loginScopes } from '../../lib/authScopes';
 import styles from './AuthGuard.module.css';
 
 interface AuthGuardProps {
@@ -31,7 +32,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           <Button
             variant="primary"
             size="lg"
-            onClick={() => login(msalInstance, ['User.Read'])}
+            onClick={() => login(msalInstance, loginScopes)}
           >
             Sign in with Microsoft
           </Button>

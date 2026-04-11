@@ -1,10 +1,4 @@
 {
-  "responseOverrides": {
-    "401": {
-      "redirect": "/.auth/login/aad",
-      "statusCode": 302
-    }
-  },
   "auth": {
     "identityProviders": {
       "azureActiveDirectory": {
@@ -17,12 +11,6 @@
       }
     }
   },
-  "routes": [
-    {
-      "route": "/*",
-      "allowedRoles": ["authenticated"]
-    }
-  ],
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",

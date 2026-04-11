@@ -1,5 +1,12 @@
 type ApiClientOptions = { baseUrl?: string; getToken?: () => Promise<string | null> };
 
+class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export interface LearnerCourse {
@@ -64,6 +71,21 @@ function normaliseApiCourseDetail(c: any): CourseDetail {
   };
 }
 
+async function loadMockCatalogue(): Promise<LearnerCourse[]> {
+  const mock = await import('./mockData');
+  return mock.mockCourses.map(normaliseMockCourse);
+}
+
+async function loadMockCourse(slug: string): Promise<CourseDetail> {
+  const mock = await import('./mockData');
+  const bundle = mock.getMockBundle(slug);
+  const course = mock.mockCourses.find((c) => c.id === slug);
+  return {
+    ...normaliseMockCourse(course ?? { id: slug, title: bundle.metadata.title }),
+    bundle,
+  };
+}
+
 // ─── API client ───────────────────────────────────────────────────────────────
 
 export function createApiClient(opts: ApiClientOptions = {}) {
@@ -81,7 +103,7 @@ export function createApiClient(opts: ApiClientOptions = {}) {
     }
 
     const res = await fetch(`${baseUrl}${path}`, { headers });
-    if (!res.ok) throw new Error(`API request failed ${res.status} ${res.statusText}`);
+    if (!res.ok) throw new ApiError(`API request failed ${res.status} ${res.statusText}`, res.status);
     return res.json();
   }
 
@@ -89,26 +111,27 @@ export function createApiClient(opts: ApiClientOptions = {}) {
     getCatalogue: async (): Promise<LearnerCourse[]> => {
       // No API configured — fall back to bundled mock data.
       if (!baseUrl) {
-        const mock = await import('./mockData');
-        return mock.mockCourses.map(normaliseMockCourse);
+        return loadMockCatalogue();
       }
       const res = await request<{ courses: any[]; total: number }>('/learner/courses');
-      return (res.courses ?? []).map(normaliseApiCourse);
+      const courses = (res.courses ?? []).map(normaliseApiCourse);
+      return courses.length > 0 ? courses : loadMockCatalogue();
     },
 
     getCourse: async (slug: string): Promise<CourseDetail> => {
       // No API configured — fall back to mock bundle.
       if (!baseUrl) {
-        const mock = await import('./mockData');
-        const bundle = mock.getMockBundle(slug);
-        const course = mock.mockCourses.find((c) => c.id === slug);
-        return {
-          ...normaliseMockCourse(course ?? { id: slug, title: bundle.metadata.title }),
-          bundle,
-        };
+        return loadMockCourse(slug);
       }
-      const res = await request<any>(`/learner/courses/${slug}`);
-      return normaliseApiCourseDetail(res);
+      try {
+        const res = await request<any>(`/learner/courses/${slug}`);
+        return normaliseApiCourseDetail(res);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return loadMockCourse(slug);
+        }
+        throw error;
+      }
     },
   };
 }
