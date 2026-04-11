@@ -42,5 +42,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           skip_app_build: true
-          app_location: apps/lms-knowledge-site
-          output_location: dist
+          app_location: apps/lms-knowledge-site/dist
+          output_location: ""
