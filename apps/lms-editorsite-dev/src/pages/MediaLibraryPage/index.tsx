@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import AppNav from '../../components/AppNav';
 import { listMedia, uploadMedia } from '../../api/media';
 import type { MediaItem } from '../../api/media';
 import styles from './MediaLibraryPage.module.css';
@@ -67,7 +66,6 @@ export default function MediaLibraryPage() {
 
   return (
     <div className={styles.root}>
-      <AppNav />
       <div className={styles.content}>
         <div className={styles.header}>
           <div>

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { BlockType } from '@lms/block-registry';
-import AppNav from '../../components/AppNav';
 import BlockPalette from '../../components/BlockPalette';
 import BlockCanvas from '../../components/BlockCanvas';
 import BlockPropertyEditor from '../../components/BlockPropertyEditor';
@@ -154,7 +153,6 @@ export default function EditorPage() {
 
   return (
     <div className={styles.root}>
-      <AppNav />
       <div className={styles.layout}>
         <aside className={styles.palette}>
           <BlockPalette onAddBlock={addBlock} />

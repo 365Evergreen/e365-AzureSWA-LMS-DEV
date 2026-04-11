@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import AppNav from '../../components/AppNav';
 import StatusBadge from '../../components/StatusBadge';
 import {
   listEditorCatalogueItems,
@@ -107,7 +106,6 @@ export default function CoursesPage() {
 
   return (
     <div className={styles.page}>
-      <AppNav />
       <main className={styles.main}>
         {/* Header */}
         <div className={styles.header}>

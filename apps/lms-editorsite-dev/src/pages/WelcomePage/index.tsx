@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
 import { useAuth } from '@lms/shared-auth';
 import { msalInstance } from '../../auth/msalConfig';
-import AppNav from '../../components/AppNav';
 import styles from './WelcomePage.module.css';
 
 export default function WelcomePage() {
@@ -15,7 +14,6 @@ export default function WelcomePage() {
 
   return (
     <div className={styles.page}>
-      <AppNav />
       <main className={styles.main}>
         <div className={styles.greeting}>
           <h1 className={styles.title}>Welcome back, {firstName} 👋</h1>

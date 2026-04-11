@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import AppNav from '../../components/AppNav';
 import { createPath, addModule, addUnit } from '../../api/catalogue';
 import type { CatalogueItem } from '../../api/catalogue';
 import styles from './AddNewCoursePage.module.css';
@@ -144,7 +143,6 @@ export default function AddNewCoursePage() {
 
   return (
     <div className={styles.page}>
-      <AppNav />
       <div className={styles.topBar}>
         <button className={styles.backBtn} onClick={() => navigate('/courses')}>← Courses</button>
         <h1 className={styles.pageTitle}>New Course</h1>

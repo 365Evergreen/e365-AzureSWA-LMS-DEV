@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { BlockType } from '@lms/block-registry';
-import AppNav from '../../components/AppNav';
 import BlockPalette from '../../components/BlockPalette';
 import BlockCanvas from '../../components/BlockCanvas';
 import BlockPropertyEditor from '../../components/BlockPropertyEditor';
@@ -132,17 +131,15 @@ export default function EditUnitPage() {
   const backTarget = pathId ? `/courses/edit/${pathId}` : '/courses';
 
   if (loading) {
-    return <div className={styles.page}><AppNav /><div className={styles.loading}>Loading unit…</div></div>;
+    return <div className={styles.page}><div className={styles.loading}>Loading unit…</div></div>;
   }
 
   if (error && !unit) {
-    return <div className={styles.page}><AppNav /><div className={styles.error}>{error}</div></div>;
+    return <div className={styles.page}><div className={styles.error}>{error}</div></div>;
   }
 
   return (
     <div className={styles.page}>
-      <AppNav />
-
       <div className={styles.topBar}>
         <button className={styles.backBtn} onClick={() => navigate(backTarget)}>← Back to course</button>
         <div className={styles.unitMeta}>

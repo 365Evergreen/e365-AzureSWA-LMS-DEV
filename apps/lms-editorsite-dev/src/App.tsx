@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import AuthGuard from './components/AuthGuard';
 
 const AuthCallbackPage = React.lazy(() => import('./pages/AuthCallbackPage'));
+const AppShell = React.lazy(() => import('./components/AppShell'));
 const WelcomePage = React.lazy(() => import('./pages/WelcomePage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const CoursesPage = React.lazy(() => import('./pages/CoursesPage'));
@@ -31,24 +32,26 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
-          <Route path="/welcome" element={<AuthGuard><WelcomePage /></AuthGuard>} />
-          <Route path="/" element={<AuthGuard><Navigate to="/dashboard" replace /></AuthGuard>} />
-          <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
-          <Route path="/courses" element={<AuthGuard><CoursesPage /></AuthGuard>} />
-          <Route path="/courses/new" element={<AuthGuard><AddNewCoursePage /></AuthGuard>} />
-          <Route path="/courses/edit/:pathId" element={<AuthGuard><EditPathPage /></AuthGuard>} />
-          <Route path="/courses/units/:unitId/edit" element={<AuthGuard><EditUnitPage /></AuthGuard>} />
-          <Route path="/knowledge-base" element={<AuthGuard><KnowledgeBasePage /></AuthGuard>} />
-          <Route path="/knowledge-base/new" element={<AuthGuard><AddNewKnowledgePage /></AuthGuard>} />
-          <Route path="/knowledge-base/edit/:slug" element={<AuthGuard><EditKnowledgePage /></AuthGuard>} />
-          <Route path="/website" element={<AuthGuard><WebsitePage /></AuthGuard>} />
-          <Route path="/website/new" element={<AuthGuard><AddNewWebPage /></AuthGuard>} />
-          <Route path="/website/edit/:slug" element={<AuthGuard><EditWebPage /></AuthGuard>} />
-          <Route path="/blog-posts" element={<AuthGuard><BlogPostsPage /></AuthGuard>} />
-          <Route path="/blog-posts/new" element={<AuthGuard><AddNewBlogPostPage /></AuthGuard>} />
-          <Route path="/blog-posts/edit/:slug" element={<AuthGuard><EditBlogPostPage /></AuthGuard>} />
-          <Route path="/editor/:courseId" element={<AuthGuard><EditorPage /></AuthGuard>} />
-          <Route path="/media" element={<AuthGuard><MediaLibraryPage /></AuthGuard>} />
+          <Route element={<AuthGuard><AppShell /></AuthGuard>}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="/welcome" element={<WelcomePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/courses" element={<CoursesPage />} />
+            <Route path="/courses/new" element={<AddNewCoursePage />} />
+            <Route path="/courses/edit/:pathId" element={<EditPathPage />} />
+            <Route path="/courses/units/:unitId/edit" element={<EditUnitPage />} />
+            <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+            <Route path="/knowledge-base/new" element={<AddNewKnowledgePage />} />
+            <Route path="/knowledge-base/edit/:slug" element={<EditKnowledgePage />} />
+            <Route path="/website" element={<WebsitePage />} />
+            <Route path="/website/new" element={<AddNewWebPage />} />
+            <Route path="/website/edit/:slug" element={<EditWebPage />} />
+            <Route path="/blog-posts" element={<BlogPostsPage />} />
+            <Route path="/blog-posts/new" element={<AddNewBlogPostPage />} />
+            <Route path="/blog-posts/edit/:slug" element={<EditBlogPostPage />} />
+            <Route path="/editor/:courseId" element={<EditorPage />} />
+            <Route path="/media" element={<MediaLibraryPage />} />
+          </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { BlogCategory } from '@lms/shared-schemas';
 import { useNavigate } from 'react-router-dom';
 import type { BlockType } from '@lms/block-registry';
-import AppNav from '../AppNav';
 import BlockPalette from '../BlockPalette';
 import BlockCanvas from '../BlockCanvas';
 import BlockPropertyEditor from '../BlockPropertyEditor';
@@ -262,7 +261,6 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
 
   return (
     <div className={styles.root}>
-      <AppNav />
       <div className={styles.layout}>
         <aside className={styles.palette}>
           <BlockPalette onAddBlock={addBlock} />

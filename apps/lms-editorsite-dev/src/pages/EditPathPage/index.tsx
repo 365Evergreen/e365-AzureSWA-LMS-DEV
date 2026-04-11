@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import AppNav from '../../components/AppNav';
 import {
   loadEditorCatalogueItem,
   patchCatalogueItem,
@@ -194,7 +193,7 @@ export default function EditPathPage() {
 
   if (loading) {
     return (
-      <div className={styles.page}><AppNav />
+      <div className={styles.page}>
         <div className={styles.loading}>Loading course…</div>
       </div>
     );
@@ -202,7 +201,7 @@ export default function EditPathPage() {
 
   if (error || !path) {
     return (
-      <div className={styles.page}><AppNav />
+      <div className={styles.page}>
         <div className={styles.error}>{error ?? 'Course not found'}</div>
       </div>
     );
@@ -210,7 +209,6 @@ export default function EditPathPage() {
 
   return (
     <div className={styles.page}>
-      <AppNav />
       <div className={styles.topBar}>
         <button className={styles.backBtn} onClick={() => navigate('/courses')}>← Courses</button>
         <h1 className={styles.pageTitle}>{path.title}</h1>
