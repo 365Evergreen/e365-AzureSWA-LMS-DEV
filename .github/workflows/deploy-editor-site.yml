@@ -34,6 +34,11 @@ jobs:
 
       - name: Build editor site
         run: pnpm run build:editor
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          VITE_ENTRA_CLIENT_ID: ${{ vars.ENTRA_CLIENT_ID_EDITOR }}
+          VITE_ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
+          VITE_API_SCOPE: ${{ vars.API_SCOPE }}
 
       - name: Build and deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
