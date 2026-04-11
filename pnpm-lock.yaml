@@ -166,18 +166,6 @@ importers:
       '@azure/msal-browser':
         specifier: ^5.6.3
         version: 5.6.3
-      '@lms/block-registry':
-        specifier: file:../../shared/block-registry
-        version: link:../../shared/block-registry
-      '@lms/shared-auth':
-        specifier: file:../../shared/auth
-        version: file:shared/auth(@azure/msal-browser@5.6.3)(react@19.2.4)
-      '@lms/shared-schemas':
-        specifier: file:../../shared/schemas
-        version: link:../../shared/schemas
-      '@lms/shared-ui':
-        specifier: file:../../shared/ui
-        version: link:../../shared/ui
       next:
         specifier: 16.2.2
         version: 16.2.2(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -983,12 +971,6 @@ packages:
 
   '@js-joda/core@5.7.0':
     resolution: {integrity: sha512-WBu4ULVVxySLLzK1Ppq+OdfP+adRS4ntmDQT915rzDJ++i95gc2jZkM5B6LWEAwN3lGXpfie3yPABozdD3K3Vg==}
-
-  '@lms/shared-auth@file:shared/auth':
-    resolution: {directory: shared/auth, type: directory}
-    peerDependencies:
-      '@azure/msal-browser': ^3
-      react: ^19
 
   '@microsoft/applicationinsights-web-snippet@1.0.1':
     resolution: {integrity: sha512-2IHAOaLauc8qaAitvWS+U931T+ze+7MNWrDHY47IENP5y2UA0vqJDu67kWZDdpCN1fFC77sfgfB+HV7SrKshnQ==}
@@ -4692,11 +4674,6 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@js-joda/core@5.7.0': {}
-
-  '@lms/shared-auth@file:shared/auth(@azure/msal-browser@5.6.3)(react@19.2.4)':
-    dependencies:
-      '@azure/msal-browser': 5.6.3
-      react: 19.2.4
 
   '@microsoft/applicationinsights-web-snippet@1.0.1': {}
 
