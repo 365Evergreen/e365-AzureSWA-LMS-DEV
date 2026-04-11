@@ -1,0 +1,29 @@
+@import '@lms/shared-ui/src/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-subtle);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: var(--color-text-link);
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}

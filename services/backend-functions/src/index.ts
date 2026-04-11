@@ -1,0 +1,15 @@
+import './functions/publish';
+import './functions/getCatalogue';
+import './functions/getProgress';
+import './functions/postProgress';
+import './functions/getEnrolment';
+import './functions/listMedia';
+import './functions/uploadMedia';
+import './functions/getPage';
+import './functions/savePage';
+import './functions/adminListPages';
+import './functions/getEditorPage';
+import './functions/patchPageMeta';
+import './functions/getNav';
+import './functions/catalogueApi';
+import './functions/categories';

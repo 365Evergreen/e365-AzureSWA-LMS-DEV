@@ -1,0 +1,30 @@
+{
+  "name": "lms-platform",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "scripts": {
+    "dev:public": "pnpm --filter ./apps/lms-publicsite-dev dev",
+    "dev:knowledge": "pnpm --filter ./apps/lms-knowledge-site dev",
+    "dev:editor": "pnpm --filter ./apps/lms-editorsite-dev dev",
+    "dev:learner": "pnpm --filter ./apps/lms-learnersite-dev dev",
+    "dev:backend": "pnpm --filter ./services/backend-functions dev",
+    "build:public": "pnpm --filter ./apps/lms-publicsite-dev build",
+    "build:knowledge": "pnpm --filter ./apps/lms-knowledge-site build",
+    "build:editor": "pnpm --filter ./apps/lms-editorsite-dev build",
+    "build:learner": "pnpm --filter ./apps/lms-learnersite-dev build",
+    "build:backend": "pnpm --filter ./services/backend-functions build",
+    "build:all": "pnpm run build:public && pnpm run build:knowledge && pnpm run build:editor && pnpm run build:learner && pnpm run build:backend",
+    "lint:all": "pnpm -r lint"
+  },
+  "dependencies": {
+    "sharp": "^0.34.5"
+  }
+}

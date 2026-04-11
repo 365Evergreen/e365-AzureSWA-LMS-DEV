@@ -1,0 +1,40 @@
+/* CMS-managed header: hero is always full-width (zero padding on PublicBlockRenderer root) */
+.cmsHeader {
+  width: 100%;
+}
+
+/* Non-hero CMS blocks get standard content-width padding */
+.cmsInner {
+  max-width: var(--content-width, 960px);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+}
+
+/* Fallback heading when no CMS page has been published */
+.fallbackHeader {
+  width: 100%;
+  background: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fallbackInner {
+  max-width: var(--content-width, 960px);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6) var(--space-10);
+}
+
+.fallbackTitle {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1.15;
+}
+
+.fallbackSubtitle {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-secondary);
+  max-width: 56ch;
+  line-height: 1.6;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@lms/shared-auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@azure/msal-browser": "^3",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@azure/msal-browser": "^3",
+    "@types/react": "^19",
+    "typescript": "~5"
+  }
+}

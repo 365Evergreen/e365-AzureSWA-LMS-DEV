@@ -1,0 +1,24 @@
+.badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.draft {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.review {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.published {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}

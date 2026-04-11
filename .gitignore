@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Vite / TypeScript incremental build info
+*.tsbuildinfo
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/settings.json
+.idea/
+*.suo
+*.user
+
+# Azure / deployment
+.azure/local/
+agent
+
+# Azure Functions local settings (may contain connection strings / secrets)
+local.settings.json
+
+# Logs
+*.log
+npm-debug.log*
+localhost.har
+lms.365evergreendev.com.har
+func-deploy.zip

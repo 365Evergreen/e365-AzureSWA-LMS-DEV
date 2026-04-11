@@ -1,0 +1,30 @@
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+.logoImage {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.logoTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.displayName {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}

@@ -1,0 +1,355 @@
+{
+  "blocks": [
+    {
+      "id": "cbba377b-f430-4e08-b789-3a51b37b5086",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Build better learning experiences",
+        "level": 1
+      }
+    },
+    {
+      "id": "9f109488-cd8d-4d46-9eba-14f2da489be9",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>The LMS Platform gives your team the tools to create, deliver, and iterate on world-class learning content — faster than ever. Whether you are authoring a new course, publishing a knowledge article, or tracking learner progress, everything is in one place.</p>"
+      }
+    },
+    {
+      "id": "91d844bb-2275-4850-8ced-363469720b9d",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "tip",
+        "title": "Get started in minutes",
+        "body": "Sign in with your organisation account and explore the course catalogue, or head to the Knowledge Base for guided tutorials."
+      }
+    },
+    {
+      "id": "af2ca490-768b-4192-9640-13dbebdda950",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Why LMS Platform?",
+        "level": 2
+      }
+    },
+    {
+      "id": "8e138b46-a2a7-47b0-8837-fb473b0af05b",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p><strong>Block-based authoring:</strong> Compose learning experiences from modular, reusable blocks. Drag, drop, and publish with ease.</p><p><strong>Static-first delivery:</strong> Pre-rendered content means blazing-fast load times and a seamless learner experience every time.</p><p><strong>Evergreen platform:</strong> Automated review cycles and version tracking keep your content accurate and up to date.</p>"
+      }
+    },
+    {
+      "id": "10d437c9-4af1-4d48-94e4-6672efc69739",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "info",
+        "title": "Explore the catalogue",
+        "body": "Browse our growing library of courses covering Azure, leadership, design, and more."
+      }
+    },
+    {
+      "id": "97e98098-4356-4b1c-8c42-e2cd795e4875",
+      "type": "divider",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "a143cffd-7766-4ba5-ac87-8b1005c1073b",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Latest from the Knowledge Base",
+        "level": 2
+      }
+    },
+    {
+      "id": "3c22ccb0-ef43-4ea2-a8f5-66d279e590bb",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<ul><li><a href=\"/kb/creating-your-first-course\">Creating Your First Course</a></li><li><a href=\"/kb/navigating-learning-dashboard\">Navigating Your Learning Dashboard</a></li><li><a href=\"/kb/getting-help-learner\">Getting Help as a Learner</a></li></ul>"
+      }
+    }
+  ]
+}{
+  "blocks": [
+    {
+      "id": "663aad58-66c7-4eb8-84f2-d8dd2da498f0",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "What We Do",
+        "level": 1
+      }
+    },
+    {
+      "id": "4985ea15-ff49-4eb9-b55e-22d5828c23db",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>We build and operate a modern learning management platform that helps organisations upskill their teams at scale. From authoring tools to learner analytics, we cover the full content lifecycle.</p>"
+      }
+    },
+    {
+      "id": "b9a6c9d9-eb74-4b0b-aa2f-e86c863177ef",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Content Authoring",
+        "level": 2
+      }
+    },
+    {
+      "id": "ebd3b2e8-6d7a-4b4a-8662-e11b095a7ead",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>Our block-based editor lets subject matter experts build rich, interactive content without writing a line of code. Templates ensure consistency across all sites while giving authors the flexibility to tell their story.</p><p>Supported block types include rich text, images, video embeds, code samples, callouts, and interactive quizzes.</p>"
+      }
+    },
+    {
+      "id": "bc2ccf70-3fe2-4fe3-ae6f-c796735d2d58",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "info",
+        "title": "Supported content types",
+        "body": "Landing pages, content pages (with optional sidebars), blog posts, knowledge base articles, and structured learning courses — all managed from a single editor."
+      }
+    },
+    {
+      "id": "582d9bf5-3991-45d5-9b74-626ed8566de1",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Learning Delivery",
+        "level": 2
+      }
+    },
+    {
+      "id": "f0c6b21d-1f3e-4f1a-8308-0f5aa6cf539f",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>Content is pre-rendered and served as static bundles from Azure Blob Storage, delivering sub-second load times regardless of learner location. A CDN sits in front of all public assets, caching content at the edge.</p><p>The learner site tracks progress block-by-block, allowing learners to resume exactly where they left off and administrators to report on completion rates in real time.</p>"
+      }
+    },
+    {
+      "id": "1718b1d3-1e65-4f6a-9aae-2b1703021ed7",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Knowledge Management",
+        "level": 2
+      }
+    },
+    {
+      "id": "aa6f845f-009a-4cf1-96b8-5f89c29a1478",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>The Knowledge Base is a curated library of articles tagged by audience, product version, and topic. Articles are authored in the same block-based editor and published to a dedicated knowledge site optimised for search and discoverability.</p>"
+      }
+    },
+    {
+      "id": "2b2f5dff-232e-40e0-8100-996dbe4b3bca",
+      "type": "divider",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "7a66dc79-c07b-4c5e-937d-83aecfa1a50d",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "tip",
+        "title": "Want to know more?",
+        "body": "Explore our course catalogue or read the blog for the latest platform news and authoring guides."
+      }
+    }
+  ]
+}{
+  "blocks": [
+    {
+      "id": "df3ff773-9f35-419d-8f70-895dc7e5ec27",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Build better learning experiences",
+        "level": 1
+      }
+    },
+    {
+      "id": "0abc20dd-cb2d-4591-98da-7c05011ae9bc",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>The LMS Platform gives your team the tools to create, deliver, and iterate on world-class learning content — faster than ever. Whether you are authoring a new course, publishing a knowledge article, or tracking learner progress, everything is in one place.</p>"
+      }
+    },
+    {
+      "id": "b34433c5-7ac9-4805-9d6a-11bd9c413dcb",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "tip",
+        "title": "Get started in minutes",
+        "body": "Sign in with your organisation account and explore the course catalogue, or head to the Knowledge Base for guided tutorials."
+      }
+    },
+    {
+      "id": "cace2813-0612-4f00-a784-28a2277971ec",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Why LMS Platform?",
+        "level": 2
+      }
+    },
+    {
+      "id": "c52a2992-1e2c-44a2-93e2-6b54b3930440",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p><strong>Block-based authoring:</strong> Compose learning experiences from modular, reusable blocks. Drag, drop, and publish with ease.</p><p><strong>Static-first delivery:</strong> Pre-rendered content means blazing-fast load times and a seamless learner experience every time.</p><p><strong>Evergreen platform:</strong> Automated review cycles and version tracking keep your content accurate and up to date.</p>"
+      }
+    },
+    {
+      "id": "de6972e8-b2a2-46da-9157-c2e85f5a6b8e",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "info",
+        "title": "Explore the catalogue",
+        "body": "Browse our growing library of courses covering Azure, leadership, design, and more."
+      }
+    },
+    {
+      "id": "1f538c24-610d-4e9e-8301-85f0bbb6eb1c",
+      "type": "divider",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "6949a9c5-7b9b-4d73-b9c4-5477ed5da771",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Latest from the Knowledge Base",
+        "level": 2
+      }
+    },
+    {
+      "id": "15f57a55-2688-4d5a-94ff-13a27e54f728",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<ul><li><a href=\"/kb/creating-your-first-course\">Creating Your First Course</a></li><li><a href=\"/kb/navigating-learning-dashboard\">Navigating Your Learning Dashboard</a></li><li><a href=\"/kb/getting-help-learner\">Getting Help as a Learner</a></li></ul>"
+      }
+    }
+  ]
+}{
+  "blocks": [
+    {
+      "id": "f752f287-a219-44b5-b154-88ae91b9c0d2",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "What We Do",
+        "level": 1
+      }
+    },
+    {
+      "id": "38312b16-62e3-4791-8a45-159582abafbf",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>We build and operate a modern learning management platform that helps organisations upskill their teams at scale. From authoring tools to learner analytics, we cover the full content lifecycle.</p>"
+      }
+    },
+    {
+      "id": "a83fbef7-ff0b-474b-808e-9de0e3c8b7d0",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Content Authoring",
+        "level": 2
+      }
+    },
+    {
+      "id": "fd62878c-58ad-443f-b672-f9162ad8585f",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>Our block-based editor lets subject matter experts build rich, interactive content without writing a line of code. Templates ensure consistency across all sites while giving authors the flexibility to tell their story.</p><p>Supported block types include rich text, images, video embeds, code samples, callouts, and interactive quizzes.</p>"
+      }
+    },
+    {
+      "id": "e627b0cb-6aaf-46ec-bba0-ab07d11c210e",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "info",
+        "title": "Supported content types",
+        "body": "Landing pages, content pages (with optional sidebars), blog posts, knowledge base articles, and structured learning courses — all managed from a single editor."
+      }
+    },
+    {
+      "id": "09c7815a-6390-493d-aa10-674e27b858e1",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Learning Delivery",
+        "level": 2
+      }
+    },
+    {
+      "id": "0d8be249-7d4d-4fe0-bfb7-525f14709f68",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>Content is pre-rendered and served as static bundles from Azure Blob Storage, delivering sub-second load times regardless of learner location. A CDN sits in front of all public assets, caching content at the edge.</p><p>The learner site tracks progress block-by-block, allowing learners to resume exactly where they left off and administrators to report on completion rates in real time.</p>"
+      }
+    },
+    {
+      "id": "c4cd64ff-2669-4f24-aa59-e27d9a25480e",
+      "type": "heading",
+      "version": 1,
+      "payload": {
+        "text": "Knowledge Management",
+        "level": 2
+      }
+    },
+    {
+      "id": "f58e09f2-979c-49a2-97e4-2eef833f6ac1",
+      "type": "paragraph",
+      "version": 1,
+      "payload": {
+        "html": "<p>The Knowledge Base is a curated library of articles tagged by audience, product version, and topic. Articles are authored in the same block-based editor and published to a dedicated knowledge site optimised for search and discoverability.</p>"
+      }
+    },
+    {
+      "id": "3e3b74ec-fd8d-47cf-9973-aa2677970631",
+      "type": "divider",
+      "version": 1,
+      "payload": {}
+    },
+    {
+      "id": "3a7150a8-30e0-43b6-9026-2e6158733479",
+      "type": "callout",
+      "version": 1,
+      "payload": {
+        "type": "tip",
+        "title": "Want to know more?",
+        "body": "Explore our course catalogue or read the blog for the latest platform news and authoring guides."
+      }
+    }
+  ]
+}

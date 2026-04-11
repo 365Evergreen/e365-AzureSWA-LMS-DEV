@@ -1,0 +1,389 @@
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.item {
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.item:hover {
+  border-color: var(--color-border-strong);
+}
+
+.selected {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
+}
+
+.dragging {
+  opacity: 0.5;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.dragHandle {
+  cursor: grab;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.blockLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: var(--space-1);
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.deleteBtn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.renderer {
+  padding: var(--space-4);
+}
+
+/* ─── Inline toolbar ─────────────────────────────────────────────────────────── */
+
+.inlineToolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: 2px;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--color-border);
+  margin: 0 var(--space-1);
+  flex-shrink: 0;
+}
+
+.toolbarBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.toolbarBtn:hover {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.toolbarBtnActive {
+  background: var(--color-brand-primary);
+  border-color: var(--color-brand-primary);
+  color: white;
+}
+
+.toolbarBtnActive:hover {
+  background: var(--color-brand-primary);
+  color: white;
+}
+
+.toolbarBtnBold {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+.toolbarBtnItalic {
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+.toolbarBtnUnderline {
+  text-decoration: underline;
+  font-size: var(--font-size-sm);
+}
+
+.sizeSelect {
+  height: 2rem;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.sizeSelect:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* ─── Link row ────────────────────────────────────────────────────────────── */
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.linkInput {
+  flex: 1;
+  height: 1.75rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
+}
+
+.linkInput:focus {
+  border-color: var(--color-brand-primary);
+}
+
+.linkNewTab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.linkApply {
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-brand-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.linkRemove {
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  color: var(--color-danger, #cc0000);
+  border: 1px solid var(--color-danger, #cc0000);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.linkClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  padding: var(--space-1);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ─── Inline editors ──────────────────────────────────────────────────────────── */
+
+.inlineInput {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.inlineInput:focus {
+  outline: none;
+}
+
+.inlineTextarea {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: inherit;
+  resize: vertical;
+  padding: 0;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.inlineTextarea:focus {
+  outline: none;
+}
+
+.inlineCode {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: var(--color-surface-muted, #f5f5f5);
+  color: var(--color-text-primary);
+  font-family: monospace;
+  font-size: 0.875em;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.inlineCode:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-primary) 30%, transparent);
+}
+
+.inlineDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inlineList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inlineListItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inlineListMarker {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  min-width: 1.5rem;
+  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.inlineListInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.inlineListInput:focus {
+  outline: none;
+}
+
+.inlineListRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.inlineListRemove:hover {
+  color: var(--color-danger);
+}
+
+.inlineListAdd {
+  align-self: flex-start;
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  margin-top: var(--space-1);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.inlineListAdd:hover {
+  border-color: var(--color-brand-primary);
+  color: var(--color-brand-primary);
+}

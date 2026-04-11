@@ -1,0 +1,27 @@
+.tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-sans);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.active {
+  border-bottom: 2px solid var(--color-brand-primary);
+  color: var(--color-brand-primary);
+}

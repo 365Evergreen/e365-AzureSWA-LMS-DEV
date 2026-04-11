@@ -1,0 +1,220 @@
+# ✅ LMS Platform – Agreed Architectural Approach (Reference Summary)
+
+## 1. Product mindset
+
+*   The LMS is an **evergreen service**, not a one‑off solution.
+*   Clients can **defer updates**, but:
+    *   Only **N versions** are supported (current + previous).
+    *   Older versions expire and are unsupported.
+*   The vendor (you) is the **single source of truth** for:
+    *   UX
+    *   behaviour
+    *   publishing workflows
+    *   feature evolution
+
+***
+
+## 2. Sites and responsibilities (4 sites, clearly separated)
+
+### 1️⃣ Public Site (Marketing + Knowledge Base)
+
+*   **Tech**: React + Vite, Azure Static Web Apps
+*   **Purpose**:
+    *   Marketing pages
+    *   Blog posts (learning/teaching thought leadership)
+    *   Learn‑style Knowledge Base
+*   **Auth**: Anonymous
+*   **Lifecycle**: Managed and deployed **only in your tenant**
+*   **KB characteristics**:
+    *   Static
+    *   All articles visible
+    *   Audience labelling (Editor / Learner / Both)
+    *   One source of truth
+    *   No runtime APIs
+    *   Client‑side, build‑time search index
+    *   ≤300 articles by design
+
+***
+
+### 2️⃣ Editor App
+
+*   **Tech**: React + Vite *(Next.js considered but not required)*
+*   **Purpose**:
+    *   Drag‑and‑drop, block‑based authoring (WordPress FSE‑like)
+    *   Draft → review → publish workflows
+*   **Auth**:
+    *   Entra ID
+    *   App roles (Author, Publisher, Admin)
+*   **Behaviour**:
+    *   Produces block‑based JSON documents
+    *   Publishes immutable, versioned content bundles
+*   **No embedded KB**:
+    *   Knowledge lives on the public site
+    *   Editor remains a focused application
+
+***
+
+### 3️⃣ Learner App
+
+*   **Tech**: Next.js, Azure Static Web Apps
+*   **Purpose**:
+    *   Content consumption
+    *   Course navigation
+    *   Progress tracking
+*   **Auth**:
+    *   Entra ID
+*   **Delivery model**:
+    *   Static shell + dynamic rendering
+    *   Reads published JSON bundles from Blob/CDN
+    *   Minimal runtime API calls (progress, entitlement)
+
+***
+
+### 4️⃣ Backend (Azure Functions)
+
+*   **Purpose**:
+    *   Publishing pipeline
+    *   Content validation and migrations
+    *   Progress tracking
+    *   Auth enforcement
+*   **Design principle**:
+    *   **Behaviour evolves in lockstep** with Editor & Learner
+    *   **Non‑behavioural changes** (performance, refactors, telemetry) can ship independently
+*   **API surface kept deliberately small**
+
+***
+
+## 3. Content model (core to everything)
+
+### Block‑based authoring
+
+*   Editor outputs **structured JSON documents**
+*   Blocks are:
+    *   Versioned
+    *   Schema‑validated
+    *   Rendered consistently across Editor preview and Learner
+*   Publishing produces:
+    *   Immutable, versioned bundles in Blob Storage
+    *   CDN‑friendly paths
+    *   No redeploy needed on content change
+
+***
+
+## 4. Knowledge Base (Microsoft Learn–style)
+
+*   **Source**: Private Azure DevOps repo (for PoC)
+*   **Output**: Public static site via SWA
+*   **Access**:
+    *   Publicly accessible pages
+    *   No public access to source repo
+*   **Authoring rules**:
+    *   Write once, label for audience
+    *   Avoid duplicate articles
+    *   Role‑specific sections inside a single article
+*   **Versioning**:
+    *   Current + Previous only
+    *   Preview docs allowed but clearly labelled
+    *   Expired versions removed entirely
+*   **Search**:
+    *   Pre‑built client‑side index
+    *   No APIs, no cost, no runtime dependency
+
+***
+
+## 5. Multi‑tenant stance (PoC‑safe, future‑ready)
+
+*   **PoC**:
+    *   Single tenant
+    *   No tenant UX
+*   **Built‑in discipline**:
+    *   Tenant ID used as a **data partition key only**
+    *   No tenant‑specific behaviour
+*   **Future**:
+    *   Supports both:
+        *   Self‑hosted client tenants
+        *   BaaS/PaaS model
+    *   Same code, same UX, same flows everywhere
+
+***
+
+## 6. App registrations & auth (high‑level)
+
+*   Separate app registrations for:
+    *   Public (optional auth)
+    *   Editor
+    *   Learner
+    *   Backend API
+*   SSO for the learner app
+    *   If a user is already authenticated in the Azure tenant, they shouldn't be prompted to sign in
+*   Single‑tenant today, multi‑tenant capable later
+*   App roles drive permissions, not tenants
+
+***
+
+## 7. Repo and delivery strategy
+
+### Repo structure
+
+✅ **Single LMS platform repo (monorepo)**
+
+    lms-platform
+      /apps
+        /public-site
+        /editor-app
+        /learner-app
+      /services
+        /backend-functions
+      /shared
+        /block-registry
+        /schemas
+        /auth
+
+### Why this works
+
+*   One product, one release concept
+*   Shared contracts stay shared
+*   Still allows **site‑scoped builds and deployments**
+*   Supports evergreen versioning cleanly
+
+***
+
+## 8. Versioning & release philosophy
+
+*   Platform version = **Editor + Learner + Backend behaviour**
+*   Backend implementation fixes may ship between versions
+*   Preview features:
+    *   Clearly labelled
+    *   Lightly documented
+    *   No KB bloat
+*   Support model:
+    *   Current + Previous
+    *   Expired versions unsupported
+
+***
+
+## 9. What is deliberately out of scope (by design)
+
+*   Per‑client configuration
+*   White‑labelling
+*   Client‑specific forks
+*   Runtime CMS APIs
+*   Dynamic KB services
+*   Public contribution workflows (for now)
+
+***
+
+## 10. One‑line summary you can reuse
+
+> **A single evergreen LMS platform with four clearly separated sites, static‑first delivery, block‑based content, vendor‑controlled evolution, and a Learn‑style knowledge base that stays lean, fast, and aligned with supported versions.**
+
+***
+
+If you like, next time we can:
+
+*   turn this into a **diagrammatic mental model**,
+*   extract **architecture principles** as a checklist,
+*   or stress‑test it against a “first real customer” scenario.
+
+How did I do?  
+👍 if this summary feels accurate and reusable  
+👎 if you want it tightened, shortened, or challenged

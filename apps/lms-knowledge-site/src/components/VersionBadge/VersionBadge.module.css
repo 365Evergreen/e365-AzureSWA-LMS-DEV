@@ -1,0 +1,17 @@
+.badge {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-medium);
+}
+
+.current {
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+}
+
+.previous {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}

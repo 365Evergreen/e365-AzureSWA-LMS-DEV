@@ -1,0 +1,273 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #555);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--color-text-primary, #111);
+  background: var(--color-surface, #fff);
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #2563eb) 15%, transparent);
+}
+
+.select {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--color-text-primary, #111);
+  background: var(--color-surface, #fff);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+}
+
+/* ─── Segmented control ─────────────────────────────────────────────────────── */
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segment,
+.segmentActive {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  color: var(--color-text-secondary, #555);
+}
+
+.segment:hover {
+  background: var(--color-surface-subtle, #f5f5f5);
+}
+
+.segmentActive {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ─── Fields section ────────────────────────────────────────────────────────── */
+
+.fieldsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.emptyHint {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #888);
+  font-style: italic;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.addBtn {
+  padding: 0.3rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-primary, #2563eb);
+  color: var(--color-primary, #2563eb);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.addBtn:hover {
+  background: color-mix(in srgb, var(--color-primary, #2563eb) 8%, transparent);
+}
+
+/* ─── Field card ────────────────────────────────────────────────────────────── */
+
+.fieldCard {
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-surface, #fff);
+}
+
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.5rem;
+  background: var(--color-surface-subtle, #f9f9f9);
+  gap: 0.5rem;
+  min-height: 2.25rem;
+}
+
+.fieldHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.fieldTypeTag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.fieldLabelText {
+  font-size: 0.85rem;
+  color: var(--color-text-primary, #111);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.requiredBadge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #e53e3e;
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 3px;
+  padding: 0.05rem 0.35rem;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  padding: 0.2rem 0.4rem;
+  background: transparent;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--color-text-secondary, #555);
+  line-height: 1;
+  transition: background 0.12s;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: var(--color-surface, #fff);
+}
+
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.iconBtnDanger {
+  composes: iconBtn;
+  color: #e53e3e;
+  border-color: #feb2b2;
+}
+
+.iconBtnDanger:hover:not(:disabled) {
+  background: #fff5f5;
+}
+
+/* ─── Field body (expanded) ─────────────────────────────────────────────────── */
+
+.fieldBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.25rem 0;
+}
+
+.checkRow input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: var(--color-primary, #2563eb);
+}
+
+.checkRow label {
+  font-size: 0.85rem;
+  color: var(--color-text-primary, #111);
+  cursor: pointer;
+}
+
+/* ─── Options editor ────────────────────────────────────────────────────────── */
+
+.optionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--color-border, #e0e0e0);
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

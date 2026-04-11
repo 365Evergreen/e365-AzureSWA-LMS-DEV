@@ -1,0 +1,15 @@
+{
+  // Root TypeScript config for IDE navigation and workspace-level type awareness.
+  // Each app manages its own compilation. Shared packages will add their references in Phase 2.
+  "files": [],
+  "references": [
+    { "path": "./apps/lms-publicsite-dev" },
+    { "path": "./apps/lms-knowledge-site" },
+    { "path": "./apps/lms-editorsite-dev" },
+    { "path": "./apps/lms-learnersite-dev" },
+    { "path": "./shared/auth" },
+    { "path": "./shared/schemas" },
+    { "path": "./shared/ui" },
+    { "path": "./shared/block-registry" }
+  ]
+}
