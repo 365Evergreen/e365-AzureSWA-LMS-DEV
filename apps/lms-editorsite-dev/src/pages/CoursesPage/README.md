@@ -133,7 +133,6 @@ Each course is made up of:
 - Canvas editor displays with block palette, canvas and properties pane
 - Properties are:
   - Title
-  
   - Slug (auto created from title)
   - Summary (1000 character limit)
   - Duration
