@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
+import MediaPickerModal from '../../components/MediaPickerModal';
+import type { MediaItem } from '../../api/media';
 import {
   loadEditorCatalogueItem,
   patchCatalogueItem,
@@ -34,17 +36,23 @@ export default function EditPathPage() {
   const [editDifficulty, setEditDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
   const [editRole, setEditRole] = useState('');
   const [editLearningPath, setEditLearningPath] = useState('');
-  const [editMinutes, setEditMinutes] = useState(0);
   const [editLanguage, setEditLanguage] = useState('en');
   const [editVisibility, setEditVisibility] = useState<CatalogueItem['visibility']>('Public');
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
+  const [editIsCurrent, setEditIsCurrent] = useState(true);
   const [metaSaving, setMetaSaving] = useState(false);
   const [metaSaved, setMetaSaved] = useState(false);
 
-  // Inline module rename
+  // Module details editing
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [editingModuleTitle, setEditingModuleTitle] = useState('');
-  const [moduleRenameSaving, setModuleRenameSaving] = useState(false);
+  const [editingModuleSlug, setEditingModuleSlug] = useState('');
+  const [editingModuleSummary, setEditingModuleSummary] = useState('');
+  const [editingModuleThumbnailUrl, setEditingModuleThumbnailUrl] = useState('');
+  const [editingModuleIsCurrent, setEditingModuleIsCurrent] = useState(true);
+  const [moduleSaving, setModuleSaving] = useState(false);
+  const [showCourseMediaPicker, setShowCourseMediaPicker] = useState(false);
+  const [showModuleMediaPicker, setShowModuleMediaPicker] = useState(false);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -62,10 +70,10 @@ export default function EditPathPage() {
       setEditDifficulty(detail.difficulty ?? 'Beginner');
       setEditRole(detail.role ?? '');
       setEditLearningPath(detail.learningPath ?? '');
-      setEditMinutes(detail.estimatedMinutes ?? 0);
       setEditLanguage(detail.language ?? 'en');
       setEditVisibility(detail.visibility ?? 'Public');
       setEditThumbnailUrl(detail.thumbnailUrl ?? '');
+      setEditIsCurrent(detail.status !== 'Archived');
 
       const mods: ModuleRow[] = (detail.modules ?? []).map((m) => ({
         ...(m as ModuleRow),
@@ -91,8 +99,12 @@ export default function EditPathPage() {
   };
 
   const handleSaveMeta = async () => {
-    if (!pathId) return;
+    if (!pathId || !path) return;
     setMetaSaving(true);
+    const derivedMinutes = modules.reduce(
+      (courseSum, mod) => courseSum + mod.units.reduce((moduleSum, unit) => moduleSum + (unit.estimatedMinutes ?? 0), 0),
+      0
+    );
     try {
       await patchCatalogueItem('PATH', pathId, {
         title: editTitle,
@@ -102,10 +114,11 @@ export default function EditPathPage() {
         difficulty: editDifficulty,
         role: editRole.trim() || undefined,
         learningPath: editLearningPath.trim() || undefined,
-        estimatedMinutes: editMinutes,
+        estimatedMinutes: derivedMinutes,
         language: editLanguage,
         visibility: editVisibility,
         thumbnailUrl: editThumbnailUrl,
+        status: editIsCurrent ? (path.status === 'Archived' ? 'Draft' : path.status) : 'Archived',
       });
       setMetaSaved(true);
       setTimeout(() => setMetaSaved(false), 2000);
@@ -150,25 +163,42 @@ export default function EditPathPage() {
   const startEditingModule = (mod: ModuleRow) => {
     setEditingModuleId(mod.itemId);
     setEditingModuleTitle(mod.title);
+    setEditingModuleSlug(mod.slug ?? '');
+    setEditingModuleSummary(mod.summary ?? '');
+    setEditingModuleThumbnailUrl(mod.thumbnailUrl ?? '');
+    setEditingModuleIsCurrent(mod.status !== 'Archived');
   };
 
   const cancelEditingModule = () => {
     setEditingModuleId(null);
     setEditingModuleTitle('');
+    setEditingModuleSlug('');
+    setEditingModuleSummary('');
+    setEditingModuleThumbnailUrl('');
+    setEditingModuleIsCurrent(true);
+    setShowModuleMediaPicker(false);
   };
 
-  const handleRenameModule = async (moduleId: string) => {
+  const handleSaveModule = async (mod: ModuleRow) => {
     const trimmed = editingModuleTitle.trim();
     if (!trimmed) return;
-    setModuleRenameSaving(true);
+    const derivedMinutes = mod.units.reduce((sum, unit) => sum + (unit.estimatedMinutes ?? 0), 0);
+    setModuleSaving(true);
     try {
-      await patchCatalogueItem('MODULE', moduleId, { title: trimmed });
+      await patchCatalogueItem('MODULE', mod.itemId, {
+        title: trimmed,
+        slug: editingModuleSlug.trim(),
+        summary: editingModuleSummary.trim(),
+        thumbnailUrl: editingModuleThumbnailUrl.trim() || undefined,
+        estimatedMinutes: derivedMinutes,
+        status: editingModuleIsCurrent ? (mod.status === 'Archived' ? 'Draft' : mod.status) : 'Archived',
+      });
       setEditingModuleId(null);
       await load();
     } catch (err) {
       setActionError((err as Error).message);
     } finally {
-      setModuleRenameSaving(false);
+      setModuleSaving(false);
     }
   };
 
@@ -196,6 +226,11 @@ export default function EditPathPage() {
     Published: '#10b981',
     Archived: '#f87171',
   };
+
+  const courseDuration = modules.reduce(
+    (courseSum, mod) => courseSum + mod.units.reduce((moduleSum, unit) => moduleSum + (unit.estimatedMinutes ?? 0), 0),
+    0
+  );
 
   if (loading) {
     return (
@@ -255,7 +290,8 @@ export default function EditPathPage() {
 
             <div className={styles.field}>
               <label className={styles.label}>Summary</label>
-              <textarea className={styles.textarea} value={editSummary} onChange={e => setEditSummary(e.target.value)} rows={3} />
+              <textarea className={styles.textarea} value={editSummary} onChange={e => setEditSummary(e.target.value)} rows={3} maxLength={1000} />
+              <span className={styles.fieldHint}>{editSummary.length}/1000 characters</span>
             </div>
 
             <div className={styles.field}>
@@ -290,7 +326,8 @@ export default function EditPathPage() {
 
             <div className={styles.field}>
               <label className={styles.label}>Duration (minutes)</label>
-              <input className={styles.input} type="number" min={0} value={editMinutes} onChange={e => setEditMinutes(parseInt(e.target.value) || 0)} />
+              <input className={styles.input} type="number" min={0} value={courseDuration} readOnly />
+              <span className={styles.fieldHint}>Auto-calculated from module and unit durations</span>
             </div>
 
             <div className={styles.field}>
@@ -317,17 +354,21 @@ export default function EditPathPage() {
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>
-                Featured image URL
-                <span className={styles.fieldHint}>Displayed on catalogue card</span>
-              </label>
-              <input
-                className={styles.input}
-                type="url"
-                value={editThumbnailUrl}
-                onChange={e => setEditThumbnailUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <label className={styles.label}>Featured image</label>
+              <div className={styles.mediaActions}>
+                <button type="button" className={styles.mediaBtn} onClick={() => setShowCourseMediaPicker(true)}>
+                  Select from library
+                </button>
+                <button
+                  type="button"
+                  className={styles.mediaBtnSecondary}
+                  onClick={() => setEditThumbnailUrl('')}
+                  disabled={!editThumbnailUrl}
+                >
+                  Clear
+                </button>
+              </div>
+              <span className={styles.fieldHint}>Displayed on catalogue card</span>
               {editThumbnailUrl && (
                 <img
                   src={editThumbnailUrl}
@@ -336,6 +377,14 @@ export default function EditPathPage() {
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.currentToggle}>
+                <input type="checkbox" checked={editIsCurrent} onChange={e => setEditIsCurrent(e.target.checked)} />
+                <span>Current</span>
+              </label>
+              <span className={styles.fieldHint}>Archived courses remain available to editors only.</span>
             </div>
 
             <Button onClick={handleSaveMeta} disabled={metaSaving}>
@@ -367,16 +416,7 @@ export default function EditPathPage() {
                   <span className={styles.moduleIndex}>M{mi + 1}</span>
 
                   {editingModuleId === mod.itemId ? (
-                    <input
-                      className={styles.moduleTitleInput}
-                      value={editingModuleTitle}
-                      onChange={e => setEditingModuleTitle(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleRenameModule(mod.itemId);
-                        if (e.key === 'Escape') cancelEditingModule();
-                      }}
-                      autoFocus
-                    />
+                    <span className={styles.moduleTitle}>{mod.title}</span>
                   ) : (
                     <span className={styles.moduleTitle}>{mod.title}</span>
                   )}
@@ -388,9 +428,9 @@ export default function EditPathPage() {
                     <>
                       <button
                         className={styles.renameSaveBtn}
-                        onClick={() => handleRenameModule(mod.itemId)}
-                        disabled={moduleRenameSaving}
-                        title="Save"
+                        onClick={() => handleSaveModule(mod)}
+                        disabled={moduleSaving}
+                        title="Save details"
                       >✓</button>
                       <button className={styles.renameCancelBtn} onClick={cancelEditingModule} title="Cancel">✕</button>
                     </>
@@ -398,8 +438,8 @@ export default function EditPathPage() {
                     <button
                       className={styles.editModuleBtn}
                       onClick={() => startEditingModule(mod)}
-                      title="Rename module"
-                    >✎</button>
+                      title="Edit module details"
+                    >Edit</button>
                   )}
 
                   <button className={styles.removeBtn} onClick={() => handleRemoveModule(mod.itemId)} title="Remove module">✕</button>
@@ -407,6 +447,78 @@ export default function EditPathPage() {
 
                 {expandedModules.has(mod.itemId) && (
                   <div className={styles.unitList}>
+                    {editingModuleId === mod.itemId && (
+                      <div className={styles.moduleDetails}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>Title</label>
+                          <input className={styles.input} value={editingModuleTitle} onChange={e => setEditingModuleTitle(e.target.value)} autoFocus />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>Slug</label>
+                          <input className={styles.input} value={editingModuleSlug} onChange={e => setEditingModuleSlug(e.target.value)} />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>Summary</label>
+                          <textarea
+                            className={styles.textarea}
+                            value={editingModuleSummary}
+                            onChange={e => setEditingModuleSummary(e.target.value)}
+                            rows={3}
+                            maxLength={1000}
+                          />
+                          <span className={styles.fieldHint}>{editingModuleSummary.length}/1000 characters</span>
+                        </div>
+
+                        <div className={styles.moduleMetaRow}>
+                          <div className={styles.field}>
+                            <label className={styles.label}>Duration (minutes)</label>
+                            <input
+                              className={styles.input}
+                              value={mod.units.reduce((sum, unit) => sum + (unit.estimatedMinutes ?? 0), 0)}
+                              readOnly
+                            />
+                          </div>
+
+                          <div className={styles.field}>
+                            <label className={styles.currentToggle}>
+                              <input
+                                type="checkbox"
+                                checked={editingModuleIsCurrent}
+                                onChange={e => setEditingModuleIsCurrent(e.target.checked)}
+                              />
+                              <span>Current</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>Featured image</label>
+                          <div className={styles.mediaActions}>
+                            <button type="button" className={styles.mediaBtn} onClick={() => setShowModuleMediaPicker(true)}>
+                              Select from library
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.mediaBtnSecondary}
+                              onClick={() => setEditingModuleThumbnailUrl('')}
+                              disabled={!editingModuleThumbnailUrl}
+                            >
+                              Clear
+                            </button>
+                          </div>
+                          {editingModuleThumbnailUrl && (
+                            <img
+                              src={editingModuleThumbnailUrl}
+                              alt={`${mod.title} featured`}
+                              className={styles.imagePreview}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {mod.units.map((unit, ui) => (
                       <div key={unit.itemId} className={styles.unitRow}>
                         <span className={styles.unitIndex}>{mi + 1}.{ui + 1}</span>
@@ -437,6 +549,22 @@ export default function EditPathPage() {
           </div>
         </main>
       </div>
+
+      <MediaPickerModal
+        isOpen={showCourseMediaPicker}
+        onClose={() => setShowCourseMediaPicker(false)}
+        onSelect={(item: MediaItem) => setEditThumbnailUrl(item.url)}
+        filter="image"
+        title="Select course image"
+      />
+
+      <MediaPickerModal
+        isOpen={showModuleMediaPicker}
+        onClose={() => setShowModuleMediaPicker(false)}
+        onSelect={(item: MediaItem) => setEditingModuleThumbnailUrl(item.url)}
+        filter="image"
+        title="Select module image"
+      />
     </div>
   );
 }

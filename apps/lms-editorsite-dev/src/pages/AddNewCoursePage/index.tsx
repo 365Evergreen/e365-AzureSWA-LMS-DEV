@@ -2,11 +2,21 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
 import { createPath, addModule, addUnit, patchCatalogueItem } from '../../api/catalogue';
+import MediaPickerModal from '../../components/MediaPickerModal';
+import type { MediaItem } from '../../api/media';
 import type { CatalogueItem } from '../../api/catalogue';
 import styles from './AddNewCoursePage.module.css';
 
 interface UnitStub { id: string; title: string; unitType: CatalogueItem['unitType']; estimatedMinutes: number; }
-interface ModuleStub { id: string; title: string; units: UnitStub[]; }
+interface ModuleStub {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  thumbnailUrl: string;
+  isCurrent: boolean;
+  units: UnitStub[];
+}
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -27,6 +37,9 @@ export default function AddNewCoursePage() {
   const [language, setLanguage] = useState('en');
   const [visibility, setVisibility] = useState<CatalogueItem['visibility']>('Public');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [isCurrent, setIsCurrent] = useState(true);
+  const [showCourseMediaPicker, setShowCourseMediaPicker] = useState(false);
+  const [moduleMediaPickerId, setModuleMediaPickerId] = useState<string | null>(null);
 
   // Structure (optimistic local state — created in backend after save)
   const [modules, setModules] = useState<ModuleStub[]>([]);
@@ -46,12 +59,28 @@ export default function AddNewCoursePage() {
 
   const addLocalModule = () => {
     const id = `local-${Date.now()}`;
-    setModules(prev => [...prev, { id, title: 'New Module', units: [] }]);
+    setModules(prev => [...prev, {
+      id,
+      title: 'New Module',
+      slug: 'new-module',
+      summary: '',
+      thumbnailUrl: '',
+      isCurrent: true,
+      units: [],
+    }]);
     setExpandedModules(prev => new Set([...prev, id]));
   };
 
   const updateModuleTitle = (id: string, val: string) => {
-    setModules(prev => prev.map(m => m.id === id ? { ...m, title: val } : m));
+    setModules(prev => prev.map((m) => {
+      if (m.id !== id) return m;
+      const nextSlug = !m.slug || m.slug === slugify(m.title) ? slugify(val) : m.slug;
+      return { ...m, title: val, slug: nextSlug };
+    }));
+  };
+
+  const updateModuleMeta = (id: string, patch: Partial<ModuleStub>) => {
+    setModules(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
   };
 
   const removeLocalModule = (id: string) => {
@@ -144,10 +173,14 @@ export default function AddNewCoursePage() {
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       });
 
+      if (!isCurrent) {
+        await patchCatalogueItem('PATH', path.itemId, { status: 'Archived' });
+      }
+
       // 2. Create modules and units sequentially to preserve order
       for (const mod of modules) {
-              const { module } = await addModule(path.itemId, mod.title);
-              let moduleMinutes = 0;
+        const { module } = await addModule(path.itemId, mod.title);
+        let moduleMinutes = 0;
         for (const unit of mod.units) {
           const createdUnit = await addUnit(module.itemId, unit.title, unit.unitType ?? 'Lesson');
           moduleMinutes += unit.estimatedMinutes || 0;
@@ -156,7 +189,11 @@ export default function AddNewCoursePage() {
           });
         }
         await patchCatalogueItem('MODULE', module.itemId, {
+          slug: mod.slug.trim() || slugify(mod.title),
+          summary: mod.summary.trim(),
+          thumbnailUrl: mod.thumbnailUrl.trim() || undefined,
           estimatedMinutes: moduleMinutes,
+          status: mod.isCurrent ? 'Draft' : 'Archived',
         });
       }
 
@@ -300,13 +337,14 @@ export default function AddNewCoursePage() {
 
             <div className={styles.field}>
               <label className={styles.label}>Featured image URL</label>
-              <input
-                className={styles.input}
-                type="url"
-                value={thumbnailUrl}
-                onChange={e => setThumbnailUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <div className={styles.mediaActions}>
+                <button type="button" className={styles.mediaBtn} onClick={() => setShowCourseMediaPicker(true)}>
+                  Select from library
+                </button>
+                <button type="button" className={styles.mediaBtnSecondary} onClick={() => setThumbnailUrl('')} disabled={!thumbnailUrl}>
+                  Clear
+                </button>
+              </div>
               <span className={styles.hint}>Displayed on catalogue card</span>
               {thumbnailUrl && (
                 <img
@@ -316,6 +354,14 @@ export default function AddNewCoursePage() {
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.currentToggle}>
+                <input type="checkbox" checked={isCurrent} onChange={e => setIsCurrent(e.target.checked)} />
+                <span>Current</span>
+              </label>
+              <span className={styles.hint}>Off means editors can still access it, but learners and public visitors cannot.</span>
             </div>
           </section>
         </aside>
@@ -361,6 +407,72 @@ export default function AddNewCoursePage() {
 
                 {expandedModules.has(mod.id) && (
                   <div className={styles.unitList}>
+                    <div className={styles.moduleDetails}>
+                      <div className={styles.field}>
+                        <label className={styles.label}>Module slug</label>
+                        <input
+                          className={styles.input}
+                          value={mod.slug}
+                          onChange={e => updateModuleMeta(mod.id, { slug: e.target.value })}
+                          placeholder="module-slug"
+                        />
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>Summary</label>
+                        <textarea
+                          className={styles.textarea}
+                          value={mod.summary}
+                          onChange={e => updateModuleMeta(mod.id, { summary: e.target.value })}
+                          rows={3}
+                          maxLength={1000}
+                        />
+                        <span className={styles.hint}>{mod.summary.length}/1000 characters</span>
+                      </div>
+
+                      <div className={styles.moduleMetaRow}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>Duration (minutes)</label>
+                          <input className={styles.input} value={getModuleMinutes(mod)} readOnly />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.currentToggle}>
+                            <input
+                              type="checkbox"
+                              checked={mod.isCurrent}
+                              onChange={e => updateModuleMeta(mod.id, { isCurrent: e.target.checked })}
+                            />
+                            <span>Current</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>Featured image</label>
+                        <div className={styles.mediaActions}>
+                          <button type="button" className={styles.mediaBtn} onClick={() => setModuleMediaPickerId(mod.id)}>
+                            Select from library
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.mediaBtnSecondary}
+                            onClick={() => updateModuleMeta(mod.id, { thumbnailUrl: '' })}
+                            disabled={!mod.thumbnailUrl}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        {mod.thumbnailUrl && (
+                          <img
+                            src={mod.thumbnailUrl}
+                            alt={`${mod.title} featured`}
+                            className={styles.imagePreview}
+                          />
+                        )}
+                      </div>
+                    </div>
+
                     {mod.units.map((unit, ui) => (
                       <div key={unit.id} className={styles.unitRow}>
                         <span className={styles.unitIndex}>{mi + 1}.{ui + 1}</span>
@@ -408,6 +520,25 @@ export default function AddNewCoursePage() {
           </div>
         </main>
       </div>
+
+      <MediaPickerModal
+        isOpen={showCourseMediaPicker}
+        onClose={() => setShowCourseMediaPicker(false)}
+        onSelect={(item: MediaItem) => setThumbnailUrl(item.url)}
+        filter="image"
+        title="Select course image"
+      />
+
+      <MediaPickerModal
+        isOpen={moduleMediaPickerId !== null}
+        onClose={() => setModuleMediaPickerId(null)}
+        onSelect={(item: MediaItem) => {
+          if (!moduleMediaPickerId) return;
+          updateModuleMeta(moduleMediaPickerId, { thumbnailUrl: item.url });
+        }}
+        filter="image"
+        title="Select module image"
+      />
     </div>
   );
 }
