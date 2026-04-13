@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { useCoursePages } from '../../hooks/useCoursePages'
-import { CoursePageCard } from '../../components/CoursePageCard'
+import { useCatalogue } from '../../hooks/useCatalogue'
+import { CourseCard } from '../../components/CourseCard'
 import { BlogFilters } from '../../components/BlogFilters'
 import { ViewToggle, type ViewMode } from '../../components/ViewToggle'
 import { ArchiveHeader } from '../../components/ArchiveHeader'
@@ -9,12 +9,18 @@ import styles from './CataloguePage.module.css'
 export default function CataloguePage() {
   const [tag, setTag] = useState('')
   const [view, setView] = useState<ViewMode>('grid')
+  const learnerBaseUrl = import.meta.env.VITE_LEARNER_BASE_URL ?? 'https://lmsle.365evergreendev.com'
 
-  const { pages, allTags, loading, error, refetch } = useCoursePages()
+  const { courses, loading, error, refetch } = useCatalogue()
 
   const filtered = useMemo(
-    () => tag ? pages.filter((p) => p.tags.includes(tag)) : pages,
-    [pages, tag],
+    () => tag ? courses.filter((course) => course.tags.includes(tag)) : courses,
+    [courses, tag],
+  )
+
+  const allTags = useMemo(
+    () => Array.from(new Set(courses.flatMap((course) => course.tags))).sort(),
+    [courses],
   )
 
   return (
@@ -63,8 +69,8 @@ export default function CataloguePage() {
           <div className={view === 'grid' ? styles.grid : styles.listView}>
             {filtered.length === 0
               ? <p className={styles.empty}>No courses published yet.</p>
-              : filtered.map((page) => (
-                  <CoursePageCard key={page.pageId} page={page} view={view} />
+              : filtered.map((course) => (
+                  <CourseCard key={course.courseId} course={course} learnerBaseUrl={learnerBaseUrl} view={view} />
                 ))
             }
           </div>

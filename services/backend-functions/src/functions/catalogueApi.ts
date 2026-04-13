@@ -722,6 +722,13 @@ app.http('publicBrowseCatalogue', {
   handler: publicBrowseCatalogueHandler,
 });
 
+app.http('publicBrowseCatalogueIndex', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'catalogue-index',
+  handler: publicBrowseCatalogueHandler,
+});
+
 app.http('publicGetPath', {
   methods: ['GET'],
   authLevel: 'anonymous',

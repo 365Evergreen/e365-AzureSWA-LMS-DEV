@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { MegaNav } from '../MegaNav'
 import styles from './SiteHeader.module.css'
 
+const SITE_LOGO_URL = 'https://stlms365evdev.blob.core.windows.net/media/87ff47c3-963a-40cf-93a1-761e699efa95-Evergreen_Logo__100px.webp'
+
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -13,8 +15,8 @@ export function SiteHeader() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link to="/" className={styles.logoLink} aria-label="LMS Platform home">
-          <span className={styles.logoMark} aria-hidden="true">LMS</span>
-          <span className={styles.logoText}>LMS Platform</span>
+          <img src={SITE_LOGO_URL} alt="" className={styles.logoImage} />
+          <span className={styles.logoText}>Stay Evergreen</span>
         </Link>
 
         <nav className={styles.desktopNav} aria-label="Main navigation">

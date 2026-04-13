@@ -24,18 +24,11 @@
   flex-shrink: 0;
 }
 
-.logoMark {
-  width: 2rem;
-  height: 2rem;
-  background: var(--color-brand-primary);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-inverse);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-sm);
-  letter-spacing: -0.02em;
+.logoImage {
+  width: 2.25rem;
+  height: 2.25rem;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .logoText {
