@@ -395,6 +395,52 @@ export async function listNavItems(): Promise<SitePageMetadata[]> {
   return results;
 }
 
+const SIGNUP_REQUESTS_TABLE = 'SignupRequests';
+
+export interface SignupRequestFieldValue {
+  id: string;
+  label: string;
+  type: string;
+  value: string;
+  required?: boolean;
+}
+
+export interface SignupRequestRecord {
+  requestId: string;
+  submittedAt: string;
+  status: 'Pending';
+  pagePath: string;
+  formTitle?: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  fields: SignupRequestFieldValue[];
+}
+
+function signupRequestsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), SIGNUP_REQUESTS_TABLE);
+}
+
+export async function createSignupRequest(record: SignupRequestRecord): Promise<void> {
+  const client = signupRequestsTable();
+  await ensureTable(client);
+  await client.upsertEntity(
+    {
+      partitionKey: 'SIGNUP',
+      rowKey: record.requestId,
+      submittedAt: record.submittedAt,
+      status: record.status,
+      pagePath: record.pagePath,
+      formTitle: record.formTitle ?? '',
+      email: record.email,
+      firstName: record.firstName ?? '',
+      lastName: record.lastName ?? '',
+      fieldsJson: JSON.stringify(record.fields),
+    },
+    'Replace',
+  );
+}
+
 const BLOG_CATEGORY_TABLE = 'blogCategories';
 
 function blogCategoryTable(): TableClient {

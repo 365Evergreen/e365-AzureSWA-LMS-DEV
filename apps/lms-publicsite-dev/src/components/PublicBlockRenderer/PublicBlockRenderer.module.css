@@ -449,6 +449,16 @@ textarea.formControl {
   display: flex;
 }
 
+.formError {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm, 4px);
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: var(--font-size-sm);
+}
+
 .formSubmit {
   padding: var(--space-2) var(--space-6);
   background: var(--color-brand-primary);
@@ -465,6 +475,11 @@ textarea.formControl {
 
 .formSubmit:hover {
   opacity: 0.88;
+}
+
+.formSubmit:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .formSuccess {

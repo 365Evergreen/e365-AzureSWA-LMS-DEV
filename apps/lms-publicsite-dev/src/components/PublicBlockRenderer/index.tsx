@@ -1,5 +1,7 @@
 import { normalizeColumnsPayload } from '@lms/block-registry'
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { apiBase } from '../../api/apiBase'
 import styles from './PublicBlockRenderer.module.css'
 
 export interface Block {
@@ -445,6 +447,7 @@ interface FormFieldDef {
 }
 
 function FormBlock({ payload }: { payload: Record<string, unknown> }) {
+  const location = useLocation()
   const title = payload.title as string | undefined
   const fields = (payload.fields as FormFieldDef[]) ?? []
   const layout = (payload.layout as string) ?? '1col'
@@ -453,10 +456,53 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
   const cols = layout === '2col' ? 2 : 1
 
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setSubmitted(true)
+    const form = e.currentTarget
+    const path = location.pathname.replace(/\/+$/, '') || '/'
+
+    if (path !== '/sign-up') {
+      setSubmitted(true)
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+    try {
+      const formData = new FormData(form)
+      const submissionFields = fields.map((field) => ({
+        id: field.id,
+        label: field.label,
+        type: field.type,
+        required: field.required,
+        value: String(formData.get(field.id) ?? ''),
+      }))
+
+      const res = await fetch(`${apiBase()}/api/signup-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pagePath: path,
+          formTitle: title,
+          fields: submissionFields,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        throw new Error(data.error || `Sign-up request failed (${res.status})`)
+      }
+
+      form.reset()
+      setSubmitted(true)
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Unable to submit the form right now')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -519,10 +565,11 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
           </div>
         ))}
       </div>
+      {error && <p className={styles.formError} role="alert">{error}</p>}
       {fields.length > 0 && (
         <div className={styles.formActions}>
-          <button type="submit" className={styles.formSubmit}>
-            {submitLabel}
+          <button type="submit" className={styles.formSubmit} disabled={submitting}>
+            {submitting ? 'Submitting…' : submitLabel}
           </button>
         </div>
       )}
