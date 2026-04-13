@@ -26,7 +26,7 @@ export async function sendSignupConfirmationEmail(input: {
     },
     content: {
       subject: 'We have received your LMS sign-up request',
-      plainText: `Hi ${greetingName},
+      plainText: `Hello ${greetingName},
 
 Thanks for your interest in 365 Evergreen LMS.
 
@@ -34,7 +34,7 @@ We have received your sign-up request and will review it shortly. If approved, w
 
 Kind regards,
 365 Evergreen LMS`,
-      html: `<p>Hi ${escapeHtml(greetingName)},</p>
+      html: `<p>Hello ${escapeHtml(greetingName)},</p>
 <p>Thanks for your interest in <strong>365 Evergreen LMS</strong>.</p>
 <p>We have received your sign-up request and will review it shortly. If approved, we will send a separate invitation email with next steps for accessing the platform.</p>
 <p>Kind regards,<br />365 Evergreen LMS</p>`,

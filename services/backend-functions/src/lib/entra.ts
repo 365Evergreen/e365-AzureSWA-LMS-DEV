@@ -9,6 +9,14 @@ export interface EntraInvitationResult {
   inviteRedeemUrl?: string;
 }
 
+export interface EntraDirectoryUser {
+  id: string;
+  mail?: string;
+  userPrincipalName?: string;
+  otherMails?: string[];
+  externalUserState?: string;
+}
+
 function requiredSetting(name: string): string {
   const value = process.env[name]?.trim() ?? '';
   if (!value) throw new Error(`${name} is not configured`);
@@ -44,6 +52,46 @@ async function graphRequest<T>(path: string, init: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function findDirectoryUserByEmail(email: string): Promise<EntraDirectoryUser | null> {
+  const target = email.trim().toLowerCase();
+  let path =
+    '/users?$select=id,mail,userPrincipalName,otherMails,externalUserState&$top=999';
+
+  while (path) {
+    const response = await graphRequest<{
+      value: Array<{
+        id: string;
+        mail?: string;
+        userPrincipalName?: string;
+        otherMails?: string[];
+        externalUserState?: string;
+      }>;
+      '@odata.nextLink'?: string;
+    }>(path, { method: 'GET' });
+
+    const match = response.value.find((user) => {
+      const candidates = [
+        user.mail,
+        user.userPrincipalName,
+        ...(Array.isArray(user.otherMails) ? user.otherMails : []),
+      ]
+        .filter(Boolean)
+        .map((value) => value!.trim().toLowerCase());
+      return candidates.includes(target);
+    });
+
+    if (match) {
+      return match;
+    }
+
+    path = response['@odata.nextLink']
+      ? response['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '')
+      : '';
+  }
+
+  return null;
 }
 
 export async function inviteLearnerGuest(input: {
@@ -99,4 +147,30 @@ export async function assignLearnerAppRole(userId: string): Promise<void> {
     }
     throw error;
   }
+}
+
+export async function addUserToReadersGroup(userId: string): Promise<void> {
+  const groupId = requiredSetting('LMS_READERS_GROUP_ID');
+
+  try {
+    await graphRequest<void>(`/groups/${encodeURIComponent(groupId)}/members/$ref`, {
+      method: 'POST',
+      body: JSON.stringify({
+        '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}`,
+      }),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      message.includes('One or more added object references already exist') ||
+      message.includes('added object references already exist')
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
+export function signupResetPasswordUrl(): string {
+  return process.env.SIGNUP_RESET_PASSWORD_URL?.trim() || 'https://passwordreset.microsoftonline.com/';
 }

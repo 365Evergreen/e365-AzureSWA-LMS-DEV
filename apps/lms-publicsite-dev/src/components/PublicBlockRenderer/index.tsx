@@ -458,6 +458,7 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorActionUrl, setErrorActionUrl] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -471,6 +472,7 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
 
     setSubmitting(true)
     setError(null)
+    setErrorActionUrl(null)
     try {
       const formData = new FormData(form)
       const submissionFields = fields.map((field) => ({
@@ -491,8 +493,9 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
         }),
       })
 
-      const data = await res.json().catch(() => ({})) as { error?: string }
+      const data = await res.json().catch(() => ({})) as { error?: string; resetPasswordUrl?: string }
       if (!res.ok) {
+        setErrorActionUrl(data.resetPasswordUrl ?? null)
         throw new Error(data.error || `Sign-up request failed (${res.status})`)
       }
 
@@ -566,6 +569,13 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
         ))}
       </div>
       {error && <p className={styles.formError} role="alert">{error}</p>}
+      {errorActionUrl && (
+        <p className={styles.formErrorAction}>
+          <a href={errorActionUrl} target="_blank" rel="noreferrer">
+            Reset password
+          </a>
+        </p>
+      )}
       {fields.length > 0 && (
         <div className={styles.formActions}>
           <button type="submit" className={styles.formSubmit} disabled={submitting}>

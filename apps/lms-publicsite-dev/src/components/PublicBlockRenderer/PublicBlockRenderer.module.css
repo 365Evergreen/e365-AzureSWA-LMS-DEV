@@ -459,6 +459,16 @@ textarea.formControl {
   font-size: var(--font-size-sm);
 }
 
+.formErrorAction {
+  margin: calc(var(--space-3) * -1) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.formErrorAction a {
+  color: #b91c1c;
+  font-weight: var(--font-weight-semibold);
+}
+
 .formSubmit {
   padding: var(--space-2) var(--space-6);
   background: var(--color-brand-primary);

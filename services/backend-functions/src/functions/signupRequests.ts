@@ -2,7 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { sendSignupConfirmationEmail } from '../lib/email';
-import { assignLearnerAppRole, inviteLearnerGuest } from '../lib/entra';
+import { addUserToReadersGroup, assignLearnerAppRole, findDirectoryUserByEmail, inviteLearnerGuest, signupResetPasswordUrl } from '../lib/entra';
 import { createSignupRequest, type SignupRequestFieldValue, updateSignupRequest } from '../lib/storage';
 
 const CORS_HEADERS = {
@@ -71,6 +71,18 @@ async function signupRequestsHandler(req: HttpRequest, context: InvocationContex
     };
   }
 
+  const existingUser = await findDirectoryUserByEmail(email);
+  if (existingUser) {
+    return {
+      status: 409,
+      jsonBody: {
+        error: 'An account already exists for this email address.',
+        resetPasswordUrl: signupResetPasswordUrl(),
+      },
+      headers: CORS_HEADERS,
+    };
+  }
+
   const firstName = findFieldValue(fields, (field) => field.id.toLowerCase() === 'first-name' || field.id.toLowerCase() === 'firstname');
   const lastName = findFieldValue(fields, (field) => field.id.toLowerCase() === 'last-name' || field.id.toLowerCase() === 'lastname');
   const requestId = randomUUID();
@@ -98,6 +110,7 @@ async function signupRequestsHandler(req: HttpRequest, context: InvocationContex
       inviteRedeemUrl: invitation.inviteRedeemUrl,
       errorMessage: '',
     });
+    await addUserToReadersGroup(invitation.invitedUserId);
     await assignLearnerAppRole(invitation.invitedUserId);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown invitation error';

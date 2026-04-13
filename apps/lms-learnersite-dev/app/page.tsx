@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { AuthGuard } from '../components/AuthGuard';
+import { Button, LoadingSpinner } from '@lms/shared-ui';
+import { login, useAuth } from '@lms/shared-auth';
 import { CourseGrid } from '../components/CourseGrid';
+import { msalInstance } from '../lib/msalConfig';
+import { loginScopes } from '../lib/authScopes';
 import { useCatalogue } from '../lib/hooks/useCatalogue';
 import styles from './home.module.css';
 
-function HomePageContent() {
+function HomePageContent({ displayName }: { displayName?: string }) {
   const { loading, data, error } = useCatalogue();
   const enrolledCourses = data?.filter((course) => course.enrolled) ?? [];
   const featuredCourses = enrolledCourses.slice(0, 3);
@@ -18,7 +21,9 @@ function HomePageContent() {
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <span className={styles.eyebrow}>LMS Learner</span>
-          <h1 className={styles.headline}>Keep your learning moving forward.</h1>
+          <h1 className={styles.headline}>
+            {displayName ? `Welcome back, ${displayName}.` : 'Keep your learning moving forward.'}
+          </h1>
           <p className={styles.subheadline}>
             Pick up where you left off, discover your next course, and track your
             progress from one place.
@@ -65,9 +70,37 @@ function HomePageContent() {
 }
 
 export default function Home() {
+  const { user, isLoading } = useAuth(msalInstance);
+
+  if (isLoading) {
+    return (
+      <div className={styles.authCenter}>
+        <LoadingSpinner size={32} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className={styles.loginPrompt}>
+        <div className={styles.loginCard}>
+          <h1 className={styles.loginTitle}>Sign in to LMS Learner</h1>
+          <p className={styles.loginSubtitle}>
+            Use your organisational account to access your courses.
+          </p>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => login(msalInstance, loginScopes)}
+          >
+            Sign in with Microsoft
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <AuthGuard>
-      <HomePageContent />
-    </AuthGuard>
+    <HomePageContent displayName={user.account.name ?? undefined} />
   );
 }

@@ -27,9 +27,14 @@ export function AppNav() {
   const actions = (
     <div className={styles.actions}>
       {user && (
-        <Link href="/profile" className={styles.avatarLink} title={displayName} aria-label="Go to profile">
-          <span className={styles.avatar}>{initials}</span>
-        </Link>
+        <>
+          <Link href="/profile" className={styles.avatarLink} title={displayName} aria-label="Go to profile">
+            <span className={styles.avatar}>{initials}</span>
+          </Link>
+          <Link href="/profile" className={styles.profileLink}>
+            Profile
+          </Link>
+        </>
       )}
       {user ? (
         <Button
