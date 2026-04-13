@@ -327,6 +327,18 @@ details[open] > .accordionSummary::before { transform: rotate(90deg); }
   min-height: 4rem;
 }
 
+.columns {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 /* Quiz */
 .quiz {
   border: 1px solid var(--color-border);
@@ -476,4 +488,14 @@ textarea.formControl {
   font-size: var(--font-size-base);
   color: #15803d;
   font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 768px) {
+  .columns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .columnHiddenMobile {
+    display: none;
+  }
 }

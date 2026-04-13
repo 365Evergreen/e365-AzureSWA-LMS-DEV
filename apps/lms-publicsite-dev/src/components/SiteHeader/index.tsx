@@ -24,8 +24,8 @@ export function SiteHeader() {
         </nav>
 
         <div className={styles.actions}>
-          <Link to="/kb" className={styles.ctaButton}>
-            Get Started
+          <Link to="/sign-up" className={styles.ctaButton}>
+            Get started
           </Link>
           <button
             type="button"
@@ -46,8 +46,8 @@ export function SiteHeader() {
         className={menuOpen ? `${styles.mobileMenu} ${styles.mobileMenuOpen}` : styles.mobileMenu}
       >
         <MegaNav mobile onNavigate={closeMenu} />
-        <Link to="/kb" className={styles.mobileCtaButton} onClick={closeMenu}>
-          Get Started
+        <Link to="/sign-up" className={styles.mobileCtaButton} onClick={closeMenu}>
+          Get started
         </Link>
       </nav>
     </header>

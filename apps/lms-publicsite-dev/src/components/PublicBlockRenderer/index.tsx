@@ -1,3 +1,4 @@
+import { normalizeColumnsPayload } from '@lms/block-registry'
 import { useState } from 'react'
 import styles from './PublicBlockRenderer.module.css'
 
@@ -387,6 +388,30 @@ function GridBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
+function ColumnsBlock({ payload }: { payload: Record<string, unknown> }) {
+  const normalized = normalizeColumnsPayload(payload)
+  const gapMap: Record<string, string> = { sm: '0.75rem', md: '1rem', lg: '1.5rem' }
+
+  return (
+    <div
+      className={styles.columns}
+      style={{ gridTemplateColumns: `repeat(${normalized.columns}, minmax(0, 1fr))`, gap: gapMap[normalized.gap ?? 'md'] }}
+    >
+      {normalized.items.map((column) => (
+        <div
+          key={column.id}
+          className={`${styles.column} ${column.showOnMobile === false ? styles.columnHiddenMobile : ''}`}
+        >
+          {column.blocks.length === 0
+            ? <div className={styles.gridCellEmpty} />
+            : column.blocks.map((block) => renderBlock(block as Block))
+          }
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Quiz block ───────────────────────────────────────────────────────────────
 
 function QuizBlock({ payload }: { payload: Record<string, unknown> }) {
@@ -529,6 +554,7 @@ function renderBlock(block: Block) {
     case 'video-embed':    return <VideoEmbedBlock key={block.id} payload={p} />
     case 'hero':           return <HeroBlock key={block.id} payload={p} />
     case 'grid':           return <GridBlock key={block.id} payload={p} />
+    case 'columns':        return <ColumnsBlock key={block.id} payload={p} />
     case 'form':           return <FormBlock key={block.id} payload={p} />
     default:               return null
   }

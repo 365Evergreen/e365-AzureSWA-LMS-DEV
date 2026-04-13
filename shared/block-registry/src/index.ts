@@ -151,6 +151,24 @@ export interface GridPayload {
   cells: GridCell[];
 }
 
+export interface ColumnsItemBlock {
+  id: string;
+  type: BlockType;
+  payload: unknown;
+}
+
+export interface ColumnsItem {
+  id: string;
+  blocks: ColumnsItemBlock[];
+  showOnMobile?: boolean;
+}
+
+export interface ColumnsPayload {
+  columns: 2 | 3 | 4;
+  gap?: 'sm' | 'md' | 'lg';
+  items: ColumnsItem[];
+}
+
 export interface QuizPayload {
   question: string;
   options: { id: string; label: string }[];
@@ -338,6 +356,59 @@ export const GridPayloadSchema = z.object({
   rows: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1 as 1),
   cells: z.array(GridCellSchema).default([]),
 });
+
+const ColumnsItemBlockSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  payload: z.any(),
+});
+
+const ColumnsItemSchema = z.object({
+  id: z.string(),
+  blocks: z.array(ColumnsItemBlockSchema).default([]),
+  showOnMobile: z.boolean().optional().default(true),
+});
+
+export const ColumnsPayloadSchema = z.object({
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(2 as 2),
+  gap: z.enum(['sm', 'md', 'lg']).optional().default('md'),
+  items: z.array(ColumnsItemSchema).default([]),
+});
+
+function ensureColumnsItems(count: 2 | 3 | 4, existing: ColumnsItem[]): ColumnsItem[] {
+  const items: ColumnsItem[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const current = existing[index];
+    items.push(current ?? {
+      id: crypto.randomUUID(),
+      blocks: [],
+      showOnMobile: true,
+    });
+  }
+  return items;
+}
+
+export function normalizeColumnsPayload(payload: unknown): ColumnsPayload {
+  const parsed = ColumnsPayloadSchema.safeParse(payload);
+  if (parsed.success) {
+    return {
+      ...parsed.data,
+      items: ensureColumnsItems(parsed.data.columns, parsed.data.items as ColumnsItem[]),
+    } as ColumnsPayload;
+  }
+
+  const legacy = payload as {
+    columns?: number;
+    gap?: 'sm' | 'md' | 'lg';
+  };
+
+  const columns = legacy.columns === 3 || legacy.columns === 4 ? legacy.columns : 2;
+  return {
+    columns,
+    gap: legacy.gap ?? 'md',
+    items: ensureColumnsItems(columns, []),
+  };
+}
 
 export function normalizeAccordionPayload(payload: unknown): AccordionPayload {
   const parsed = AccordionPayloadSchema.safeParse(payload);

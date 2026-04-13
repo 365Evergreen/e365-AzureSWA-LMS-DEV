@@ -1,10 +1,11 @@
 import { getBlock, BlockType } from '@lms/block-registry';
-import type { AccordionPayload, HeroPayload, GridPayload, FormPayload } from '@lms/block-registry';
+import type { AccordionPayload, HeroPayload, GridPayload, FormPayload, ColumnsPayload } from '@lms/block-registry';
 import AccordionBlockEditor from '../AccordionBlockEditor';
 import ImageBlockEditor from '../ImageBlockEditor';
 import VideoBlockEditor from '../VideoBlockEditor';
 import HeroBlockEditor from '../HeroBlockEditor';
 import GridBlockEditor from '../GridBlockEditor';
+import ColumnsBlockEditor from '../ColumnsBlockEditor';
 import FormBlockEditor from '../FormBlockEditor';
 import TextBlockPropertyEditor, { isTextBlock } from '../TextBlockPropertyEditor';
 import styles from './BlockPropertyEditor.module.css';
@@ -37,6 +38,18 @@ export default function BlockPropertyEditor({ block, onUpdatePayload }: BlockPro
         <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
         <GridBlockEditor
           payload={block.payload as GridPayload}
+          onChange={onUpdatePayload}
+        />
+      </div>
+    );
+  }
+
+  if (block.type === BlockType.COLUMNS) {
+    return (
+      <div className={styles.editor}>
+        <h2 className={styles.heading}>{def?.label ?? block.type}</h2>
+        <ColumnsBlockEditor
+          payload={block.payload as ColumnsPayload}
           onChange={onUpdatePayload}
         />
       </div>
