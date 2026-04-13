@@ -20,6 +20,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .title {
@@ -27,6 +28,34 @@
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
+}
+
+.filterField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filterLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.filterSelect {
+  min-width: 13rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+}
+
+.filterSelect:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+  border-color: transparent;
 }
 
 /* ── View toggle ────────────────────────────────────────────────── */
@@ -120,6 +149,16 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.cardTemplate {
+  align-self: flex-start;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, white);
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 
 .cardMeta {
@@ -258,6 +297,12 @@
   font-family: monospace;
   font-size: var(--font-size-xs, 0.75rem);
   color: var(--color-text-secondary);
+}
+
+.rowTemplate {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-primary);
 }
 
 .rowActions {
@@ -476,4 +521,27 @@
 
 .cancelBtn:hover {
   color: var(--color-text-primary);
+}
+
+@media (max-width: 720px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .headerRight {
+    width: 100%;
+  }
+
+  .filterField {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterSelect {
+    min-width: 0;
+    width: 100%;
+  }
 }
