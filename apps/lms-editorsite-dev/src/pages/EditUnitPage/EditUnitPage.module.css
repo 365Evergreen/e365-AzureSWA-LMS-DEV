@@ -124,6 +124,16 @@
   cursor: not-allowed;
 }
 
+.archiveBtn {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
 .publishedBadge {
   font-size: var(--font-size-sm);
   color: #10b981;
@@ -174,6 +184,8 @@
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .noSelection {
@@ -185,4 +197,63 @@
   text-align: center;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+}
+
+.metaSection,
+.blockSection {
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sideTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fieldLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.fieldInput,
+.fieldTextarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+.fieldTextarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.currentToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.metaSaveBtn {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
 }

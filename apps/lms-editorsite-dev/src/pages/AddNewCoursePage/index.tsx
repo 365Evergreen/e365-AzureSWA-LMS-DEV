@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import { createPath, addModule, addUnit } from '../../api/catalogue';
+import { createPath, addModule, addUnit, patchCatalogueItem } from '../../api/catalogue';
 import type { CatalogueItem } from '../../api/catalogue';
 import styles from './AddNewCoursePage.module.css';
 
-interface UnitStub { id: string; title: string; unitType: CatalogueItem['unitType']; }
+interface UnitStub { id: string; title: string; unitType: CatalogueItem['unitType']; estimatedMinutes: number; }
 interface ModuleStub { id: string; title: string; units: UnitStub[]; }
 
 function slugify(text: string): string {
@@ -20,10 +20,9 @@ export default function AddNewCoursePage() {
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [summary, setSummary] = useState('');
-  const [difficulty, setDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
+  const [difficulty, setDifficulty] = useState<CatalogueItem['difficulty']>('Foundation');
   const [role, setRole] = useState('');
   const [learningPath, setLearningPath] = useState('');
-  const [estimatedMinutes, setEstimatedMinutes] = useState(0);
   const [tags, setTags] = useState('');
   const [language, setLanguage] = useState('en');
   const [visibility, setVisibility] = useState<CatalogueItem['visibility']>('Public');
@@ -63,7 +62,7 @@ export default function AddNewCoursePage() {
     setModules(prev =>
       prev.map(m =>
         m.id === moduleId
-          ? { ...m, units: [...m.units, { id: `local-unit-${Date.now()}`, title: 'New Unit', unitType: 'Lesson' }] }
+          ? { ...m, units: [...m.units, { id: `local-unit-${Date.now()}`, title: 'New Unit', unitType: 'Lesson', estimatedMinutes: 0 }] }
           : m
       )
     );
@@ -89,6 +88,16 @@ export default function AddNewCoursePage() {
     );
   };
 
+  const updateUnitMinutes = (moduleId: string, unitId: string, val: number) => {
+    setModules(prev =>
+      prev.map(m =>
+        m.id === moduleId
+          ? { ...m, units: m.units.map(u => u.id === unitId ? { ...u, estimatedMinutes: val } : u) }
+          : m
+      )
+    );
+  };
+
   const removeLocalUnit = (moduleId: string, unitId: string) => {
     setModules(prev =>
       prev.map(m =>
@@ -104,6 +113,11 @@ export default function AddNewCoursePage() {
       return next;
     });
   };
+
+  const getModuleMinutes = (module: ModuleStub) =>
+    module.units.reduce((sum, unit) => sum + (unit.estimatedMinutes || 0), 0);
+
+  const estimatedMinutes = modules.reduce((sum, module) => sum + getModuleMinutes(module), 0);
 
   // ── Save ───────────────────────────────────────────────────────
 
@@ -132,11 +146,23 @@ export default function AddNewCoursePage() {
 
       // 2. Create modules and units sequentially to preserve order
       for (const mod of modules) {
-        const { module } = await addModule(path.itemId, mod.title);
+              const { module } = await addModule(path.itemId, mod.title);
+              let moduleMinutes = 0;
         for (const unit of mod.units) {
-          await addUnit(module.itemId, unit.title, unit.unitType ?? 'Lesson');
+          const createdUnit = await addUnit(module.itemId, unit.title, unit.unitType ?? 'Lesson');
+          moduleMinutes += unit.estimatedMinutes || 0;
+          await patchCatalogueItem('UNIT', createdUnit.unit.itemId, {
+            estimatedMinutes: unit.estimatedMinutes || 0,
+          });
         }
+        await patchCatalogueItem('MODULE', module.itemId, {
+          estimatedMinutes: moduleMinutes,
+        });
       }
+
+      await patchCatalogueItem('PATH', path.itemId, {
+        estimatedMinutes,
+      });
 
       navigate(`/courses/edit/${path.itemId}`);
     } catch (err) {
@@ -192,8 +218,10 @@ export default function AddNewCoursePage() {
                 value={summary}
                 onChange={e => setSummary(e.target.value)}
                 rows={3}
+                maxLength={1000}
                 placeholder="A brief description shown in the course catalogue…"
               />
+              <span className={styles.hint}>{summary.length}/1000 characters</span>
             </div>
           </section>
 
@@ -235,10 +263,10 @@ export default function AddNewCoursePage() {
               <input
                 className={styles.input}
                 type="number"
-                min={0}
                 value={estimatedMinutes}
-                onChange={e => setEstimatedMinutes(parseInt(e.target.value) || 0)}
+                readOnly
               />
+              <span className={styles.hint}>Auto-calculated from unit durations</span>
             </div>
 
             <div className={styles.field}>
@@ -352,6 +380,14 @@ export default function AddNewCoursePage() {
                           <option value="Assessment">Assessment</option>
                           <option value="Interactive">Interactive</option>
                         </select>
+                        <input
+                          className={styles.unitMinutesInput}
+                          type="number"
+                          min={0}
+                          value={unit.estimatedMinutes}
+                          onChange={e => updateUnitMinutes(mod.id, unit.id, parseInt(e.target.value, 10) || 0)}
+                          aria-label="Unit duration in minutes"
+                        />
                         <button
                           className={styles.removeBtn}
                           onClick={() => removeLocalUnit(mod.id, unit.id)}

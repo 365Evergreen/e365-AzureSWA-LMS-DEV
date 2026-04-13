@@ -4,7 +4,13 @@ import type { BlockType } from '@lms/block-registry';
 import BlockPalette from '../../components/BlockPalette';
 import BlockCanvas from '../../components/BlockCanvas';
 import BlockPropertyEditor from '../../components/BlockPropertyEditor';
-import { loadEditorCatalogueItem, saveUnitContent, publishCatalogueItem } from '../../api/catalogue';
+import {
+  loadEditorCatalogueItem,
+  saveUnitContent,
+  publishCatalogueItem,
+  patchCatalogueItem,
+  archiveCatalogueItem,
+} from '../../api/catalogue';
 import type { CatalogueItem, UnitDetail } from '../../api/catalogue';
 import styles from './EditUnitPage.module.css';
 
@@ -29,6 +35,13 @@ export default function EditUnitPage() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [publishing, setPublishing] = useState(false);
+  const [metadataSaving, setMetadataSaving] = useState(false);
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [summary, setSummary] = useState('');
+  const [estimatedMinutes, setEstimatedMinutes] = useState(0);
+  const [unitType, setUnitType] = useState<CatalogueItem['unitType']>('Lesson');
+  const [isCurrent, setIsCurrent] = useState(true);
 
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,6 +52,12 @@ export default function EditUnitPage() {
     try {
       const detail = await loadEditorCatalogueItem('UNIT', unitId) as UnitDetail;
       setUnit(detail);
+      setTitle(detail.title);
+      setSlug(detail.slug);
+      setSummary(detail.summary ?? '');
+      setEstimatedMinutes(detail.estimatedMinutes ?? 0);
+      setUnitType(detail.unitType ?? 'Lesson');
+      setIsCurrent(detail.status !== 'Archived');
       if (detail.blocks && Array.isArray(detail.blocks)) {
         setBlocks(detail.blocks as EditorBlock[]);
       }
@@ -95,6 +114,37 @@ export default function EditUnitPage() {
       setError((err as Error).message);
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleSaveMetadata = async () => {
+    if (!unitId) return;
+    setMetadataSaving(true);
+    setError(null);
+    try {
+      await patchCatalogueItem('UNIT', unitId, {
+        title: title.trim(),
+        slug: slug.trim(),
+        summary: summary.trim(),
+        estimatedMinutes,
+        unitType,
+        status: isCurrent ? (unit?.status === 'Archived' ? 'Draft' : unit?.status) ?? 'Draft' : 'Archived',
+      });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setMetadataSaving(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!unitId || !confirm('Archive this unit? It will remain visible to editors only.')) return;
+    try {
+      await archiveCatalogueItem('UNIT', unitId);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
 
@@ -161,6 +211,11 @@ export default function EditUnitPage() {
           {unit?.status === 'Published' && (
             <span className={styles.publishedBadge}>✓ Published</span>
           )}
+          {unit?.status !== 'Archived' && (
+            <button className={styles.archiveBtn} onClick={handleArchive}>
+              Archive
+            </button>
+          )}
         </div>
       </div>
 
@@ -185,6 +240,53 @@ export default function EditUnitPage() {
 
         {/* ── Properties pane ── */}
         <aside className={styles.properties}>
+          <div className={styles.metaSection}>
+            <h2 className={styles.sideTitle}>Unit details</h2>
+
+            <label className={styles.fieldLabel}>Title</label>
+            <input className={styles.fieldInput} value={title} onChange={(e) => setTitle(e.target.value)} />
+
+            <label className={styles.fieldLabel}>Slug</label>
+            <input className={styles.fieldInput} value={slug} onChange={(e) => setSlug(e.target.value)} />
+
+            <label className={styles.fieldLabel}>Summary</label>
+            <textarea
+              className={styles.fieldTextarea}
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              rows={4}
+              maxLength={1000}
+            />
+
+            <label className={styles.fieldLabel}>Duration (minutes)</label>
+            <input
+              className={styles.fieldInput}
+              type="number"
+              min={0}
+              value={estimatedMinutes}
+              onChange={(e) => setEstimatedMinutes(parseInt(e.target.value, 10) || 0)}
+            />
+
+            <label className={styles.fieldLabel}>Unit type</label>
+            <select className={styles.fieldInput} value={unitType ?? 'Lesson'} onChange={(e) => setUnitType(e.target.value as CatalogueItem['unitType'])}>
+              <option value="Lesson">Lesson</option>
+              <option value="Video">Video</option>
+              <option value="Assessment">Assessment</option>
+              <option value="Interactive">Interactive</option>
+            </select>
+
+            <label className={styles.currentToggle}>
+              <input type="checkbox" checked={isCurrent} onChange={(e) => setIsCurrent(e.target.checked)} />
+              <span>Current</span>
+            </label>
+
+            <button className={styles.metaSaveBtn} onClick={handleSaveMetadata} disabled={metadataSaving}>
+              {metadataSaving ? 'Saving details…' : 'Save details'}
+            </button>
+          </div>
+
+          <div className={styles.blockSection}>
+            <h2 className={styles.sideTitle}>Block properties</h2>
           {selectedBlock ? (
             <BlockPropertyEditor
               block={selectedBlock}
@@ -195,6 +297,7 @@ export default function EditUnitPage() {
               <p>Select a block to edit its properties.</p>
             </div>
           )}
+          </div>
         </aside>
       </div>
     </div>
