@@ -451,7 +451,7 @@ textarea.formControl {
 
 .formSubmit {
   padding: var(--space-2) var(--space-6);
-  background: var(--color-primary);
+  background: var(--color-brand-primary);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm, 4px);
@@ -460,6 +460,7 @@ textarea.formControl {
   font-family: inherit;
   cursor: pointer;
   transition: opacity 0.15s;
+  width: 100%;
 }
 
 .formSubmit:hover {
