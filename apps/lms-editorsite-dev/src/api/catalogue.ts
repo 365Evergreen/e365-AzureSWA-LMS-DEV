@@ -87,6 +87,8 @@ export interface CreatePathRequest {
   slug: string;
   summary?: string;
   difficulty?: CatalogueItem['difficulty'];
+  role?: string;
+  learningPath?: string;
   estimatedMinutes?: number;
   visibility?: CatalogueItem['visibility'];
   thumbnailUrl?: string;

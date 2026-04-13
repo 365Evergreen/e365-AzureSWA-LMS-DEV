@@ -21,6 +21,8 @@ export default function AddNewCoursePage() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [summary, setSummary] = useState('');
   const [difficulty, setDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
+  const [role, setRole] = useState('');
+  const [learningPath, setLearningPath] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(0);
   const [tags, setTags] = useState('');
   const [language, setLanguage] = useState('en');
@@ -119,6 +121,8 @@ export default function AddNewCoursePage() {
         slug: slug.trim(),
         summary: summary.trim(),
         difficulty,
+        role: role.trim() || undefined,
+        learningPath: learningPath.trim() || undefined,
         estimatedMinutes,
         visibility,
         language,
@@ -197,12 +201,33 @@ export default function AddNewCoursePage() {
             <h2 className={styles.sectionTitle}>Properties</h2>
 
             <div className={styles.field}>
-              <label className={styles.label}>Difficulty</label>
+              <label className={styles.label}>Level</label>
               <select className={styles.select} value={difficulty} onChange={e => setDifficulty(e.target.value as CatalogueItem['difficulty'])}>
+                <option value="Foundation">Foundation</option>
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced">Advanced</option>
               </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Role</label>
+              <input
+                className={styles.input}
+                value={role}
+                onChange={e => setRole(e.target.value)}
+                placeholder="Optional target role"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Learning path</label>
+              <input
+                className={styles.input}
+                value={learningPath}
+                onChange={e => setLearningPath(e.target.value)}
+                placeholder="Optional learning path"
+              />
             </div>
 
             <div className={styles.field}>

@@ -82,23 +82,28 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
+
 .navIcon {
-  display: none;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
-  background: var(--color-surface-muted);
+  border-radius: 6px;
+  background: transparent;
   color: var(--color-text-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-right: 8px;
-  font-weight: var(--font-weight-semibold);
+}
+
+.navIcon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .navLabel {
   vertical-align: middle;
 }
+
 
 .sidebarCollapsed .navItem {
   padding: var(--space-2);

@@ -31,6 +31,8 @@ function toLegacyLevel(difficulty?: CatalogueItem['difficulty']): LearnerListCou
       return 'advanced';
     case 'Intermediate':
       return 'intermediate';
+    case 'Foundation':
+      return 'beginner';
     default:
       return 'beginner';
   }

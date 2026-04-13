@@ -32,6 +32,8 @@ export default function EditPathPage() {
   const [editSummary, setEditSummary] = useState('');
   const [editTags, setEditTags] = useState('');
   const [editDifficulty, setEditDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
+  const [editRole, setEditRole] = useState('');
+  const [editLearningPath, setEditLearningPath] = useState('');
   const [editMinutes, setEditMinutes] = useState(0);
   const [editLanguage, setEditLanguage] = useState('en');
   const [editVisibility, setEditVisibility] = useState<CatalogueItem['visibility']>('Public');
@@ -58,6 +60,8 @@ export default function EditPathPage() {
       setEditSummary(detail.summary ?? '');
       setEditTags(detail.tagsCsv.split(',').filter(Boolean).join(', '));
       setEditDifficulty(detail.difficulty ?? 'Beginner');
+      setEditRole(detail.role ?? '');
+      setEditLearningPath(detail.learningPath ?? '');
       setEditMinutes(detail.estimatedMinutes ?? 0);
       setEditLanguage(detail.language ?? 'en');
       setEditVisibility(detail.visibility ?? 'Public');
@@ -96,6 +100,8 @@ export default function EditPathPage() {
         summary: editSummary,
         tags: editTags.split(',').map(t => t.trim()).filter(Boolean),
         difficulty: editDifficulty,
+        role: editRole.trim() || undefined,
+        learningPath: editLearningPath.trim() || undefined,
         estimatedMinutes: editMinutes,
         language: editLanguage,
         visibility: editVisibility,
@@ -253,12 +259,33 @@ export default function EditPathPage() {
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Difficulty</label>
+              <label className={styles.label}>Level</label>
               <select className={styles.select} value={editDifficulty} onChange={e => setEditDifficulty(e.target.value as CatalogueItem['difficulty'])}>
+                <option value="Foundation">Foundation</option>
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced">Advanced</option>
               </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Role</label>
+              <input
+                className={styles.input}
+                value={editRole}
+                onChange={e => setEditRole(e.target.value)}
+                placeholder="Optional target role"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Learning path</label>
+              <input
+                className={styles.input}
+                value={editLearningPath}
+                onChange={e => setEditLearningPath(e.target.value)}
+                placeholder="Optional learning path"
+              />
             </div>
 
             <div className={styles.field}>

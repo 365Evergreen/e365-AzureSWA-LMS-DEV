@@ -15,6 +15,7 @@ type ViewMode = 'grid' | 'list';
 type StatusFilter = 'all' | 'Draft' | 'Published' | 'Archived';
 
 const DIFFICULTY_LABELS: Record<string, string> = {
+  Foundation: '🔵 Foundation',
   Beginner: '🟢 Beginner',
   Intermediate: '🟡 Intermediate',
   Advanced: '🔴 Advanced',

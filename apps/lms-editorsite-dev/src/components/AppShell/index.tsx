@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import AppNav from '../AppNav';
+import { ICONS_MAP } from '@lms/shared-ui';
 import styles from './AppShell.module.css';
 
 interface NavItemConfig {
@@ -61,7 +62,9 @@ export default function AppShell() {
                 end={item.end}
                 className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
               >
-                <span className={styles.navIcon}>{item.label.charAt(0)}</span>
+                <span className={styles.navIcon} aria-hidden>
+                  {ICONS_MAP[item.to] ?? <span className={styles.navIconFallback}>{item.label.charAt(0)}</span>}
+                </span>
                 <span className={styles.navLabel}>{item.label}</span>
               </NavLink>
             ))}
@@ -75,3 +78,6 @@ export default function AppShell() {
     </div>
   );
 }
+
+// icons are provided by ../Icons -> ICONS_MAP
+

@@ -117,7 +117,7 @@ export type ItemType = z.infer<typeof ItemTypeSchema>;
 export const ItemStatusSchema = z.enum(['Draft', 'Published', 'Archived']);
 export type ItemStatus = z.infer<typeof ItemStatusSchema>;
 
-export const DifficultySchema = z.enum(['Beginner', 'Intermediate', 'Advanced']);
+export const DifficultySchema = z.enum(['Foundation', 'Beginner', 'Intermediate', 'Advanced']);
 export type Difficulty = z.infer<typeof DifficultySchema>;
 
 export const UnitTypeSchema = z.enum(['Lesson', 'Video', 'Assessment', 'Interactive']);
@@ -138,6 +138,8 @@ export const CatalogueItemSchema = z.object({
   summary: z.string().default(''),
   language: z.string().default('en'),
   difficulty: DifficultySchema.optional(),
+  role: z.string().default(''),
+  learningPath: z.string().default(''),
   estimatedMinutes: z.number().int().nonnegative().default(0),
   visibility: VisibilitySchema.default('Public'),
   status: ItemStatusSchema.default('Draft'),

@@ -20,3 +20,7 @@ export type { PostLayoutProps, PostMetadata } from './layouts/PostLayout/index';
 export { templates, getTemplate, getTemplatesByCategory } from './templates/registry';
 export type { TemplateDefinition, TemplateCategory } from './templates/registry';
 
+// Icons
+export { ICONS_MAP } from './Icons';
+export { DashboardIcon, CoursesIcon, KnowledgeBaseIcon, WebsiteIcon, BlogIcon, MediaIcon } from './Icons';
+
