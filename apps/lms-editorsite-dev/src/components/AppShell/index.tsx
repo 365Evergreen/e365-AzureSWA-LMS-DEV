@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import AppNav from '../AppNav';
 import styles from './AppShell.module.css';
 
@@ -18,14 +19,38 @@ const NAV_ITEMS: NavItemConfig[] = [
 ];
 
 export default function AppShell() {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('editor.sidebarCollapsed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('editor.sidebarCollapsed', String(collapsed));
+    } catch (e) {
+      // ignore
+    }
+  }, [collapsed]);
+
   return (
     <div className={styles.shell}>
       <AppNav />
-      <div className={styles.body}>
-        <aside className={styles.sidebar} aria-label="Editor navigation">
+      <div className={`${styles.body} ${collapsed ? styles.bodyCollapsed : ''}`}>
+        <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`} aria-label="Editor navigation">
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarEyebrow}>Workspace</span>
             <h2 className={styles.sidebarTitle}>Navigation</h2>
+            <button
+              aria-pressed={collapsed}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className={styles.sidebarToggle}
+              onClick={() => setCollapsed((s) => !s)}
+            >
+              {collapsed ? '▶' : '◀'}
+            </button>
           </div>
 
           <nav className={styles.nav}>
@@ -36,7 +61,8 @@ export default function AppShell() {
                 end={item.end}
                 className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
               >
-                {item.label}
+                <span className={styles.navIcon}>{item.label.charAt(0)}</span>
+                <span className={styles.navLabel}>{item.label}</span>
               </NavLink>
             ))}
           </nav>

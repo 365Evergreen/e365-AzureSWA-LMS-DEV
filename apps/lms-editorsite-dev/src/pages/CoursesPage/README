@@ -1,0 +1,80 @@
+# Courses page
+
+The courses page is for admins and editors to create, edit or archive courses.
+
+## Course structure
+
+Each course is made up of:
+
+### Modules
+### Units
+### Assessments
+### Awards
+
+## Creating a course
+
+1. An editor goes to https://lmsed.365evergreendev.com/courses/new
+    - Hard-coded URL for PoC
+        - Future client sites will be ../editor/courses/new (or similar)
+2. Selects Add course button
+3. Properites are
+    - Title
+    - Slug (auto created from title)
+    - Summary (1000 character limit)
+    - Level (select)
+        - Foundation (mandatory)
+        - Beginner
+        - Intermmediate
+        - Advanced
+    - Duration
+        - Auto-calculated sum of all related module durations
+    - Tags
+        - Select existing 
+            or, new tags can be added
+    - Featured image
+        - Select from media library or
+        - Upload new
+    - Role
+        - is optional
+    - Learning path
+        - is optional
+    - Is current
+        - true/false
+            - false means the course is no longer visible to the learners or public visitors
+                - false means the course is visible to editors
+                - editor's dashboard has access to archived courses
+                - no archived course metadata are deleted from the Azure tables
+                - no archived course content is deleted from the Azure Blob containers
+
+
+### Editing a course
+
+1. Editor goes to https://lmsed.365evergreendev.com/courses 
+2. Selects course to edit
+3. Can edit all same properties as the above for new courses
+
+### Archiving a course
+
+1. Editor goes to https://lmsed.365evergreendev.com/courses 
+2. Selects course to archive
+3. Switches toggle from true to false
+    - false means the course is no longer visible to the learners
+    - false means the course is visible to editors
+        - editor's dashboard has access to archived courses
+        - no archived course metadata are deleted from the Azure tables
+        - no archived course content is deleted from the Azure Blob containers
+
+## Units
+
+- Smaller bits of learning that make up a module
+- Include text, images, videos
+- Include examples
+- Can have learning materials for download
+
+
+
+## Add new course
+
+## Edit existing course
+
+## Delete course
