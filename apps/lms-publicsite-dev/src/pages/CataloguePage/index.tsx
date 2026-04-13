@@ -9,7 +9,6 @@ import styles from './CataloguePage.module.css'
 export default function CataloguePage() {
   const [tag, setTag] = useState('')
   const [view, setView] = useState<ViewMode>('grid')
-  const learnerBaseUrl = import.meta.env.VITE_LEARNER_BASE_URL ?? 'https://lmsle.365evergreendev.com'
 
   const { courses, loading, error, refetch } = useCatalogue()
 
@@ -70,7 +69,7 @@ export default function CataloguePage() {
             {filtered.length === 0
               ? <p className={styles.empty}>No courses published yet.</p>
               : filtered.map((course) => (
-                  <CourseCard key={course.courseId} course={course} learnerBaseUrl={learnerBaseUrl} view={view} />
+                  <CourseCard key={course.courseId} course={course} view={view} />
                 ))
             }
           </div>
