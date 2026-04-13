@@ -2,7 +2,8 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { sendSignupConfirmationEmail } from '../lib/email';
-import { createSignupRequest, type SignupRequestFieldValue } from '../lib/storage';
+import { assignLearnerAppRole, inviteLearnerGuest } from '../lib/entra';
+import { createSignupRequest, type SignupRequestFieldValue, updateSignupRequest } from '../lib/storage';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -88,13 +89,38 @@ async function signupRequestsHandler(req: HttpRequest, context: InvocationContex
   });
 
   await sendSignupConfirmationEmail({ to: email, firstName });
+  try {
+    const invitation = await inviteLearnerGuest({ email, firstName, lastName });
+    await updateSignupRequest(requestId, {
+      status: 'Invited',
+      invitedAt: new Date().toISOString(),
+      invitedUserId: invitation.invitedUserId,
+      inviteRedeemUrl: invitation.inviteRedeemUrl,
+      errorMessage: '',
+    });
+    await assignLearnerAppRole(invitation.invitedUserId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown invitation error';
+    await updateSignupRequest(requestId, {
+      status: 'Failed',
+      errorMessage: message,
+    });
+    context.error(`signupRequests: invitation failed for ${email}: ${message}`);
+    return {
+      status: 502,
+      jsonBody: {
+        error: 'Your request was saved, but we could not create your invitation yet.',
+      },
+      headers: CORS_HEADERS,
+    };
+  }
 
   context.log(`signupRequests: stored request ${requestId} for ${email}`);
   return {
     status: 201,
     jsonBody: {
       requestId,
-      message: 'Thanks — your request has been received. Please check your email for confirmation.',
+      message: 'Thanks — your request has been received. Please check your email for confirmation and invitation.',
     },
     headers: CORS_HEADERS,
   };

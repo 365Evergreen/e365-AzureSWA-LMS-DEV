@@ -408,13 +408,18 @@ export interface SignupRequestFieldValue {
 export interface SignupRequestRecord {
   requestId: string;
   submittedAt: string;
-  status: 'Pending';
+  status: 'Pending' | 'Invited' | 'Accepted' | 'Failed';
   pagePath: string;
   formTitle?: string;
   email: string;
   firstName?: string;
   lastName?: string;
   fields: SignupRequestFieldValue[];
+  invitedAt?: string;
+  invitedUserId?: string;
+  inviteRedeemUrl?: string;
+  acceptedAt?: string;
+  errorMessage?: string;
 }
 
 function signupRequestsTable(): TableClient {
@@ -435,10 +440,73 @@ export async function createSignupRequest(record: SignupRequestRecord): Promise<
       email: record.email,
       firstName: record.firstName ?? '',
       lastName: record.lastName ?? '',
+      invitedAt: record.invitedAt ?? '',
+      invitedUserId: record.invitedUserId ?? '',
+      inviteRedeemUrl: record.inviteRedeemUrl ?? '',
+      acceptedAt: record.acceptedAt ?? '',
+      errorMessage: record.errorMessage ?? '',
       fieldsJson: JSON.stringify(record.fields),
     },
     'Replace',
   );
+}
+
+export async function updateSignupRequest(
+  requestId: string,
+  patch: Partial<Pick<SignupRequestRecord, 'status' | 'invitedAt' | 'invitedUserId' | 'inviteRedeemUrl' | 'acceptedAt' | 'errorMessage'>>,
+): Promise<void> {
+  const client = signupRequestsTable();
+  await ensureTable(client);
+  await client.updateEntity(
+    {
+      partitionKey: 'SIGNUP',
+      rowKey: requestId,
+      ...(Object.prototype.hasOwnProperty.call(patch, 'status') ? { status: patch.status } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'invitedAt') ? { invitedAt: patch.invitedAt ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'invitedUserId') ? { invitedUserId: patch.invitedUserId ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'inviteRedeemUrl') ? { inviteRedeemUrl: patch.inviteRedeemUrl ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'acceptedAt') ? { acceptedAt: patch.acceptedAt ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'errorMessage') ? { errorMessage: patch.errorMessage ?? '' } : {}),
+    },
+    'Merge',
+  );
+}
+
+export async function acceptSignupRequestByInvitedUserId(invitedUserId: string): Promise<boolean> {
+  const client = signupRequestsTable();
+  await ensureTable(client);
+
+  const matches: Array<{ rowKey: string; submittedAt: string; status: string }> = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'SIGNUP' and invitedUserId eq '${invitedUserId}'` },
+  })) {
+    matches.push({
+      rowKey: entity.rowKey as string,
+      submittedAt: (entity.submittedAt as string) || '',
+      status: (entity.status as string) || '',
+    });
+  }
+
+  const target = matches
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .find((entry) => entry.status === 'Invited' || entry.status === 'Accepted');
+
+  if (!target) {
+    return false;
+  }
+
+  await client.updateEntity(
+    {
+      partitionKey: 'SIGNUP',
+      rowKey: target.rowKey,
+      status: 'Accepted',
+      acceptedAt: new Date().toISOString(),
+      errorMessage: '',
+    },
+    'Merge',
+  );
+
+  return true;
 }
 
 const BLOG_CATEGORY_TABLE = 'blogCategories';

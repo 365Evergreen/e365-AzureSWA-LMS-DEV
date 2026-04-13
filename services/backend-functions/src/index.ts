@@ -15,3 +15,4 @@ import './functions/catalogueApi';
 import './functions/getLearnerCourses';
 import './functions/categories';
 import './functions/signupRequests';
+import './functions/acceptSignupRequest';

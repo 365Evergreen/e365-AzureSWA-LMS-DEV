@@ -3,8 +3,9 @@ import {
   type Configuration,
   type AccountInfo,
   type SilentRequest,
+  InteractionRequiredAuthError,
 } from '@azure/msal-browser';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // ─── App Roles ───────────────────────────────────────────────────────────────
 
@@ -36,11 +37,20 @@ export async function acquireToken(
   msalInstance: PublicClientApplication,
   request: SilentRequest,
 ): Promise<string | null> {
+  const account = request.account ?? msalInstance.getActiveAccount() ?? undefined;
+  if (!account) {
+    return null;
+  }
+
   try {
-    const result = await msalInstance.acquireTokenSilent(request);
+    const result = await msalInstance.acquireTokenSilent({ ...request, account });
     return result.accessToken;
-  } catch {
-    await msalInstance.acquireTokenRedirect(request);
+  } catch (error) {
+    if (error instanceof InteractionRequiredAuthError) {
+      await msalInstance.acquireTokenRedirect({ ...request, account });
+    } else {
+      console.warn('[auth] acquireTokenSilent failed', error);
+    }
     return null;
   }
 }
@@ -111,9 +121,10 @@ export function useAuth(msalInstance: PublicClientApplication): {
     };
   }, [msalInstance]);
 
-  async function getAccessToken(scopes: string[]): Promise<string | null> {
-    return acquireToken(msalInstance, { scopes });
-  }
+  const getAccessToken = useCallback(
+    async (scopes: string[]): Promise<string | null> => acquireToken(msalInstance, { scopes }),
+    [msalInstance],
+  );
 
   return { user, isLoading, getAccessToken };
 }

@@ -127,9 +127,20 @@ The backend pipeline uses the **`lms-azure-functions`** variable group and an Az
 
 | Variable | Description |
 |---|---|
-| `AZURE_TENANT_ID` | Entra tenant ID |
-| `BACKEND_API_CLIENT_ID` | Backend API app registration client ID |
-| `BLOB_STORAGE_CONNECTION_STRING` | Azure Blob Storage connection string |
+| `ENTRA_TENANT_ID` | Entra tenant ID used for backend token validation |
+| `ENTRA_CLIENT_ID` | Backend API app registration client ID used as the API audience |
+| `STORAGE_CONNECTION_STRING` | Azure Storage connection string for tables/blobs |
+| `ACS_CONNECTION_STRING` | Azure Communication Services connection string for sign-up confirmation emails |
+| `SIGNUP_EMAIL_SENDER` | ACS sender address for sign-up confirmation emails |
+| `LEARNER_RESOURCE_SP_OBJECT_ID` | Service principal object ID of the backend API app role resource |
+| `LEARNER_APP_ROLE_ID` | App role ID for the backend API `Learner` role |
+| `LEARNER_INVITE_REDIRECT_URL` | Post-invitation redirect URL, currently the learner app home |
+
+The Function App also uses a **system-assigned managed identity** for Microsoft Graph application permissions. Grant it:
+
+- `User.Invite.All`
+- `User.Read.All`
+- `AppRoleAssignment.ReadWrite.All`
 
 See `shared/auth/README.md` for Entra app registration setup.
 
