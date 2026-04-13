@@ -1,5 +1,6 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance } from '../auth/msalConfig';
+import { apiBase } from './apiBase';
 
 export interface MediaItem {
   id: string;
@@ -48,7 +49,7 @@ async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   } else {
     console.warn('[media] apiFetch: no token — request will be sent without Authorization header');
   }
-  return fetch(url, { ...init, headers });
+  return fetch(`${apiBase()}${url}`, { ...init, headers });
 }
 
 export async function listMedia(): Promise<MediaItem[]> {

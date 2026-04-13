@@ -149,7 +149,7 @@ Each course is made up of:
 ### Editing a unit
 
 - Editor goes to [365 Evergreen LMS admin portal](https://lmsed.365evergreendev.com/courses)
-- Selects course to edit
+- Selects unit to edit
 - Can edit all same properties as the above for new units
 - All content blocks are available to add to the canvas
 - Discard changes, save draft, publish, delete buttons all have the same confirm actions as other block canvases

@@ -204,8 +204,9 @@ export default function EditPathPage() {
 
   const handleAddUnit = async (moduleId: string) => {
     try {
-      await addUnit(moduleId, 'New Unit');
-      await load();
+      const created = await addUnit(moduleId, 'New Unit');
+      const query = pathId ? `?pathId=${encodeURIComponent(pathId)}` : '';
+      navigate(`/courses/units/${created.unit.itemId}/edit${query}`);
     } catch (err) {
       setActionError((err as Error).message);
     }
@@ -525,14 +526,12 @@ export default function EditPathPage() {
                         <span className={styles.unitTitle}>{unit.title}</span>
                         <span className={styles.unitType}>{unit.unitType ?? 'Lesson'}</span>
                         <span className={styles.statusDot} style={{ background: statusColors[unit.status] }} title={unit.status} />
-                        {unit.status !== 'Published' && (
-                          <button
-                            className={styles.editUnitBtn}
-                            onClick={() => navigate(`/courses/units/${unit.itemId}/edit`)}
-                          >
-                            Edit content
-                          </button>
-                        )}
+                        <button
+                          className={styles.editUnitBtn}
+                          onClick={() => navigate(`/courses/units/${unit.itemId}/edit?pathId=${encodeURIComponent(pathId ?? path.itemId)}`)}
+                        >
+                          Edit unit
+                        </button>
                         {unit.status === 'Published' && (
                           <span className={styles.publishedUnit}>✓ Published</span>
                         )}
