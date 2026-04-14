@@ -10,7 +10,8 @@
 .inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: var(--space-6);
   padding: 0 var(--space-6);
   height: 4rem;
 }
@@ -41,6 +42,13 @@
 .desktopNav {
   display: flex;
   align-items: center;
+}
+
+.controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .navLink {

@@ -19,24 +19,26 @@ export function SiteHeader() {
           <span className={styles.logoText}>Stay Evergreen</span>
         </Link>
 
-        <nav className={styles.desktopNav} aria-label="Main navigation">
-          <MegaNav onNavigate={closeMenu} />
-        </nav>
+        <div className={styles.controls}>
+          <nav className={styles.desktopNav} aria-label="Main navigation">
+            <MegaNav onNavigate={closeMenu} />
+          </nav>
 
-        <div className={styles.actions}>
-          <Link to="/sign-up" className={styles.ctaButton}>
-            Get started
-          </Link>
-          <button
-            type="button"
-            className={styles.menuButton}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-            onClick={toggleMenu}
-          >
-            {menuOpen ? <CloseIcon /> : <HamburgerIcon />}
-          </button>
+          <div className={styles.actions}>
+            <Link to="/sign-up" className={styles.ctaButton}>
+              Get started
+            </Link>
+            <button
+              type="button"
+              className={styles.menuButton}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              onClick={toggleMenu}
+            >
+              {menuOpen ? <CloseIcon /> : <HamburgerIcon />}
+            </button>
+          </div>
         </div>
       </div>
 
