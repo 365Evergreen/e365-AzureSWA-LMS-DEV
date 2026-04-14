@@ -9,6 +9,7 @@ const PatchSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['draft', 'published', 'deleted']).optional(),
   publishedAt: z.string().datetime().optional(),
+  featuredImage: z.string().optional(),
   categoryIds: z.array(z.string()).optional(),
   primaryCategoryId: z.string().optional(),
   inNav: z.boolean().optional(),

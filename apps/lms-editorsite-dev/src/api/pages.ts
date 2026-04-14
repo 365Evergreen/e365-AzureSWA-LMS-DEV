@@ -109,6 +109,7 @@ export interface PatchPageMetaRequest {
   description?: string;
   status?: 'draft' | 'published' | 'deleted';
   publishedAt?: string;
+  featuredImage?: string;
   categoryIds?: string[];
   primaryCategoryId?: string;
   inNav?: boolean;

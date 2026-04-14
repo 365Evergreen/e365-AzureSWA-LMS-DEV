@@ -22,5 +22,5 @@ export type { TemplateDefinition, TemplateCategory } from './templates/registry'
 
 // Icons
 export { ICONS_MAP } from './Icons';
-export { DashboardIcon, CoursesIcon, KnowledgeBaseIcon, WebsiteIcon, BlogIcon, MediaIcon } from './Icons';
+export { DashboardIcon, CoursesIcon, KnowledgeBaseIcon, WebsiteIcon, BlogIcon, MediaIcon, WebPagesIcon } from './Icons';
 

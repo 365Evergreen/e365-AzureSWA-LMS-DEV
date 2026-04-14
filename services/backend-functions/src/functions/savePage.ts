@@ -27,6 +27,9 @@ const SavePageSchema = z.object({
   navLabel: z.string().optional().default(''),
   navParent: z.string().optional().default(''),
   navOrder: z.number().optional().default(0),
+  linkedCourseId: z.string().optional().default(''),
+  linkedCourseSlug: z.string().optional().default(''),
+  linkedCourseTitle: z.string().optional().default(''),
 });
 
 async function savePageHandler(
@@ -64,7 +67,8 @@ async function savePageHandler(
   }
 
   const { slug, title, description, templateId, contentType, blocks, status, publishedAt, tags, featuredImage,
-          categoryIds, primaryCategoryId, inNav, navLabel, navParent, navOrder } = parsed.data;
+          categoryIds, primaryCategoryId, inNav, navLabel, navParent, navOrder,
+          linkedCourseId, linkedCourseSlug, linkedCourseTitle } = parsed.data;
   if (primaryCategoryId && !categoryIds.includes(primaryCategoryId)) {
     return { status: 400, jsonBody: { error: 'primaryCategoryId must be included in categoryIds' } };
   }
@@ -95,6 +99,9 @@ async function savePageHandler(
     navLabel: navLabel || title,
     navParent,
     navOrder,
+    linkedCourseId: linkedCourseId || undefined,
+    linkedCourseSlug: linkedCourseSlug || undefined,
+    linkedCourseTitle: linkedCourseTitle || undefined,
   });
 
   context.log(`Saved ${contentType} "${slug}" (${pageId}) by ${claims.oid} — status: ${status}`);

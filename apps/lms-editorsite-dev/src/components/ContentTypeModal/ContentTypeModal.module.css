@@ -67,7 +67,15 @@
 
 .icon {
   font-size: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+
+.icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .optionBody {

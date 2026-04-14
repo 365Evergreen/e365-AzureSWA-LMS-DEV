@@ -221,6 +221,9 @@ export interface SitePageMetadata {
   navLabel?: string;
   navParent?: string;
   navOrder?: number;
+  linkedCourseId?: string;
+  linkedCourseSlug?: string;
+  linkedCourseTitle?: string;
 }
 
 function siteContentTable(): TableClient {
@@ -280,6 +283,9 @@ export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<vo
       navLabel: meta.navLabel ?? '',
       navParent: meta.navParent ?? '',
       navOrder: meta.navOrder ?? 0,
+      linkedCourseId: meta.linkedCourseId ?? '',
+      linkedCourseSlug: meta.linkedCourseSlug ?? '',
+      linkedCourseTitle: meta.linkedCourseTitle ?? '',
     },
     'Replace'
   );
@@ -337,6 +343,9 @@ function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata 
     navLabel: (e.navLabel as string) || undefined,
     navParent: (e.navParent as string) || undefined,
     navOrder: (e.navOrder as number) ?? 0,
+    linkedCourseId: (e.linkedCourseId as string) || undefined,
+    linkedCourseSlug: (e.linkedCourseSlug as string) || undefined,
+    linkedCourseTitle: (e.linkedCourseTitle as string) || undefined,
   };
 }
 
@@ -367,12 +376,14 @@ export async function patchSitePageMeta(
   const hasCategoryIds = Object.prototype.hasOwnProperty.call(patch, 'categoryIds');
   const hasPrimaryCategoryId = Object.prototype.hasOwnProperty.call(patch, 'primaryCategoryId');
   const hasPublishedAt = Object.prototype.hasOwnProperty.call(patch, 'publishedAt');
+  const hasFeaturedImage = Object.prototype.hasOwnProperty.call(patch, 'featuredImage');
   const update: TableEntity<Record<string, unknown>> = {
     partitionKey: contentType,
     rowKey: slug,
     updatedAt: new Date().toISOString(),
     ...patch,
     ...(hasPublishedAt ? { publishedAt: patch.publishedAt ?? '' } : {}),
+    ...(hasFeaturedImage ? { featuredImage: patch.featuredImage ?? '' } : {}),
     ...(hasCategoryIds ? { categoryIds: (patch.categoryIds ?? []).join(',') } : {}),
     ...(hasPrimaryCategoryId ? { primaryCategoryId: patch.primaryCategoryId ?? '' } : {}),
     ...(patch.status === 'published' && !hasPublishedAt ? { publishedAt: new Date().toISOString() } : {}),
