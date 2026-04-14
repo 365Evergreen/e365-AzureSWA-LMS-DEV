@@ -21,6 +21,18 @@ export interface LearnerCourse {
   tags: string[];
   progress: number;
   enrolled: boolean;
+  role?: string;
+  learningPath?: string;
+  updatedOn?: string;
+}
+
+export interface CourseModuleSummary {
+  itemId: string;
+  title: string;
+  summary: string;
+  estimatedMinutes: number;
+  sortOrder: number;
+  isOptional: boolean;
 }
 
 export interface CourseDetail extends LearnerCourse {
@@ -28,6 +40,20 @@ export interface CourseDetail extends LearnerCourse {
     metadata: { title: string; description?: string };
     blocks: any[];
   } | null;
+}
+
+export interface PathDetail {
+  itemId: string;
+  title: string;
+  summary: string;
+  difficulty?: string;
+  role?: string;
+  learningPath?: string;
+  estimatedMinutes: number;
+  tagsCsv: string;
+  thumbnailUrl?: string;
+  updatedOn: string;
+  modules: CourseModuleSummary[];
 }
 
 // ─── Normalisers ──────────────────────────────────────────────────────────────
@@ -45,6 +71,9 @@ function normaliseMockCourse(c: any): LearnerCourse {
     tags: c.tags ?? [],
     progress: c.progress ?? 0,
     enrolled: c.enrolled ?? true,
+    role: c.role ?? undefined,
+    learningPath: c.learningPath ?? undefined,
+    updatedOn: c.updatedOn ?? undefined,
   };
 }
 
@@ -60,7 +89,10 @@ function normaliseApiCourse(c: any): LearnerCourse {
     moduleCount: c.moduleCount ?? 0,
     tags: Array.isArray(c.tags) ? c.tags : [],
     progress: c.progress ?? 0,
-    enrolled: c.enrolled ?? true,
+    enrolled: c.enrolled ?? false,
+    role: c.role ?? undefined,
+    learningPath: c.learningPath ?? undefined,
+    updatedOn: c.updatedOn ?? undefined,
   };
 }
 
@@ -91,7 +123,7 @@ async function loadMockCourse(slug: string): Promise<CourseDetail> {
 export function createApiClient(opts: ApiClientOptions = {}) {
   const { baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '', getToken } = opts;
 
-  async function request<T>(path: string): Promise<T> {
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (getToken) {
       try {
@@ -102,7 +134,10 @@ export function createApiClient(opts: ApiClientOptions = {}) {
       }
     }
 
-    const res = await fetch(`${baseUrl}${path}`, { headers });
+    const res = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: { ...headers, ...(init.headers ?? {}) },
+    });
     if (!res.ok) throw new ApiError(`API request failed ${res.status} ${res.statusText}`, res.status);
     return res.json();
   }
@@ -132,6 +167,25 @@ export function createApiClient(opts: ApiClientOptions = {}) {
         }
         throw error;
       }
+    },
+
+    getPathDetail: async (pathId: string): Promise<PathDetail> => {
+      if (!baseUrl) {
+        throw new ApiError('API base URL is required', 500);
+      }
+
+      return request<PathDetail>(`/catalogue/paths/${pathId}`);
+    },
+
+    enrolCourse: async (pathId: string): Promise<{ status: string; enrolledOn: string }> => {
+      if (!baseUrl) {
+        throw new ApiError('API base URL is required', 500);
+      }
+
+      return request<{ status: string; enrolledOn: string }>('/enrolment', {
+        method: 'POST',
+        body: JSON.stringify({ pathId }),
+      });
     },
   };
 }

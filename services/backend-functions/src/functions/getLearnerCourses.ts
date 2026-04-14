@@ -2,10 +2,10 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { extractBearerToken, validateToken } from '../middleware/validateToken';
 import {
   fetchUnitContent,
-  fetchEnrolments,
   getCatalogueItem,
   getContentVersion,
   listCatalogueBrowse,
+  listEnrolmentsByUser,
   listModuleUnits,
   listPathModules,
 } from '../lib/storage';
@@ -23,6 +23,9 @@ type LearnerListCourse = {
   durationMinutes: number;
   progress: number;
   enrolled: boolean;
+  role?: string;
+  learningPath?: string;
+  updatedOn: string;
 };
 
 function toLegacyLevel(difficulty?: CatalogueItem['difficulty']): LearnerListCourse['level'] {
@@ -49,7 +52,16 @@ async function getPublishedPathBySlug(slug: string): Promise<CatalogueItem | nul
   return getCatalogueItem('PATH', match.itemId);
 }
 
-async function toLearnerCourse(path: CatalogueItem): Promise<LearnerListCourse> {
+async function listActiveEnrolments(userId: string): Promise<Set<string>> {
+  const enrolments = await listEnrolmentsByUser(userId);
+  return new Set(
+    enrolments
+      .filter((enrolment) => enrolment.status !== 'Withdrawn')
+      .map((enrolment) => enrolment.pathId)
+  );
+}
+
+async function toLearnerCourse(path: CatalogueItem, enrolledPathIds: Set<string>): Promise<LearnerListCourse> {
   const modules = await listPathModules(path.itemId);
   return {
     courseId: path.itemId,
@@ -62,7 +74,10 @@ async function toLearnerCourse(path: CatalogueItem): Promise<LearnerListCourse> 
     moduleCount: modules.length,
     durationMinutes: path.estimatedMinutes ?? 0,
     progress: 0,
-    enrolled: true,
+    enrolled: enrolledPathIds.has(path.itemId),
+    role: path.role || undefined,
+    learningPath: path.learningPath || undefined,
+    updatedOn: path.updatedOn,
   };
 }
 
@@ -144,9 +159,11 @@ async function listLearnerCoursesHandler(
 ): Promise<HttpResponseInit> {
   const auth = await requireLearner(req);
   if ('error' in auth) return auth.error;
+  const { claims } = auth;
 
   const paths = await listPublishedPaths();
-  const courses = await Promise.all(paths.map(toLearnerCourse));
+  const enrolledPathIds = await listActiveEnrolments(claims.oid as string);
+  const courses = await Promise.all(paths.map((path) => toLearnerCourse(path, enrolledPathIds)));
 
   context.log(`[learner/courses] returning ${courses.length} published paths`);
   return {
@@ -177,19 +194,16 @@ async function getLearnerCourseHandler(
     return { status: 404, jsonBody: { error: 'Course not found' } };
   }
 
-  // Legacy enrolment checks still use the old enrolments table. Keep the behavior
-  // for existing callers until the learner progress/enrolment migration is complete.
+  const enrolledPathIds = await listActiveEnrolments(claims.oid as string);
   const checkEnrolment = req.query.get('enrolled') === 'true';
   if (checkEnrolment) {
-    const enrolments = await fetchEnrolments(claims.oid as string);
-    const enrolled = enrolments.some((e) => e.courseId === path.itemId);
-    if (!enrolled) {
+    if (!enrolledPathIds.has(path.itemId)) {
       return { status: 403, jsonBody: { error: 'Enrolment required to access this content' } };
     }
   }
 
   const bundle = await buildPathBundle(path);
-  const course = await toLearnerCourse(path);
+  const course = await toLearnerCourse(path, enrolledPathIds);
 
   if (!bundle.blocks.length) {
     context.warn(`[learner/courses] missing bundle for course ${slug}`);
