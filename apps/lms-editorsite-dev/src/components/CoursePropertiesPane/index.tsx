@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { BlogCategory } from '@lms/shared-schemas';
 import type { CourseProperties } from './types';
 import type { CreateBlogCategoryRequest } from '../../api/pages';
+import { loadEditorCatalogueItem } from '../../api/catalogue';
 import CourseSelectorModal from '../CourseSelectorModal';
 import BlogCategoryPicker from '../BlogCategoryPicker';
 import type { SelectedCourse } from '../CourseSelectorModal';
@@ -50,6 +51,37 @@ export default function CoursePropertiesPane({
   onCreateCategory,
 }: CoursePropertiesPaneProps) {
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [linkedCourseMeta, setLinkedCourseMeta] = useState<{ level: string; role: string; tags: string } | null>(null);
+  const isLinkedCourseTemplate = ['course-overview', 'course-landing'].includes(properties.templateId);
+
+  useEffect(() => {
+    if (!isLinkedCourseTemplate || !properties.linkedCourseId) {
+      setLinkedCourseMeta(null);
+      return;
+    }
+
+    let cancelled = false;
+    loadEditorCatalogueItem('PATH', properties.linkedCourseId)
+      .then((course) => {
+        if (cancelled) return;
+        setLinkedCourseMeta({
+          level: course.difficulty ?? '',
+          role: course.role ?? '',
+          tags: course.tagsCsv
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+            .join(', '),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedCourseMeta(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLinkedCourseTemplate, properties.linkedCourseId]);
 
   function update<K extends keyof CourseProperties>(key: K, value: CourseProperties[K]) {
     onChange({ ...properties, [key]: value });
@@ -191,7 +223,7 @@ export default function CoursePropertiesPane({
         />
       )}
 
-      {properties.templateId === 'course-overview' && (
+      {isLinkedCourseTemplate && (
         <div className={styles.field}>
           <label className={styles.label}>
             Linked course
@@ -221,6 +253,43 @@ export default function CoursePropertiesPane({
             </button>
           )}
         </div>
+      )}
+
+      {isLinkedCourseTemplate && (
+        <>
+          <div className={styles.field}>
+            <label className={styles.label}>Course level</label>
+            <input
+              className={styles.input}
+              type="text"
+              value={linkedCourseMeta?.level ?? ''}
+              readOnly
+              placeholder="Synced from linked course"
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Course role</label>
+            <input
+              className={styles.input}
+              type="text"
+              value={linkedCourseMeta?.role ?? ''}
+              readOnly
+              placeholder="Synced from linked course"
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Course tags</label>
+            <input
+              className={styles.input}
+              type="text"
+              value={linkedCourseMeta?.tags ?? ''}
+              readOnly
+              placeholder="Synced from linked course"
+            />
+          </div>
+        </>
       )}
 
       {selectorOpen && (

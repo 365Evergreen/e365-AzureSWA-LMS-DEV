@@ -231,7 +231,7 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
         navParent: courseProperties.navParent || undefined,
         navOrder: courseProperties.navOrder,
       } : {}),
-      ...(courseProperties.templateId === 'course-overview' ? {
+      ...(['course-overview', 'course-landing'].includes(courseProperties.templateId) ? {
         linkedCourseId: courseProperties.linkedCourseId,
         linkedCourseSlug: courseProperties.linkedCourseSlug,
         linkedCourseTitle: courseProperties.linkedCourseTitle,

@@ -23,6 +23,7 @@ import {
   writeCatalogueBrowseEntry,
   deleteCatalogueBrowseEntry,
   listCatalogueBrowse,
+  syncCourseLandingPageFromPath,
 } from '../lib/storage';
 import type { CatalogueItem, PathDetail, UnitDetail } from '@lms/shared-schemas';
 
@@ -173,6 +174,7 @@ async function createPathHandler(
   };
 
   await upsertCatalogueItem(item);
+  await syncCourseLandingPageFromPath(item);
   context.log(`[catalogue] created PATH ${item.itemId} "${item.title}"`);
   return { status: 201, jsonBody: item };
 }
@@ -219,6 +221,12 @@ async function patchCatalogueItemHandler(
   }
 
   await patchCatalogueItem(itemType, itemId, patch);
+  if (itemType === 'PATH') {
+    const updated = await getCatalogueItem(itemType, itemId);
+    if (updated) {
+      await syncCourseLandingPageFromPath(updated);
+    }
+  }
   context.log(`[catalogue] patched ${itemType} ${itemId}`);
   return { status: 200, jsonBody: { ok: true } };
 }

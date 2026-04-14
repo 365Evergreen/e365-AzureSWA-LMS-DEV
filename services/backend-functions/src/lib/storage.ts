@@ -226,6 +226,13 @@ export interface SitePageMetadata {
   linkedCourseTitle?: string;
 }
 
+function splitCsv(value?: string): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function siteContentTable(): TableClient {
   return TableClient.fromConnectionString(connectionString(), SITE_CONTENT_TABLE);
 }
@@ -335,9 +342,9 @@ function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata 
     publishedAt: e.publishedAt as string,
     updatedAt: e.updatedAt as string,
     author: (e.author as string) || undefined,
-    tags: ((e.tags as string) || '').split(',').filter(Boolean),
+    tags: splitCsv(e.tags as string),
     featuredImage: (e.featuredImage as string) || undefined,
-    categoryIds: ((e.categoryIds as string) || '').split(',').filter(Boolean),
+    categoryIds: splitCsv(e.categoryIds as string),
     primaryCategoryId: (e.primaryCategoryId as string) || undefined,
     inNav: (e.inNav as boolean) ?? false,
     navLabel: (e.navLabel as string) || undefined,
@@ -389,6 +396,89 @@ export async function patchSitePageMeta(
     ...(patch.status === 'published' && !hasPublishedAt ? { publishedAt: new Date().toISOString() } : {}),
   };
   await client.updateEntity(update, 'Merge');
+}
+
+export async function getSitePageByLinkedCourseId(courseId: string): Promise<SitePageMetadata | null> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'page' and linkedCourseId eq '${courseId}'`,
+    },
+  });
+  for await (const entity of entities) {
+    return entityToSitePageMetadata(entity);
+  }
+  return null;
+}
+
+export async function deleteSitePageMetadata(
+  slug: string,
+  contentType: 'page' | 'post' | 'knowledge' = 'page'
+): Promise<void> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  try {
+    await client.deleteEntity(contentType, slug);
+  } catch {
+    // Safe if already absent.
+  }
+}
+
+export async function syncCourseLandingPageFromPath(course: CatalogueItem): Promise<SitePageMetadata> {
+  if (course.itemType !== 'PATH') {
+    throw new Error(`syncCourseLandingPageFromPath only supports PATH items, got ${course.itemType}`);
+  }
+
+  const existing = await getSitePageByLinkedCourseId(course.itemId);
+  const pageId = existing?.pageId ?? `course-landing-${course.itemId}`;
+  const now = new Date().toISOString();
+  const bundle = existing
+    ? ((await fetchSiteBundle(pageId)) as Record<string, unknown> | null)
+    : null;
+
+  const nextBundle = {
+    pageId,
+    slug: course.slug,
+    title: course.title,
+    templateId: 'course-landing',
+    savedAt: now,
+    blocks: Array.isArray(bundle?.blocks) ? bundle.blocks : [],
+  };
+  const bundleUrl = await uploadSiteBundle(pageId, nextBundle);
+
+  const metadata: SitePageMetadata = {
+    pageId,
+    slug: course.slug,
+    title: course.title,
+    description: course.summary ?? '',
+    status: existing?.status ?? 'draft',
+    contentType: 'page',
+    templateId: 'course-landing',
+    bundleUrl,
+    publishedAt: existing?.publishedAt ?? '',
+    updatedAt: now,
+    author: existing?.author ?? course.authorId,
+    tags: splitCsv(course.tagsCsv),
+    featuredImage: course.thumbnailUrl ?? '',
+    categoryIds: existing?.categoryIds ?? [],
+    primaryCategoryId: existing?.primaryCategoryId,
+    inNav: existing?.inNav ?? false,
+    navLabel: existing?.navLabel ?? '',
+    navParent: existing?.navParent ?? '',
+    navOrder: existing?.navOrder ?? 0,
+    linkedCourseId: course.itemId,
+    linkedCourseSlug: course.slug,
+    linkedCourseTitle: course.title,
+  };
+
+  await upsertSitePageMetadata(metadata);
+
+  if (existing && existing.slug !== course.slug) {
+    await deleteSitePageMetadata(existing.slug, 'page');
+  }
+
+  return metadata;
 }
 
 export async function listNavItems(): Promise<SitePageMetadata[]> {
@@ -822,6 +912,20 @@ export async function getCatalogueItem(
   } catch {
     return null;
   }
+}
+
+export async function getPublishedPathBySlug(slug: string): Promise<CatalogueItem | null> {
+  const client = catalogueTable();
+  await ensureTable(client);
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'catalogue|PATH' and slug eq '${slug}' and status eq 'Published'`,
+    },
+  });
+  for await (const entity of entities) {
+    return entityToCatalogueItem(entity);
+  }
+  return null;
 }
 
 export async function listCatalogueItems(
