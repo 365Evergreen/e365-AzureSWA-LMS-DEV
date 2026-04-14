@@ -1,9 +1,1 @@
-{
-  "name": "@lms/backend-functions",
-  "version": "0.1.0",
-  "main": "dist/index.js",
-  "dependencies": {
-    "@azure/functions": "^4.12.0",
-    "sharp": "^0.34.5"
-  }
-}
+{  "name": "@lms/backend-functions",  "version": "0.1.0",  "main": "dist/index.js",  "dependencies": {    "@azure/functions": "^4.12.0",    "sharp": "^0.34.5"  }}

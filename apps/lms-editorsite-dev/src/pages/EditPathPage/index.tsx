@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
 import MediaPickerModal from '../../components/MediaPickerModal';
+import PublishBar from '../../components/PublishBar';
 import type { MediaItem } from '../../api/media';
 import {
   loadEditorCatalogueItem,
@@ -13,6 +14,7 @@ import {
   removeUnit,
 } from '../../api/catalogue';
 import type { CatalogueItem, PathDetail } from '../../api/catalogue';
+import { UnitEditorCanvas } from '../EditUnitPage';
 import styles from './EditPathPage.module.css';
 
 interface UnitRow extends CatalogueItem { sortOrder: number; isOptional: boolean; }
@@ -53,6 +55,7 @@ export default function EditPathPage() {
   const [moduleSaving, setModuleSaving] = useState(false);
   const [showCourseMediaPicker, setShowCourseMediaPicker] = useState(false);
   const [showModuleMediaPicker, setShowModuleMediaPicker] = useState(false);
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -180,10 +183,18 @@ export default function EditPathPage() {
   };
 
   const handleSaveModule = async (mod: ModuleRow) => {
+    await saveModuleWithStatus(mod, editingModuleIsCurrent ? 'Draft' : 'Archived');
+  };
+
+  const saveModuleWithStatus = async (
+    mod: ModuleRow,
+    status: CatalogueItem['status']
+  ) => {
     const trimmed = editingModuleTitle.trim();
-    if (!trimmed) return;
+    if (!trimmed) return false;
     const derivedMinutes = mod.units.reduce((sum, unit) => sum + (unit.estimatedMinutes ?? 0), 0);
     setModuleSaving(true);
+    setActionError(null);
     try {
       await patchCatalogueItem('MODULE', mod.itemId, {
         title: trimmed,
@@ -191,22 +202,44 @@ export default function EditPathPage() {
         summary: editingModuleSummary.trim(),
         thumbnailUrl: editingModuleThumbnailUrl.trim() || undefined,
         estimatedMinutes: derivedMinutes,
-        status: editingModuleIsCurrent ? (mod.status === 'Archived' ? 'Draft' : mod.status) : 'Archived',
+        status,
       });
       setEditingModuleId(null);
       await load();
+      return true;
     } catch (err) {
       setActionError((err as Error).message);
+      return false;
     } finally {
       setModuleSaving(false);
     }
   };
 
+  const handleModulePublishBarSave = async (mod: ModuleRow, publishStatus: 'draft' | 'published') => {
+    if (publishStatus === 'published') {
+      if (!editingModuleIsCurrent) {
+        setActionError('Archived modules cannot be published. Mark the module as current first.');
+        return;
+      }
+      const saved = await saveModuleWithStatus(mod, 'Draft');
+      if (!saved) return;
+      try {
+        await publishCatalogueItem('MODULE', mod.itemId);
+        await load();
+      } catch (err) {
+        setActionError((err as Error).message);
+      }
+      return;
+    }
+
+    await saveModuleWithStatus(mod, editingModuleIsCurrent ? 'Draft' : 'Archived');
+  };
+
   const handleAddUnit = async (moduleId: string) => {
     try {
       const created = await addUnit(moduleId, 'New Unit');
-      const query = pathId ? `?pathId=${encodeURIComponent(pathId)}` : '';
-      navigate(`/courses/units/${created.unit.itemId}/edit${query}`);
+      setEditingUnitId(created.unit.itemId);
+      await load();
     } catch (err) {
       setActionError((err as Error).message);
     }
@@ -248,6 +281,8 @@ export default function EditPathPage() {
       </div>
     );
   }
+
+  const modalPathId = pathId ?? path.itemId;
 
   return (
     <div className={styles.page}>
@@ -354,8 +389,8 @@ export default function EditPathPage() {
               <input className={styles.input} value={editTags} onChange={e => setEditTags(e.target.value)} placeholder="comma-separated" />
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>Featured image</label>
+                         <div className={styles.field}>
+                          <label className={styles.label}>Featured image</label>
               <div className={styles.mediaActions}>
                 <button type="button" className={styles.mediaBtn} onClick={() => setShowCourseMediaPicker(true)}>
                   Select from library
@@ -517,6 +552,15 @@ export default function EditPathPage() {
                             />
                           )}
                         </div>
+
+                        <div className={styles.modulePublishBar}>
+                          <PublishBar
+                            itemLabel="module"
+                            status={mod.status === 'Published' ? 'published' : 'draft'}
+                            onSave={(status) => handleModulePublishBarSave(mod, status)}
+                            onDiscard={cancelEditingModule}
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -528,7 +572,7 @@ export default function EditPathPage() {
                         <span className={styles.statusDot} style={{ background: statusColors[unit.status] }} title={unit.status} />
                         <button
                           className={styles.editUnitBtn}
-                          onClick={() => navigate(`/courses/units/${unit.itemId}/edit?pathId=${encodeURIComponent(pathId ?? path.itemId)}`)}
+                          onClick={() => setEditingUnitId(unit.itemId)}
                         >
                           Edit unit
                         </button>
@@ -564,6 +608,21 @@ export default function EditPathPage() {
         filter="image"
         title="Select module image"
       />
+
+      {editingUnitId && (
+        <div className={styles.unitModalOverlay} role="dialog" aria-modal="true" aria-label="Edit unit">
+          <div className={styles.unitModalContent}>
+            <UnitEditorCanvas
+              unitId={editingUnitId}
+              pathId={modalPathId}
+              onClose={() => {
+                setEditingUnitId(null);
+                void load();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

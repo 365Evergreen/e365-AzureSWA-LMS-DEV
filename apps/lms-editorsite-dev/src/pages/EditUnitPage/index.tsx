@@ -20,12 +20,14 @@ interface EditorBlock {
   payload: unknown;
 }
 
-export default function EditUnitPage() {
-  const { unitId } = useParams<{ unitId: string }>();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+interface UnitEditorCanvasProps {
+  unitId: string;
+  pathId?: string;
+  onClose?: () => void;
+}
 
-  const pathId = searchParams.get('pathId') ?? undefined;
+export function UnitEditorCanvas({ unitId, pathId, onClose }: UnitEditorCanvasProps) {
+  const navigate = useNavigate();
 
   const [unit, setUnit] = useState<CatalogueItem | null>(null);
   const [blocks, setBlocks] = useState<EditorBlock[]>([]);
@@ -46,7 +48,6 @@ export default function EditUnitPage() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
-    if (!unitId) return;
     setLoading(true);
     setError(null);
     try {
@@ -72,7 +73,7 @@ export default function EditUnitPage() {
 
   // Auto-save on block change (debounced 3s)
   useEffect(() => {
-    if (!unitId || blocks.length === 0) return;
+    if (blocks.length === 0) return;
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
@@ -89,7 +90,6 @@ export default function EditUnitPage() {
   }, [blocks, unitId]);
 
   const handleSaveNow = async () => {
-    if (!unitId) return;
     setSaving(true);
     try {
       await saveUnitContent(unitId, blocks as Parameters<typeof saveUnitContent>[1]);
@@ -104,7 +104,7 @@ export default function EditUnitPage() {
   };
 
   const handlePublish = async () => {
-    if (!unitId || !confirm('Publish this unit?')) return;
+    if (!confirm('Publish this unit?')) return;
     setPublishing(true);
     try {
       await handleSaveNow();
@@ -118,7 +118,6 @@ export default function EditUnitPage() {
   };
 
   const handleSaveMetadata = async () => {
-    if (!unitId) return;
     setMetadataSaving(true);
     setError(null);
     try {
@@ -139,7 +138,7 @@ export default function EditUnitPage() {
   };
 
   const handleArchive = async () => {
-    if (!unitId || !confirm('Archive this unit? It will remain visible to editors only.')) return;
+    if (!confirm('Archive this unit? It will remain visible to editors only.')) return;
     try {
       await archiveCatalogueItem('UNIT', unitId);
       await load();
@@ -179,6 +178,14 @@ export default function EditUnitPage() {
   const selectedBlock = blocks.find(b => b.id === selectedBlockId) ?? null;
 
   const backTarget = pathId ? `/courses/edit/${pathId}` : '/courses';
+  const backLabel = onClose ? '✕ Close unit' : '← Back to course';
+  const handleBack = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    navigate(backTarget);
+  };
 
   if (loading) {
     return <div className={styles.page}><div className={styles.loading}>Loading unit…</div></div>;
@@ -191,7 +198,7 @@ export default function EditUnitPage() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <button className={styles.backBtn} onClick={() => navigate(backTarget)}>← Back to course</button>
+        <button className={styles.backBtn} onClick={handleBack}>{backLabel}</button>
         <div className={styles.unitMeta}>
           <span className={styles.unitLabel}>{unit?.unitType ?? 'Unit'}</span>
           <h1 className={styles.pageTitle}>{unit?.title ?? 'Edit Unit'}</h1>
@@ -302,4 +309,15 @@ export default function EditUnitPage() {
       </div>
     </div>
   );
+}
+
+export default function EditUnitPage() {
+  const { unitId } = useParams<{ unitId: string }>();
+  const [searchParams] = useSearchParams();
+
+  if (!unitId) {
+    return <div className={styles.page}><div className={styles.error}>Unit not found.</div></div>;
+  }
+
+  return <UnitEditorCanvas unitId={unitId} pathId={searchParams.get('pathId') ?? undefined} />;
 }
