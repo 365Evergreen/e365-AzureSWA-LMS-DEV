@@ -105,11 +105,11 @@ export function CourseLandingPage({ metadata, blocks }: CourseLandingPageProps) 
                     <div className={styles.moduleNumber}>{index + 1}</div>
                     <div className={styles.moduleBody}>
                       <div className={styles.moduleHeader}>
-                        <h3 className={styles.moduleTitle}>{module.title}</h3>
-                        <span className={styles.moduleMeta}>
-                          {formatDuration(module.estimatedMinutes)} · {module.units.length} units
-                        </span>
-                      </div>
+                         <h3 className={styles.moduleTitle}>{module.title}</h3>
+                         <span className={styles.moduleMeta}>
+                           {formatDuration(module.estimatedMinutes)} · {module.units?.length ?? 0} units
+                         </span>
+                       </div>
                       {module.summary ? <p className={styles.moduleSummary}>{module.summary}</p> : null}
                     </div>
                   </article>

@@ -560,7 +560,24 @@ async function publicGetPathHandler(
   const modules = await Promise.all(
     moduleLinks.map(async (link) => {
       const mod = await getCatalogueItem('MODULE', link.moduleId);
-      return mod ? { ...mod, sortOrder: link.sortOrder, isOptional: link.isOptional } : null;
+      if (!mod) return null;
+
+      const unitLinks = await listModuleUnits(link.moduleId);
+      const units = await Promise.all(
+        unitLinks.map(async (unitLink) => {
+          const unit = await getCatalogueItem('UNIT', unitLink.unitId);
+          return unit
+            ? { ...unit, sortOrder: unitLink.sortOrder, isOptional: unitLink.isOptional, unitType: unitLink.unitType }
+            : null;
+        })
+      );
+
+      return {
+        ...mod,
+        sortOrder: link.sortOrder,
+        isOptional: link.isOptional,
+        units: units.filter(Boolean),
+      };
     })
   );
 

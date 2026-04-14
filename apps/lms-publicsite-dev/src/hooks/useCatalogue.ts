@@ -52,9 +52,17 @@ export function useCatalogue(options: UseCatalogueOptions = {}): UseCatalogueRet
 
       const detailed = await Promise.all(
         data.items.map(async (item) => {
-          const detailRes = await fetch(`${apiBase()}/api/catalogue/paths/${item.itemId}`)
-          if (!detailRes.ok) throw new Error(`Path detail error ${detailRes.status}`)
-          const detail = await detailRes.json() as { modules?: unknown[] }
+          let moduleCount = 0
+          try {
+            const detailRes = await fetch(`${apiBase()}/api/catalogue/paths/${item.itemId}`)
+            if (detailRes.ok) {
+              const detail = await detailRes.json() as { modules?: unknown[] }
+              moduleCount = Array.isArray(detail.modules) ? detail.modules.length : 0
+            }
+          } catch {
+            moduleCount = 0
+          }
+
           const tags = item.tagsCsv
             ? item.tagsCsv.split(',').map((value) => value.trim()).filter(Boolean)
             : []
@@ -82,7 +90,7 @@ export function useCatalogue(options: UseCatalogueOptions = {}): UseCatalogueRet
             authorId: '',
             publishedAt: item.updatedOn || item.createdOn || new Date().toISOString(),
             updatedAt: item.updatedOn || item.createdOn || new Date().toISOString(),
-            moduleCount: Array.isArray(detail.modules) ? detail.modules.length : 0,
+            moduleCount,
             durationMinutes: item.estimatedMinutes ?? 0,
           } satisfies CourseMetadata
         }),
