@@ -35,6 +35,7 @@ export default function AddNewCoursePage() {
   const [learningPath, setLearningPath] = useState('');
   const [tags, setTags] = useState('');
   const [language, setLanguage] = useState('en');
+  const [isMandatory, setIsMandatory] = useState(false);
   const [visibility, setVisibility] = useState<CatalogueItem['visibility']>('Public');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [isCurrent, setIsCurrent] = useState(true);
@@ -167,6 +168,7 @@ export default function AddNewCoursePage() {
         role: role.trim() || undefined,
         learningPath: learningPath.trim() || undefined,
         estimatedMinutes,
+        isMandatory,
         visibility,
         language,
         thumbnailUrl: thumbnailUrl.trim() || undefined,
@@ -354,6 +356,14 @@ export default function AddNewCoursePage() {
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.currentToggle}>
+                <input type="checkbox" checked={isMandatory} onChange={e => setIsMandatory(e.target.checked)} />
+                <span>Mandatory course</span>
+              </label>
+              <span className={styles.hint}>Mandatory courses appear in learner course lists until each learner completes them.</span>
             </div>
 
             <div className={styles.field}>

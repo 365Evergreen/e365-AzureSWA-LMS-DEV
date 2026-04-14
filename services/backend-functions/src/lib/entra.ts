@@ -17,6 +17,11 @@ export interface EntraDirectoryUser {
   externalUserState?: string;
 }
 
+interface GraphCollectionResponse<TValue> {
+  value: TValue[];
+  '@odata.nextLink'?: string;
+}
+
 function requiredSetting(name: string): string {
   const value = process.env[name]?.trim() ?? '';
   if (!value) throw new Error(`${name} is not configured`);
@@ -52,6 +57,26 @@ async function graphRequest<T>(path: string, init: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function listGroupMemberUserIds(groupId: string): Promise<string[]> {
+  const userIds: string[] = [];
+  let path = `/groups/${encodeURIComponent(groupId)}/transitiveMembers/microsoft.graph.user?$select=id&$top=999`;
+
+  while (path) {
+    const response = await graphRequest<GraphCollectionResponse<{ id?: string }>>(path, { method: 'GET' });
+    userIds.push(
+      ...response.value
+        .map((entry) => entry.id?.trim())
+        .filter((id): id is string => Boolean(id)),
+    );
+
+    path = response['@odata.nextLink']
+      ? response['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '')
+      : '';
+  }
+
+  return userIds;
 }
 
 export async function findDirectoryUserByEmail(email: string): Promise<EntraDirectoryUser | null> {

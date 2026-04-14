@@ -38,6 +38,7 @@ export default function EditPathPage() {
   const [editDifficulty, setEditDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
   const [editRole, setEditRole] = useState('');
   const [editLearningPath, setEditLearningPath] = useState('');
+  const [editIsMandatory, setEditIsMandatory] = useState(false);
   const [editLanguage, setEditLanguage] = useState('en');
   const [editVisibility, setEditVisibility] = useState<CatalogueItem['visibility']>('Public');
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
@@ -73,6 +74,7 @@ export default function EditPathPage() {
       setEditDifficulty(detail.difficulty ?? 'Beginner');
       setEditRole(detail.role ?? '');
       setEditLearningPath(detail.learningPath ?? '');
+      setEditIsMandatory(detail.isMandatory ?? false);
       setEditLanguage(detail.language ?? 'en');
       setEditVisibility(detail.visibility ?? 'Public');
       setEditThumbnailUrl(detail.thumbnailUrl ?? '');
@@ -118,6 +120,7 @@ export default function EditPathPage() {
         role: editRole.trim() || undefined,
         learningPath: editLearningPath.trim() || undefined,
         estimatedMinutes: derivedMinutes,
+        isMandatory: editIsMandatory,
         language: editLanguage,
         visibility: editVisibility,
         thumbnailUrl: editThumbnailUrl,
@@ -364,6 +367,14 @@ export default function EditPathPage() {
               <label className={styles.label}>Duration (minutes)</label>
               <input className={styles.input} type="number" min={0} value={courseDuration} readOnly />
               <span className={styles.fieldHint}>Auto-calculated from module and unit durations</span>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.currentToggle}>
+                <input type="checkbox" checked={editIsMandatory} onChange={e => setEditIsMandatory(e.target.checked)} />
+                <span>Mandatory course</span>
+              </label>
+              <span className={styles.fieldHint}>Mandatory courses remain in learner course lists until completed.</span>
             </div>
 
             <div className={styles.field}>

@@ -21,6 +21,7 @@ export interface LearnerCourse {
   tags: string[];
   progress: number;
   enrolled: boolean;
+  isMandatory: boolean;
   role?: string;
   learningPath?: string;
   updatedOn?: string;
@@ -71,6 +72,7 @@ function normaliseMockCourse(c: any): LearnerCourse {
     tags: c.tags ?? [],
     progress: c.progress ?? 0,
     enrolled: c.enrolled ?? true,
+    isMandatory: c.isMandatory ?? false,
     role: c.role ?? undefined,
     learningPath: c.learningPath ?? undefined,
     updatedOn: c.updatedOn ?? undefined,
@@ -90,6 +92,7 @@ function normaliseApiCourse(c: any): LearnerCourse {
     tags: Array.isArray(c.tags) ? c.tags : [],
     progress: c.progress ?? 0,
     enrolled: c.enrolled ?? false,
+    isMandatory: c.isMandatory ?? false,
     role: c.role ?? undefined,
     learningPath: c.learningPath ?? undefined,
     updatedOn: c.updatedOn ?? undefined,

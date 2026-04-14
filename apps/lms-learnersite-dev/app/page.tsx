@@ -11,10 +11,10 @@ import styles from './home.module.css';
 
 function HomePageContent({ displayName }: { displayName?: string }) {
   const { loading, data, error } = useCatalogue();
-  const enrolledCourses = data?.filter((course) => course.enrolled) ?? [];
-  const featuredCourses = enrolledCourses.slice(0, 3);
-  const completedCount = enrolledCourses.filter((course) => course.progress >= 100).length;
-  const inProgressCount = enrolledCourses.filter((course) => course.progress > 0 && course.progress < 100).length;
+  const myCourses = data?.filter((course) => course.isMandatory ? course.progress < 100 : course.enrolled) ?? [];
+  const featuredCourses = myCourses.slice(0, 3);
+  const completedCount = (data ?? []).filter((course) => course.progress >= 100).length;
+  const inProgressCount = myCourses.filter((course) => course.progress > 0 && course.progress < 100).length;
 
   return (
     <div className={styles.page}>
@@ -35,8 +35,8 @@ function HomePageContent({ displayName }: { displayName?: string }) {
 
           <div className={styles.stats}>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>{enrolledCourses.length}</span>
-              <span className={styles.statLabel}>Enrolled courses</span>
+              <span className={styles.statValue}>{myCourses.length}</span>
+              <span className={styles.statLabel}>Active courses</span>
             </div>
             <div className={styles.statCard}>
               <span className={styles.statValue}>{inProgressCount}</span>
@@ -55,7 +55,7 @@ function HomePageContent({ displayName }: { displayName?: string }) {
           <div>
             <h2 className={styles.sectionTitle}>Continue learning</h2>
             <p className={styles.sectionText}>
-              Jump back into the courses you are enrolled in.
+               Jump back into your active and mandatory learning.
             </p>
           </div>
           <Link href="/catalogue" className={styles.sectionLink}>See full catalogue</Link>

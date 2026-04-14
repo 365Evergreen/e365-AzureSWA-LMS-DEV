@@ -140,6 +140,7 @@ The Function App also uses a **system-assigned managed identity** for Microsoft 
 
 - `User.Invite.All`
 - `User.Read.All`
+- `GroupMember.Read.All`
 - `AppRoleAssignment.ReadWrite.All`
 
 See `shared/auth/README.md` for Entra app registration setup.

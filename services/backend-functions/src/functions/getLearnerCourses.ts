@@ -8,6 +8,7 @@ import {
   listEnrolmentsByUser,
   listModuleUnits,
   listPathModules,
+  listProgressByUser,
 } from '../lib/storage';
 import type { CatalogueItem } from '@lms/shared-schemas';
 
@@ -23,6 +24,7 @@ type LearnerListCourse = {
   durationMinutes: number;
   progress: number;
   enrolled: boolean;
+  isMandatory: boolean;
   role?: string;
   learningPath?: string;
   updatedOn: string;
@@ -52,17 +54,33 @@ async function getPublishedPathBySlug(slug: string): Promise<CatalogueItem | nul
   return getCatalogueItem('PATH', match.itemId);
 }
 
-async function listActiveEnrolments(userId: string): Promise<Set<string>> {
+async function getLearnerState(userId: string): Promise<{
+  enrolments: Map<string, 'Assigned' | 'Active' | 'Completed' | 'Withdrawn'>;
+  progress: Map<string, number>;
+}> {
   const enrolments = await listEnrolmentsByUser(userId);
-  return new Set(
-    enrolments
-      .filter((enrolment) => enrolment.status !== 'Withdrawn')
-      .map((enrolment) => enrolment.pathId)
-  );
+  const progressStates = await listProgressByUser(userId);
+
+  return {
+    enrolments: new Map(enrolments.map((enrolment) => [enrolment.pathId, enrolment.status])),
+    progress: new Map(
+      progressStates
+        .filter((state) => state.itemType === 'PATH')
+        .map((state) => [state.itemId, state.percentComplete ?? 0]),
+    ),
+  };
 }
 
-async function toLearnerCourse(path: CatalogueItem, enrolledPathIds: Set<string>): Promise<LearnerListCourse> {
+async function toLearnerCourse(
+  path: CatalogueItem,
+  learnerState: {
+    enrolments: Map<string, 'Assigned' | 'Active' | 'Completed' | 'Withdrawn'>;
+    progress: Map<string, number>;
+  },
+): Promise<LearnerListCourse> {
   const modules = await listPathModules(path.itemId);
+  const enrolmentStatus = learnerState.enrolments.get(path.itemId);
+  const progress = learnerState.progress.get(path.itemId) ?? (enrolmentStatus === 'Completed' ? 100 : 0);
   return {
     courseId: path.itemId,
     slug: path.slug,
@@ -73,8 +91,9 @@ async function toLearnerCourse(path: CatalogueItem, enrolledPathIds: Set<string>
     thumbnailUrl: path.thumbnailUrl,
     moduleCount: modules.length,
     durationMinutes: path.estimatedMinutes ?? 0,
-    progress: 0,
-    enrolled: enrolledPathIds.has(path.itemId),
+    progress,
+    enrolled: enrolmentStatus !== undefined && enrolmentStatus !== 'Withdrawn',
+    isMandatory: path.isMandatory ?? false,
     role: path.role || undefined,
     learningPath: path.learningPath || undefined,
     updatedOn: path.updatedOn,
@@ -162,8 +181,8 @@ async function listLearnerCoursesHandler(
   const { claims } = auth;
 
   const paths = await listPublishedPaths();
-  const enrolledPathIds = await listActiveEnrolments(claims.oid as string);
-  const courses = await Promise.all(paths.map((path) => toLearnerCourse(path, enrolledPathIds)));
+  const learnerState = await getLearnerState(claims.oid as string);
+  const courses = await Promise.all(paths.map((path) => toLearnerCourse(path, learnerState)));
 
   context.log(`[learner/courses] returning ${courses.length} published paths`);
   return {
@@ -194,16 +213,17 @@ async function getLearnerCourseHandler(
     return { status: 404, jsonBody: { error: 'Course not found' } };
   }
 
-  const enrolledPathIds = await listActiveEnrolments(claims.oid as string);
+  const learnerState = await getLearnerState(claims.oid as string);
   const checkEnrolment = req.query.get('enrolled') === 'true';
   if (checkEnrolment) {
-    if (!enrolledPathIds.has(path.itemId)) {
+    const enrolmentStatus = learnerState.enrolments.get(path.itemId);
+    if (!enrolmentStatus || enrolmentStatus === 'Withdrawn') {
       return { status: 403, jsonBody: { error: 'Enrolment required to access this content' } };
     }
   }
 
   const bundle = await buildPathBundle(path);
-  const course = await toLearnerCourse(path, enrolledPathIds);
+  const course = await toLearnerCourse(path, learnerState);
 
   if (!bundle.blocks.length) {
     context.warn(`[learner/courses] missing bundle for course ${slug}`);

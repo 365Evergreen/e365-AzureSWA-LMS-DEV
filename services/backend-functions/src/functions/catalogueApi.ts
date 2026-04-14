@@ -24,8 +24,13 @@ import {
   deleteCatalogueBrowseEntry,
   listCatalogueBrowse,
   syncCourseLandingPageFromPath,
+  listEnrolmentsByPath,
+  upsertEnrolmentRecord,
 } from '../lib/storage';
 import type { CatalogueItem, PathDetail, UnitDetail } from '@lms/shared-schemas';
+import { listGroupMemberUserIds } from '../lib/entra';
+
+const INTERNAL_USERS_GROUP_ID = '848a02f0-407f-4dc1-a77c-8d314f8d0de3';
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
@@ -131,6 +136,7 @@ const CreatePathSchema = z.object({
   role: z.string().optional().default(''),
   learningPath: z.string().optional().default(''),
   estimatedMinutes: z.number().int().nonnegative().optional().default(0),
+  isMandatory: z.boolean().optional().default(false),
   visibility: z.enum(['Public', 'Enrolled']).optional().default('Public'),
   thumbnailUrl: z.string().optional(),
   tags: z.array(z.string()).optional().default([]),
@@ -163,6 +169,7 @@ async function createPathHandler(
     role: parsed.data.role,
     learningPath: parsed.data.learningPath,
     estimatedMinutes: parsed.data.estimatedMinutes,
+    isMandatory: parsed.data.isMandatory,
     visibility: parsed.data.visibility,
     status: 'Draft',
     thumbnailUrl: parsed.data.thumbnailUrl,
@@ -175,6 +182,9 @@ async function createPathHandler(
 
   await upsertCatalogueItem(item);
   await syncCourseLandingPageFromPath(item);
+  if (item.isMandatory) {
+    await syncMandatoryEnrolments(item.itemId, item.tenantId, context);
+  }
   context.log(`[catalogue] created PATH ${item.itemId} "${item.title}"`);
   return { status: 201, jsonBody: item };
 }
@@ -190,6 +200,7 @@ const PatchItemSchema = z.object({
   role: z.string().optional(),
   learningPath: z.string().optional(),
   estimatedMinutes: z.number().int().nonnegative().optional(),
+  isMandatory: z.boolean().optional(),
   visibility: z.enum(['Public', 'Enrolled']).optional(),
   thumbnailUrl: z.string().optional(),
   tags: z.array(z.string()).optional(),
@@ -225,10 +236,45 @@ async function patchCatalogueItemHandler(
     const updated = await getCatalogueItem(itemType, itemId);
     if (updated) {
       await syncCourseLandingPageFromPath(updated);
+      if (updated.isMandatory) {
+        await syncMandatoryEnrolments(updated.itemId, updated.tenantId, context);
+      }
     }
   }
   context.log(`[catalogue] patched ${itemType} ${itemId}`);
   return { status: 200, jsonBody: { ok: true } };
+}
+
+async function syncMandatoryEnrolments(
+  pathId: string,
+  tenantId: string,
+  context: InvocationContext,
+): Promise<void> {
+  const [memberIds, existingEnrolments] = await Promise.all([
+    listGroupMemberUserIds(INTERNAL_USERS_GROUP_ID),
+    listEnrolmentsByPath(pathId),
+  ]);
+
+  const existingByUserId = new Map(existingEnrolments.map((enrolment) => [enrolment.userId, enrolment]));
+  const assignedOn = new Date().toISOString();
+
+  for (const userId of memberIds) {
+    const existing = existingByUserId.get(userId);
+    if (existing && existing.status !== 'Withdrawn') {
+      continue;
+    }
+
+    await upsertEnrolmentRecord({
+      userId,
+      pathId,
+      assignedOn,
+      status: 'Assigned',
+      source: 'Assigned',
+      tenantId: tenantId || 'default',
+    });
+  }
+
+  context.log(`[catalogue] synced ${memberIds.length} mandatory enrolments for PATH ${pathId}`);
 }
 
 // ─── Soft-delete (archive) ────────────────────────────────────────────────────

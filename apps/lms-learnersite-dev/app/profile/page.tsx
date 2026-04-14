@@ -26,8 +26,8 @@ function ProfilePageContent() {
   const name = user?.account.name ?? user?.account.username ?? '';
   const email = user?.account.username ?? '';
 
-  const enrolled = data?.filter((c) => c.enrolled) ?? [];
-  const completed = enrolled.filter((c) => c.progress >= 100).length;
+  const enrolled = data?.filter((c) => c.isMandatory ? c.progress < 100 : c.enrolled) ?? [];
+  const completed = (data ?? []).filter((c) => c.progress >= 100).length;
   const inProgress = enrolled.filter((c) => c.progress > 0 && c.progress < 100).length;
   const learningHours = completed * 2 + inProgress * 1;
 

@@ -7,6 +7,7 @@ import styles from './catalogue.module.css';
 
 export default function CataloguePage() {
   const { loading, data, error } = useCatalogue();
+  const myCourses = data?.filter((course) => course.isMandatory ? course.progress < 100 : course.enrolled) ?? [];
 
   return (
     <AuthGuard>
@@ -15,7 +16,7 @@ export default function CataloguePage() {
           <h1 className={styles.pageTitle}>My Courses</h1>
           {loading && <p>Loading courses…</p>}
           {error && <p className={styles.error}>Failed to load courses.</p>}
-          {data && <CourseGrid courses={data} />}
+          {myCourses && <CourseGrid courses={myCourses} />}
         </div>
       </div>
     </AuthGuard>

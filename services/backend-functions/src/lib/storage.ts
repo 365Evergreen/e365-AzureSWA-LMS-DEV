@@ -853,6 +853,7 @@ function entityToCatalogueItem(e: Record<string, unknown>): CatalogueItem {
     role: (e.role as string) || '',
     learningPath: (e.learningPath as string) || '',
     estimatedMinutes: (e.estimatedMinutes as number) || 0,
+    isMandatory: (e.isMandatory as boolean) ?? false,
     visibility: (e.visibility as CatalogueItem['visibility']) || 'Public',
     status: (e.status as CatalogueItem['status']) || 'Draft',
     currentVersionId: (e.currentVersionId as string) || undefined,
@@ -883,6 +884,7 @@ export async function upsertCatalogueItem(item: CatalogueItem): Promise<void> {
       role: item.role ?? '',
       learningPath: item.learningPath ?? '',
       estimatedMinutes: item.estimatedMinutes,
+      isMandatory: item.isMandatory ?? false,
       visibility: item.visibility,
       status: item.status,
       currentVersionId: item.currentVersionId ?? '',
@@ -1203,7 +1205,8 @@ export async function upsertEnrolmentRecord(record: EnrolmentRecord): Promise<vo
     rowKey: `ITEM|${record.pathId}`,
     userId: record.userId,
     pathId: record.pathId,
-    enrolledOn: record.enrolledOn,
+    enrolledOn: record.enrolledOn ?? '',
+    assignedOn: record.assignedOn ?? '',
     status: record.status,
     dueOn: record.dueOn ?? '',
     source: record.source,
@@ -1217,7 +1220,8 @@ export async function upsertEnrolmentRecord(record: EnrolmentRecord): Promise<vo
       partitionKey: `ENROL|ITEM|${record.pathId}`,
       rowKey: `USER|${record.userId}`,
       status: record.status,
-      enrolledOn: record.enrolledOn,
+      enrolledOn: record.enrolledOn ?? '',
+      assignedOn: record.assignedOn ?? '',
       userId: record.userId,
     },
     'Replace'
@@ -1234,11 +1238,32 @@ export async function listEnrolmentsByUser(userId: string): Promise<EnrolmentRec
     results.push({
       userId: e.userId as string,
       pathId: e.pathId as string,
-      enrolledOn: e.enrolledOn as string,
+      enrolledOn: (e.enrolledOn as string) || undefined,
+      assignedOn: (e.assignedOn as string) || undefined,
       status: e.status as EnrolmentRecord['status'],
       dueOn: (e.dueOn as string) || undefined,
       source: (e.source as EnrolmentRecord['source']) || 'Self',
       tenantId: (e.tenantId as string) || 'default',
+    });
+  }
+  return results;
+}
+
+export async function listEnrolmentsByPath(pathId: string): Promise<EnrolmentRecord[]> {
+  const client = enrolmentsByItemTable();
+  await ensureTable(client);
+  const results: EnrolmentRecord[] = [];
+  for await (const e of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ENROL|ITEM|${pathId}'` },
+  })) {
+    results.push({
+      userId: e.userId as string,
+      pathId,
+      enrolledOn: (e.enrolledOn as string) || undefined,
+      assignedOn: (e.assignedOn as string) || undefined,
+      status: e.status as EnrolmentRecord['status'],
+      source: 'Assigned',
+      tenantId: 'default',
     });
   }
   return results;
@@ -1352,6 +1377,7 @@ export async function writeCatalogueBrowseEntry(item: CatalogueItem): Promise<vo
       role: item.role ?? '',
       learningPath: item.learningPath ?? '',
       estimatedMinutes: item.estimatedMinutes,
+      isMandatory: item.isMandatory ?? false,
       thumbnailUrl: item.thumbnailUrl ?? '',
       language: item.language,
       slug: item.slug,
@@ -1398,6 +1424,7 @@ export async function listCatalogueBrowse(
       role: (e.role as string) || '',
       learningPath: (e.learningPath as string) || '',
       estimatedMinutes: (e.estimatedMinutes as number) || 0,
+      isMandatory: (e.isMandatory as boolean) ?? false,
       visibility: 'Public',
       status,
       thumbnailUrl: (e.thumbnailUrl as string) || undefined,

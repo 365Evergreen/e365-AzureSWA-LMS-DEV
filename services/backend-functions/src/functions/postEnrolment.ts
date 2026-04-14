@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
 import { extractBearerToken, validateToken } from '../middleware/validateToken';
-import { getCatalogueItem, upsertEnrolmentRecord } from '../lib/storage';
+import { getCatalogueItem, listEnrolmentsByUser, upsertEnrolmentRecord } from '../lib/storage';
 
 const enrolmentRequestSchema = z.object({
   pathId: z.string().uuid(),
@@ -37,12 +37,16 @@ async function postEnrolmentHandler(
   }
 
   const now = new Date().toISOString();
+  const existing = (await listEnrolmentsByUser(claims.oid as string)).find(
+    (enrolment) => enrolment.pathId === parsed.data.pathId,
+  );
   await upsertEnrolmentRecord({
     userId: claims.oid as string,
     pathId: parsed.data.pathId,
     enrolledOn: now,
+    assignedOn: existing?.assignedOn,
     status: 'Active',
-    source: 'Self',
+    source: existing?.source === 'Assigned' ? 'Assigned' : 'Self',
     tenantId: (claims.tid as string) || 'default',
   });
 

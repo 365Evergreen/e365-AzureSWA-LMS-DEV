@@ -90,6 +90,7 @@ export interface CreatePathRequest {
   role?: string;
   learningPath?: string;
   estimatedMinutes?: number;
+  isMandatory?: boolean;
   visibility?: CatalogueItem['visibility'];
   thumbnailUrl?: string;
   tags?: string[];
