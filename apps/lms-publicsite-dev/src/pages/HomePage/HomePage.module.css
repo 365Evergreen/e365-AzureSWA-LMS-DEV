@@ -3,15 +3,37 @@
   flex-direction: column;
 }
 
-.loading {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-16) 0;
-}
-
 .cmsContent {
   max-width: var(--max-width-content, 860px);
   margin: 0 auto;
   padding: var(--space-10) var(--space-5);
   width: 100%;
+}
+
+.contentPlaceholder {
+  min-height: 28rem;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(90deg, rgb(15 23 42 / 0.04), rgb(15 23 42 / 0.08), rgb(15 23 42 / 0.04));
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.errorMessage {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }

@@ -3,6 +3,7 @@ import { LoadingSpinner } from '@lms/shared-ui'
 import { usePage } from '../../hooks/usePage'
 import { PublicBlockRenderer } from '../../components/PublicBlockRenderer'
 import type { Block } from '../../components/PublicBlockRenderer'
+import { CourseLandingPage } from '../../components/CourseLandingPage'
 import styles from './WebsitePage.module.css'
 
 export default function WebsitePage() {
@@ -25,6 +26,10 @@ export default function WebsitePage() {
   const hasHero = heroIndex !== -1
   const heroBlock = hasHero ? blocks[heroIndex] : null
   const otherBlocks = hasHero ? blocks.filter((_, i) => i !== heroIndex) : blocks
+
+  if (metadata.templateId === 'course-landing') {
+    return <CourseLandingPage metadata={metadata} blocks={blocks as Block[]} />
+  }
 
   return (
     <article className={styles.page}>

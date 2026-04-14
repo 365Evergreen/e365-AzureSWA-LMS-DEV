@@ -15,7 +15,15 @@ export function SiteHeader() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link to="/" className={styles.logoLink} aria-label="LMS Platform home">
-          <img src={SITE_LOGO_URL} alt="" className={styles.logoImage} />
+          <img
+            src={SITE_LOGO_URL}
+            alt=""
+            className={styles.logoImage}
+            width="36"
+            height="36"
+            decoding="async"
+            fetchPriority="high"
+          />
           <span className={styles.logoText}>Stay Evergreen</span>
         </Link>
 

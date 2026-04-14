@@ -2,21 +2,9 @@
 <html lang="en">
 
 <head>
-  <script type="text/javascript">
-    (function (c, l, a, r, i, t, y) {
-      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
-      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
-      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-    })(window, document, "clarity", "script", "wb4n71kvox");
-  </script>
-  <script type="module">
-    import RefreshRuntime from "/@react-refresh";
-    RefreshRuntime.injectIntoGlobalHook(window);
-    window.$RefreshReg$ = () => { };
-    window.$RefreshSig$ = () => (type) => type;
-    window.__vite_plugin_react_preamble_installed__ = true;
-  </script>
   <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://stlms365evdev.blob.core.windows.net" crossorigin />
+  <link rel="dns-prefetch" href="https://stlms365evdev.blob.core.windows.net" />
   <link rel="icon" type="image/webp" href="https://stlms365evdev.blob.core.windows.net/media/87ff47c3-963a-40cf-93a1-761e699efa95-Evergreen_Logo__100px.webp" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>365 Evergreen learning</title>
@@ -24,6 +12,22 @@
 
 <body>
   <div id="root"></div>
+  <script>
+    if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      const loadClarity = () => {
+        const script = document.createElement('script')
+        script.async = true
+        script.src = 'https://www.clarity.ms/tag/wb4n71kvox'
+        document.head.appendChild(script)
+      }
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(loadClarity, { timeout: 2500 })
+      } else {
+        window.addEventListener('load', () => window.setTimeout(loadClarity, 1500), { once: true })
+      }
+    }
+  </script>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

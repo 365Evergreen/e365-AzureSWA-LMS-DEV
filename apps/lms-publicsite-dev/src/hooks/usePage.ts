@@ -15,6 +15,10 @@ interface PageMetadata {
   updatedAt: string
   author?: string
   tags?: string[]
+  featuredImage?: string
+  linkedCourseId?: string
+  linkedCourseSlug?: string
+  linkedCourseTitle?: string
 }
 
 interface PageBundle {

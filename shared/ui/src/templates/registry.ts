@@ -67,6 +67,14 @@ export const templates: TemplateDefinition[] = [
     hasSidebar: false,
   },
   {
+    id: 'course-landing',
+    label: 'Course landing',
+    description: 'Full-width hero with centred single-column content. Includes a course info table, summary content, and a stacked module-card section driven by the linked course.',
+    category: 'page',
+    layout: 'content-fse',
+    hasSidebar: false,
+  },
+  {
     id: 'archive-header',
     label: 'Archive header',
     description: 'Header-only layout for blog and course listing pages. Editors configure the hero and intro text; the listing content below is always rendered by the application. Use reserved slugs: archive-blog, archive-courses.',

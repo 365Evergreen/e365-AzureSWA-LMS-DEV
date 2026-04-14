@@ -89,6 +89,14 @@ export function useAuth(msalInstance: PublicClientApplication): {
 
         let account = msalInstance.getActiveAccount();
 
+        if (!account) {
+          const [firstAccount] = msalInstance.getAllAccounts();
+          if (firstAccount) {
+            msalInstance.setActiveAccount(firstAccount);
+            account = firstAccount;
+          }
+        }
+
         // If no cached account, attempt SSO silent using the existing Entra browser session.
         // This signs in the user automatically if they are already authenticated with Microsoft
         // (e.g. logged into Microsoft 365 in the same browser) without any redirect or popup.
