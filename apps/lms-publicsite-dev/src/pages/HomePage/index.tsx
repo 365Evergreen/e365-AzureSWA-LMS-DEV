@@ -8,32 +8,17 @@ import styles from './HomePage.module.css'
 export default function HomePage() {
   const { blocks, loading, error } = usePage('home')
   const hasCmsContent = !loading && !error && blocks.length > 0
-
-  const heroIndex = hasCmsContent ? blocks.findIndex((b) => b.type === 'hero') : -1
-  const heroBlock = heroIndex !== -1 ? blocks[heroIndex] : null
-  const otherBlocks = heroIndex !== -1 ? blocks.filter((_, i) => i !== heroIndex) : blocks
-  const heroPayload = (heroBlock?.payload ?? {}) as Record<string, unknown>
-  const heroHeadline = (heroPayload.heading as string | undefined)?.trim()
-  const heroSubheading = [
-    heroPayload.subheading as string | undefined,
-    heroPayload.body as string | undefined,
-  ]
-    .filter((value): value is string => Boolean(value?.trim()))
-    .join(' ')
-  const heroPrimaryAction = heroPayload.ctaLabel && heroPayload.ctaUrl
-    ? {
-        label: heroPayload.ctaLabel as string,
-        href: heroPayload.ctaUrl as string,
-      }
-    : undefined
+  const heroIndex = hasCmsContent ? blocks.findIndex((block) => block.type === 'hero') : -1
+  const heroBlocks = heroIndex >= 0 ? [blocks[heroIndex]] : []
+  const contentBlocks = heroIndex >= 0 ? blocks.filter((_, index) => index !== heroIndex) : blocks
 
   return (
     <div className={styles.page}>
-      <Hero
-        headline={heroHeadline}
-        subheadline={heroSubheading || undefined}
-        primaryAction={heroPrimaryAction}
-      />
+      {hasCmsContent && heroBlocks.length > 0 ? (
+        <PublicBlockRenderer blocks={heroBlocks as Block[]} />
+      ) : (
+        <Hero />
+      )}
 
       {loading && (
         <div className={styles.cmsContent}>
@@ -41,9 +26,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {hasCmsContent && otherBlocks.length > 0 && (
+      {hasCmsContent && contentBlocks.length > 0 && (
         <div className={styles.cmsContent}>
-          <PublicBlockRenderer blocks={otherBlocks as Block[]} />
+          <PublicBlockRenderer blocks={contentBlocks as Block[]} />
         </div>
       )}
 
@@ -53,7 +38,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <KBTeaser />
+      {!hasCmsContent && <KBTeaser />}
     </div>
   )
 }

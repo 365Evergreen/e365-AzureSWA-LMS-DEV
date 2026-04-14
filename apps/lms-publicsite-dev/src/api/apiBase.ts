@@ -4,6 +4,17 @@
  * are used, which Vite's dev proxy forwards to the Azure Functions host.
  */
 export function apiBase(): string {
-  const raw = import.meta.env.VITE_API_BASE_URL ?? ''
-  return raw.replace(/\/api\/?$/, '')
+  const raw = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ?? ''
+  if (raw) {
+    return raw.replace(/\/api\/?$/, '')
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname } = window.location
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return ''
+    }
+  }
+
+  return 'https://lms-func-365ev-dev.azurewebsites.net'
 }
