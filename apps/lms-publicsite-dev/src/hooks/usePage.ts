@@ -34,13 +34,47 @@ interface UsePageResult {
 
 export type ContentType = 'page' | 'post' | 'knowledge'
 
+// ── In-memory TTL cache ───────────────────────────────────────────────────────
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+interface CacheEntry {
+  metadata: PageMetadata
+  blocks: Block[]
+  ts: number
+}
+
+const pageCache = new Map<string, CacheEntry>()
+
+function getCached(key: string): CacheEntry | null {
+  const entry = pageCache.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.ts > CACHE_TTL) {
+    pageCache.delete(key)
+    return null
+  }
+  return entry
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function usePage(slug: string, type: ContentType = 'page'): UsePageResult {
-  const [metadata, setMetadata] = useState<PageMetadata | null>(null)
-  const [blocks, setBlocks] = useState<Block[]>([])
-  const [loading, setLoading] = useState(true)
+  const cacheKey = `${slug}:${type}`
+  const cached = getCached(cacheKey)
+
+  const [metadata, setMetadata] = useState<PageMetadata | null>(cached?.metadata ?? null)
+  const [blocks, setBlocks] = useState<Block[]>(cached?.blocks ?? [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const hit = getCached(cacheKey)
+    if (hit) {
+      setMetadata(hit.metadata)
+      setBlocks(hit.blocks)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     let cancelled = false
     setLoading(true)
     setError(null)
@@ -54,8 +88,10 @@ export function usePage(slug: string, type: ContentType = 'page'): UsePageResult
       })
       .then(({ metadata, bundle }) => {
         if (cancelled) return
+        const resolvedBlocks = bundle.blocks ?? []
+        pageCache.set(cacheKey, { metadata, blocks: resolvedBlocks, ts: Date.now() })
         setMetadata(metadata)
-        setBlocks(bundle.blocks ?? [])
+        setBlocks(resolvedBlocks)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -66,7 +102,7 @@ export function usePage(slug: string, type: ContentType = 'page'): UsePageResult
       })
 
     return () => { cancelled = true }
-  }, [slug, type])
+  }, [slug, type, cacheKey])
 
   return { metadata, blocks, loading, error }
 }
