@@ -1,7 +1,7 @@
 .footer {
   background-color: var(--color-surface-subtle);
   border-top: 1px solid var(--color-border);
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-8) var(--page-padding-x);
 }
 
 .inner {

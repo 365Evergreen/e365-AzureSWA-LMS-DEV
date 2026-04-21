@@ -1,6 +1,6 @@
 .bar {
   background-color: var(--color-brand-primary);
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-8) var(--page-padding-x);
 }
 
 .inner {

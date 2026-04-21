@@ -1,5 +1,9 @@
 @import '@lms/shared-ui/src/tokens.css';
 
+:root {
+  --page-padding-x: var(--space-6);
+}
+
 *,
 *::before,
 *::after {

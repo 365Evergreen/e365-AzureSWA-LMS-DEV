@@ -2,12 +2,12 @@
 
 .hero {
   background: linear-gradient(135deg, #0f172a 0%, #1a3450 55%, #0f2a1a 100%);
-  padding: var(--space-20) var(--space-6);
+  padding: var(--space-20) var(--page-padding-x);
   overflow: hidden;
 }
 
 .inner {
-  max-width: var(--max-width-content);
+
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -349,72 +349,4 @@
   .hero {
     padding: var(--space-16) var(--space-5);
   }
-}
-
-
-.inner {
-  max-width: var(--max-width-content);
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-6);
-}
-
-.headline {
-  margin: 0;
-  font-size: var(--font-size-5xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-inverse);
-  line-height: var(--line-height-tight);
-}
-
-.subheadline {
-  margin: 0;
-  max-width: var(--max-width-prose);
-  font-size: var(--font-size-xl);
-  color: rgb(255 255 255 / 0.8);
-  line-height: var(--line-height-relaxed);
-}
-
-.ctas {
-  display: flex;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.ctaPrimary {
-  display: inline-block;
-  background-color: var(--color-brand-primary);
-  color: var(--color-text-inverse);
-  padding: var(--space-3) var(--space-8);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
-  transition: background-color var(--transition-fast);
-}
-
-.ctaPrimary:hover {
-  background-color: var(--color-brand-primary-hover);
-  color: var(--color-text-inverse);
-}
-
-.ctaSecondary {
-  display: inline-block;
-  background-color: rgb(255 255 255 / 0.1);
-  color: var(--color-text-inverse);
-  padding: var(--space-3) var(--space-8);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
-  border: 1px solid rgb(255 255 255 / 0.5);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-.ctaSecondary:hover {
-  background-color: rgb(255 255 255 / 0.2);
-  color: var(--color-text-inverse);
 }

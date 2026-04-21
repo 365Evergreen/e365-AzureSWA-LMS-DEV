@@ -1,5 +1,5 @@
 .page {
-  padding: var(--space-16) var(--space-6);
+  padding: var(--space-16) var(--page-padding-x);
 }
 
 .inner {
