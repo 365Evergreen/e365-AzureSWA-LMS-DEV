@@ -11,7 +11,7 @@ export interface SavePageRequest {
   description?: string;
   templateId: string;
   contentType: SiteContentType;
-  blocks: { id: string; type: string; version?: number; payload: Record<string, unknown> }[];
+  blocks: { id: string; type: string; version?: number; payload: Record<string, unknown>; background?: string }[];
   status: 'draft' | 'published';
   publishedAt?: string;
   tags?: string[];
@@ -55,8 +55,15 @@ async function getToken(): Promise<string | null> {
     } catch (err) {
       if (err instanceof InteractionRequiredAuthError) {
         console.warn('[pages] getToken: interaction required — opening popup');
-        const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
-        return result.accessToken;
+        try {
+          const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
+          return result.accessToken;
+        } catch {
+          // Popup also failed (e.g. AADSTS160021 — session no longer exists).
+          // Fall back to a full redirect so the user is prompted to sign in again.
+          await msalInstance.acquireTokenRedirect({ scopes: [scope], account });
+          return null;
+        }
       }
       throw err;
     }
@@ -109,6 +116,7 @@ export interface PatchPageMetaRequest {
   description?: string;
   status?: 'draft' | 'published' | 'deleted';
   publishedAt?: string;
+  featuredImage?: string;
   categoryIds?: string[];
   primaryCategoryId?: string;
   inNav?: boolean;
@@ -124,7 +132,7 @@ export interface EditorPageResponse {
     slug: string;
     title: string;
     templateId: string;
-    blocks: Array<{ id: string; type: string; version?: number; payload: Record<string, unknown> }>;
+    blocks: Array<{ id: string; type: string; version?: number; payload: Record<string, unknown>; background?: string }>;
     savedAt: string;
   } | null;
 }

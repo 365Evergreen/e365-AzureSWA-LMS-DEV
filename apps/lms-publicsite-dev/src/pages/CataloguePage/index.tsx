@@ -1,24 +1,38 @@
 import { useState, useMemo } from 'react'
-import { useCoursePages } from '../../hooks/useCoursePages'
-import { CoursePageCard } from '../../components/CoursePageCard'
-import { BlogFilters } from '../../components/BlogFilters'
+import { Helmet } from 'react-helmet-async'
+import { useCatalogue } from '../../hooks/useCatalogue'
+import { CourseCard } from '../../components/CourseCard'
+import { CatalogueFilters } from '../../components/CatalogueFilters'
 import { ViewToggle, type ViewMode } from '../../components/ViewToggle'
 import { ArchiveHeader } from '../../components/ArchiveHeader'
 import styles from './CataloguePage.module.css'
 
 export default function CataloguePage() {
-  const [tag, setTag] = useState('')
+  const [role, setRole] = useState('')
+  const [level, setLevel] = useState('')
+  const [courseType, setCourseType] = useState('')
   const [view, setView] = useState<ViewMode>('grid')
 
-  const { pages, allTags, loading, error, refetch } = useCoursePages()
+  const { courses, loading, error, refetch } = useCatalogue()
 
-  const filtered = useMemo(
-    () => tag ? pages.filter((p) => p.tags.includes(tag)) : pages,
-    [pages, tag],
-  )
+  const filtered = useMemo(() => {
+    let result = courses
+    if (role) result = result.filter((c) => c.audience === role || c.audience === 'all')
+    if (level) result = result.filter((c) => c.level === level)
+    if (courseType) result = result.filter((c) => c.tags.includes(courseType))
+    return result
+  }, [courses, role, level, courseType])
 
   return (
     <div className={styles.page}>
+      <Helmet>
+        <title>Course Catalogue | 365 Evergreen Learning</title>
+        <meta name="description" content="Browse our library of Microsoft 365 and business skills courses. Filter by role, level, and course type." />
+        <link rel="canonical" href="https://lms.365evergreendev.com/catalogue" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Course Catalogue | 365 Evergreen Learning" />
+        <meta property="og:description" content="Browse our library of Microsoft 365 and business skills courses. Filter by role, level, and course type." />
+      </Helmet>
       <ArchiveHeader
         slug="course-catalogue"
         fallbackTitle="Course Catalogue"
@@ -27,11 +41,14 @@ export default function CataloguePage() {
 
       <div className={styles.listing}>
         <div className={styles.toolbar}>
-          <BlogFilters
-            categories={allTags}
-            selectedCategory={tag}
-            onCategoryChange={setTag}
-            onReset={() => setTag('')}
+          <CatalogueFilters
+            role={role}
+            level={level}
+            courseType={courseType}
+            onRoleChange={setRole}
+            onLevelChange={setLevel}
+            onCourseTypeChange={setCourseType}
+            onReset={() => { setRole(''); setLevel(''); setCourseType('') }}
           />
           <div className={styles.toolbarRight}>
             {!loading && !error && (
@@ -62,9 +79,9 @@ export default function CataloguePage() {
         {!loading && !error && (
           <div className={view === 'grid' ? styles.grid : styles.listView}>
             {filtered.length === 0
-              ? <p className={styles.empty}>No courses published yet.</p>
-              : filtered.map((page) => (
-                  <CoursePageCard key={page.pageId} page={page} view={view} />
+              ? <p className={styles.empty}>No courses match the selected filters.</p>
+              : filtered.map((course) => (
+                  <CourseCard key={course.courseId} course={course} view={view} />
                 ))
             }
           </div>

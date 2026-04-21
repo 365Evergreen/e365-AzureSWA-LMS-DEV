@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { MegaNav } from '../MegaNav'
 import styles from './SiteHeader.module.css'
 
+const SITE_LOGO_URL = 'https://stlms365evdev.blob.core.windows.net/media/87ff47c3-963a-40cf-93a1-761e699efa95-Evergreen_Logo__100px.webp'
+
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -13,28 +15,38 @@ export function SiteHeader() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link to="/" className={styles.logoLink} aria-label="LMS Platform home">
-          <span className={styles.logoMark} aria-hidden="true">LMS</span>
-          <span className={styles.logoText}>LMS Platform</span>
+          <img
+            src={SITE_LOGO_URL}
+            alt=""
+            className={styles.logoImage}
+            width="36"
+            height="36"
+            decoding="async"
+            fetchPriority="high"
+          />
+          <span className={styles.logoText}>Stay Evergreen</span>
         </Link>
 
         <nav className={styles.desktopNav} aria-label="Main navigation">
           <MegaNav onNavigate={closeMenu} />
         </nav>
 
-        <div className={styles.actions}>
-          <Link to="/kb" className={styles.ctaButton}>
-            Get Started
-          </Link>
-          <button
-            type="button"
-            className={styles.menuButton}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-            onClick={toggleMenu}
-          >
-            {menuOpen ? <CloseIcon /> : <HamburgerIcon />}
-          </button>
+        <div className={styles.controls}>
+          <div className={styles.actions}>
+            <Link to="/sign-up" className={styles.ctaButton}>
+              Get started
+            </Link>
+            <button
+              type="button"
+              className={styles.menuButton}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              onClick={toggleMenu}
+            >
+              {menuOpen ? <CloseIcon /> : <HamburgerIcon />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -44,8 +56,8 @@ export function SiteHeader() {
         className={menuOpen ? `${styles.mobileMenu} ${styles.mobileMenuOpen}` : styles.mobileMenu}
       >
         <MegaNav mobile onNavigate={closeMenu} />
-        <Link to="/kb" className={styles.mobileCtaButton} onClick={closeMenu}>
-          Get Started
+        <Link to="/sign-up" className={styles.mobileCtaButton} onClick={closeMenu}>
+          Get started
         </Link>
       </nav>
     </header>

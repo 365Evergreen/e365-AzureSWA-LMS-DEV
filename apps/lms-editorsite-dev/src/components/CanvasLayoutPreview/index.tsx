@@ -63,6 +63,13 @@ export default function CanvasLayoutPreview({ templateId, contentWidth, children
             {children}
           </ContentLayout>
         );
+      case 'course-overview':
+      case 'course-landing':
+        return (
+          <ContentLayout variant="fse">
+            {children}
+          </ContentLayout>
+        );
       default:
         return <>{children}</>;
     }

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -13,13 +17,28 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+  
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ],
+      "@lms/shared-auth": [
+        "../../shared/auth/src/index.ts"
+      ],
+      "@lms/shared-ui": [
+        "../../shared/ui/src/index.ts"
+      ],
+      "@lms/shared-schemas": [
+        "../../shared/schemas/src/index.ts"
+      ],
+      "@lms/block-registry": [
+        "../../shared/block-registry/src/index.ts"
+      ]
     }
   },
   "include": [
@@ -28,7 +47,10 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next/dev/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

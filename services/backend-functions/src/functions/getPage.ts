@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { getSitePageBySlug, fetchSiteBundle, listSitePages } from '../lib/storage';
+import { getSitePageBySlug, fetchSiteBundle, listSitePages, getPublishedPathBySlug } from '../lib/storage';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +25,7 @@ async function getPagesHandler(
     return {
       status: 200,
       jsonBody: { pages, total: pages.length },
-      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
+      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
     };
   } catch (err) {
     context.error('listSitePages error:', err);
@@ -52,6 +52,46 @@ async function getPageHandler(
   try {
     const meta = await getSitePageBySlug(slug, contentType);
     if (!meta || meta.status !== 'published') {
+      if (contentType === 'page') {
+        const path = await getPublishedPathBySlug(slug);
+        if (path) {
+          return {
+            status: 200,
+            jsonBody: {
+              metadata: {
+                pageId: `course-landing-${path.itemId}`,
+                slug: path.slug,
+                title: path.title,
+                description: path.summary,
+                status: 'published',
+                contentType: 'page',
+                templateId: 'course-landing',
+                bundleUrl: '',
+                publishedAt: path.updatedOn,
+                updatedAt: path.updatedOn,
+                author: path.authorId,
+                tags: path.tagsCsv
+                  .split(',')
+                  .map((tag) => tag.trim())
+                  .filter(Boolean),
+                featuredImage: path.thumbnailUrl,
+                linkedCourseId: path.itemId,
+                linkedCourseSlug: path.slug,
+                linkedCourseTitle: path.title,
+              },
+              bundle: {
+                pageId: `course-landing-${path.itemId}`,
+                slug: path.slug,
+                title: path.title,
+                templateId: 'course-landing',
+                blocks: [],
+                savedAt: path.updatedOn,
+              },
+            },
+            headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
+          };
+        }
+      }
       return { status: 404, jsonBody: { error: 'Page not found' }, headers: CORS_HEADERS };
     }
 
@@ -64,7 +104,7 @@ async function getPageHandler(
     return {
       status: 200,
       jsonBody: { metadata: meta, bundle },
-      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
+      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
     };
   } catch (err) {
     context.error('getPage error:', err);

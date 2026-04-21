@@ -1,26 +1,70 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
+import {
+  BlockGroup,
+  BlockType,
+  getBlock,
+  isRegisteredBlockType,
+  registerBlock,
+  type BlockRendererProps,
+} from '@lms/block-registry'
+import type {
+  AccordionPayload,
+  ColumnsPayload,
+  CalloutPayload,
+  CodePayload,
+  DetailPayload,
+  DividerPayload,
+  FormPayload,
+  GridPayload,
+  HeadingPayload,
+  ImagePayload,
+  ParagraphPayload,
+  QuizPayload,
+  VideoEmbedPayload,
+  VideoPayload,
+} from '@lms/block-registry'
+import {
+  AccordionPayloadSchema,
+  ColumnsPayloadSchema,
+  CalloutPayloadSchema,
+  CodePayloadSchema,
+  DetailPayloadSchema,
+  DividerPayloadSchema,
+  FormPayloadSchema,
+  GridPayloadSchema,
+  HeadingPayloadSchema,
+  ImagePayloadSchema,
+  BulletedListPayloadSchema,
+  NumberedListPayloadSchema,
+  ParagraphPayloadSchema,
+  QuizPayloadSchema,
+  VideoEmbedPayloadSchema,
+  VideoPayloadSchema,
+  normalizeAccordionPayload,
+  normalizeColumnsPayload,
+  BG_CSS,
+} from '@lms/block-registry'
+import { sanitizeHtml } from '@lms/shared-ui'
+import type { Block as SharedBlock } from '@lms/shared-schemas'
+import { useLocation } from 'react-router-dom'
+import { apiBase } from '../../api/apiBase'
 import styles from './PublicBlockRenderer.module.css'
 
-export interface Block {
-  id: string
-  type: string
-  version: number
-  payload: Record<string, unknown>
-}
+export type Block = SharedBlock
 
 // ─── Text blocks ──────────────────────────────────────────────────────────────
 
-function HeadingBlock({ id, payload }: { id: string; payload: Record<string, unknown> }) {
-  const text = (payload.text as string) ?? ''
-  const level = (payload.level as number) ?? 2
+function HeadingBlock({ payload }: BlockRendererProps<HeadingPayload>) {
+  const text = payload.text ?? ''
+  const level = payload.level ?? 2
   const Tag = `h${Math.min(Math.max(level, 1), 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
-  const alignment = (payload.alignment as string) ?? 'left'
-  const weight = (payload.weight as string) ?? 'bold'
-  const italic = payload.italic as boolean | undefined
-  const underline = payload.underline as boolean | undefined
-  const link = payload.link as { url: string; newTab?: boolean } | undefined
-  const style: React.CSSProperties = {
-    textAlign: alignment as React.CSSProperties['textAlign'],
+  const alignment = payload.alignment ?? 'left'
+  const weight = payload.weight ?? 'bold'
+  const italic = payload.italic
+  const underline = payload.underline
+  const link = payload.link
+  const style: CSSProperties = {
+    textAlign: alignment as CSSProperties['textAlign'],
     fontWeight: weight === 'bold' ? 700 : weight === 'light' ? 300 : 400,
     fontStyle: italic ? 'italic' : undefined,
     textDecoration: underline ? 'underline' : undefined,
@@ -28,17 +72,17 @@ function HeadingBlock({ id, payload }: { id: string; payload: Record<string, unk
   const content = link
     ? <a href={link.url} target={link.newTab ? '_blank' : undefined} rel="noreferrer">{text}</a>
     : text
-  return <Tag key={id} className={`${styles.heading} ${styles[`h${level}`]}`} style={style}>{content}</Tag>
+  return <Tag className={`${styles.heading} ${styles[`h${level}`]}`} style={style}>{content}</Tag>
 }
 
-function ParagraphBlock({ payload }: { payload: Record<string, unknown> }) {
-  const html = (payload.html as string) ?? ''
-  const alignment = (payload.alignment as string) ?? 'left'
-  const weight = (payload.weight as string) ?? 'normal'
-  const italic = payload.italic as boolean | undefined
-  const underline = payload.underline as boolean | undefined
-  const style: React.CSSProperties = {
-    textAlign: alignment as React.CSSProperties['textAlign'],
+function ParagraphBlock({ payload }: BlockRendererProps<ParagraphPayload>) {
+  const html = payload.html ?? ''
+  const alignment = payload.alignment ?? 'left'
+  const weight = payload.weight ?? 'normal'
+  const italic = payload.italic
+  const underline = payload.underline
+  const style: CSSProperties = {
+    textAlign: alignment as CSSProperties['textAlign'],
     fontWeight: weight === 'bold' ? 700 : weight === 'light' ? 300 : 400,
     fontStyle: italic ? 'italic' : undefined,
     textDecoration: underline ? 'underline' : undefined,
@@ -47,13 +91,13 @@ function ParagraphBlock({ payload }: { payload: Record<string, unknown> }) {
     <div
       className={styles.paragraph}
       style={style}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   )
 }
 
-function NumberedListBlock({ payload }: { payload: Record<string, unknown> }) {
-  const items = (payload.items as string[]) ?? []
+function NumberedListBlock({ payload }: BlockRendererProps<{ items: string[] }>) {
+  const items = payload.items ?? []
   return (
     <ol className={styles.list}>
       {items.map((item, i) => <li key={i}>{item}</li>)}
@@ -61,8 +105,8 @@ function NumberedListBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function BulletedListBlock({ payload }: { payload: Record<string, unknown> }) {
-  const items = (payload.items as string[]) ?? []
+function BulletedListBlock({ payload }: BlockRendererProps<{ items: string[] }>) {
+  const items = payload.items ?? []
   return (
     <ul className={styles.list}>
       {items.map((item, i) => <li key={i}>{item}</li>)}
@@ -70,23 +114,23 @@ function BulletedListBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function DetailBlock({ payload }: { payload: Record<string, unknown> }) {
-  const summary = (payload.summary as string) ?? ''
-  const body = (payload.body as string) ?? ''
+function DetailBlock({ payload }: BlockRendererProps<DetailPayload>) {
+  const summary = payload.summary ?? ''
+  const body = payload.body ?? ''
   return (
     <details className={styles.detail}>
       <summary className={styles.detailSummary}>{summary}</summary>
-      <div className={styles.detailBody} dangerouslySetInnerHTML={{ __html: body }} />
+      <div className={styles.detailBody} dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) }} />
     </details>
   )
 }
 
 // ─── Media blocks ─────────────────────────────────────────────────────────────
 
-function ImageBlock({ payload }: { payload: Record<string, unknown> }) {
-  const src = (payload.src as string) ?? ''
-  const alt = (payload.alt as string) ?? ''
-  const caption = payload.caption as string | undefined
+function ImageBlock({ payload }: BlockRendererProps<ImagePayload>) {
+  const src = payload.src ?? ''
+  const alt = payload.alt ?? ''
+  const caption = payload.caption
   return (
     <figure className={styles.figure}>
       <img src={src} alt={alt} className={styles.image} loading="lazy" />
@@ -95,10 +139,10 @@ function ImageBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function VideoBlock({ payload }: { payload: Record<string, unknown> }) {
-  const src = (payload.src as string) ?? ''
-  const title = (payload.title as string) ?? 'Video'
-  const poster = payload.posterSrc as string | undefined
+function VideoBlock({ payload }: BlockRendererProps<VideoPayload>) {
+  const src = payload.src ?? ''
+  const title = payload.title ?? 'Video'
+  const poster = payload.posterSrc
   return (
     <div className={styles.videoWrapper}>
       <video
@@ -113,9 +157,9 @@ function VideoBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function AudioBlock({ payload }: { payload: Record<string, unknown> }) {
-  const src = (payload.src as string) ?? ''
-  const title = (payload.title as string) ?? 'Audio'
+function AudioBlock({ payload }: BlockRendererProps<{ src?: string; title?: string }>) {
+  const src = payload.src ?? ''
+  const title = payload.title ?? 'Audio'
   return (
     <figure className={styles.audioFigure}>
       <figcaption className={styles.caption}>{title}</figcaption>
@@ -126,37 +170,8 @@ function AudioBlock({ payload }: { payload: Record<string, unknown> }) {
 
 // ─── Design blocks ────────────────────────────────────────────────────────────
 
-function AccordionBlock({ payload }: { payload: Record<string, unknown> }) {
-  type AccordionPanel = {
-    id: string
-    title: string
-    defaultOpen?: boolean
-    blocks: Block[]
-  }
-
-  const normalized = (() => {
-    if (Array.isArray(payload.panels)) {
-      return {
-        title: (payload.title as string | undefined) ?? '',
-        visible: payload.visible as boolean | undefined,
-        panels: payload.panels as AccordionPanel[],
-      }
-    }
-
-    const legacyItems = (payload.items as Array<{ title?: string; body?: string; defaultOpen?: boolean }>) ?? []
-    return {
-      title: '',
-      visible: true,
-      panels: legacyItems.map((item, index) => ({
-        id: `legacy-panel-${index}`,
-        title: item.title ?? `Panel ${index + 1}`,
-        defaultOpen: item.defaultOpen,
-        blocks: item.body
-          ? [{ id: `legacy-panel-${index}-body`, type: 'paragraph', version: 1, payload: { html: item.body } }]
-          : [],
-      })),
-    }
-  })()
+function AccordionBlock({ payload }: BlockRendererProps<AccordionPayload>) {
+  const normalized = normalizeAccordionPayload(payload)
 
   if (normalized.visible === false) {
     return null
@@ -169,7 +184,7 @@ function AccordionBlock({ payload }: { payload: Record<string, unknown> }) {
         <details key={item.id} open={item.defaultOpen} className={styles.accordionItem}>
           <summary className={styles.accordionSummary}>{item.title}</summary>
           <div className={styles.accordionBody}>
-            {item.blocks.map(renderBlock)}
+            <PublicBlockRenderer blocks={item.blocks as Block[]} />
           </div>
         </details>
       ))}
@@ -177,10 +192,9 @@ function AccordionBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function ButtonsBlock({ payload }: { payload: Record<string, unknown> }) {
-  type Btn = { label: string; url: string; variant: 'primary' | 'secondary' | 'ghost'; newTab?: boolean }
-  const buttons = (payload.buttons as Btn[]) ?? []
-  const alignment = (payload.alignment as string) ?? 'left'
+function ButtonsBlock({ payload }: BlockRendererProps<{ buttons?: Array<{ label: string; url: string; variant: 'primary' | 'secondary' | 'ghost'; newTab?: boolean }>; alignment?: string }>) {
+  const buttons = payload.buttons ?? []
+  const alignment = payload.alignment ?? 'left'
   const justifyMap: Record<string, string> = { left: 'flex-start', center: 'center', right: 'flex-end' }
   return (
     <div className={styles.buttons} style={{ justifyContent: justifyMap[alignment] ?? 'flex-start' }}>
@@ -199,20 +213,20 @@ function ButtonsBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function SeparatorBlock({ payload }: { payload: Record<string, unknown> }) {
-  const borderStyle = (payload.style as string) ?? 'solid'
-  const thickness = (payload.thickness as number) ?? 1
-  const color = (payload.color as string) ?? 'var(--color-border)'
+function SeparatorBlock({ payload }: BlockRendererProps<{ style?: string; thickness?: number; color?: string }>) {
+  const borderStyle = payload.style ?? 'solid'
+  const thickness = payload.thickness ?? 1
+  const color = payload.color ?? 'var(--color-border)'
   return (
     <hr
       className={styles.separator}
-      style={{ borderTopStyle: borderStyle as React.CSSProperties['borderTopStyle'], borderTopWidth: `${thickness}px`, borderTopColor: color }}
+      style={{ borderTopStyle: borderStyle as CSSProperties['borderTopStyle'], borderTopWidth: `${thickness}px`, borderTopColor: color }}
     />
   )
 }
 
-function SpacerBlock({ payload }: { payload: Record<string, unknown> }) {
-  const height = (payload.height as number) ?? 48
+function SpacerBlock({ payload }: BlockRendererProps<{ height?: number }>) {
+  const height = payload.height ?? 48
   return <div className={styles.spacer} style={{ height: `${height}px` }} aria-hidden />
 }
 
@@ -232,10 +246,10 @@ const calloutIcons: Record<string, string> = {
   danger: '🚨',
 }
 
-function CalloutBlock({ payload }: { payload: Record<string, unknown> }) {
-  const type = (payload.type as string) ?? 'info'
-  const title = payload.title as string | undefined
-  const body = (payload.body as string) ?? ''
+function CalloutBlock({ payload }: BlockRendererProps<CalloutPayload>) {
+  const type = payload.type ?? 'info'
+  const title = payload.title
+  const body = payload.body ?? ''
   return (
     <div className={`${styles.callout} ${calloutVariants[type] ?? styles.calloutInfo}`}>
       <span className={styles.calloutIcon} aria-hidden>{calloutIcons[type] ?? 'ℹ'}</span>
@@ -247,10 +261,10 @@ function CalloutBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function CodeBlock({ payload }: { payload: Record<string, unknown> }) {
-  const code = (payload.code as string) ?? ''
-  const language = (payload.language as string) ?? ''
-  const filename = payload.filename as string | undefined
+function CodeBlock({ payload }: BlockRendererProps<CodePayload>) {
+  const code = payload.code ?? ''
+  const language = payload.language ?? ''
+  const filename = payload.filename
   return (
     <figure className={styles.codeFigure}>
       {filename && <figcaption className={styles.codeFilename}>{filename}</figcaption>}
@@ -261,16 +275,16 @@ function CodeBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-function DividerBlock() {
+function DividerBlock(_props: BlockRendererProps<DividerPayload>) {
   return <hr className={styles.divider} />
 }
 
 // ─── Video embed block ────────────────────────────────────────────────────────
 
-function VideoEmbedBlock({ payload }: { payload: Record<string, unknown> }) {
-  const url = (payload.url as string) ?? ''
-  const title = (payload.title as string) ?? 'Video'
-  const aspectRatio = (payload.aspectRatio as string) ?? '16:9'
+function VideoEmbedBlock({ payload }: BlockRendererProps<VideoEmbedPayload>) {
+  const url = payload.url ?? ''
+  const title = payload.title ?? 'Video'
+  const aspectRatio = payload.aspectRatio ?? '16:9'
   const paddingMap: Record<string, string> = { '16:9': '56.25%', '4:3': '75%', '1:1': '100%' }
   const paddingTop = paddingMap[aspectRatio] ?? '56.25%'
 
@@ -296,18 +310,18 @@ function VideoEmbedBlock({ payload }: { payload: Record<string, unknown> }) {
 
 // ─── Hero block ───────────────────────────────────────────────────────────────
 
-function HeroBlock({ payload }: { payload: Record<string, unknown> }) {
-  const layout = (payload.layout as string) ?? 'left'
-  const height = (payload.height as string) ?? 'medium'
-  const heading = (payload.heading as string) ?? ''
-  const subheading = payload.subheading as string | undefined
-  const body = payload.body as string | undefined
-  const ctaLabel = payload.ctaLabel as string | undefined
-  const ctaUrl = payload.ctaUrl as string | undefined
-  const backgroundImage = payload.backgroundImage as string | undefined
-  const overlayOpacity = (payload.overlayOpacity as number) ?? 40
-  const backgroundColor = (payload.backgroundColor as string) ?? '#1a1a2e'
-  const textColor = (payload.textColor as string) ?? 'light'
+function HeroBlock({ payload }: BlockRendererProps<{ layout?: string; height?: string; heading?: string; subheading?: string; body?: string; ctaLabel?: string; ctaUrl?: string; backgroundImage?: string; overlayOpacity?: number; backgroundColor?: string; textColor?: string }>) {
+  const layout = payload.layout ?? 'left'
+  const height = payload.height ?? 'medium'
+  const heading = payload.heading ?? ''
+  const subheading = payload.subheading
+  const body = payload.body
+  const ctaLabel = payload.ctaLabel
+  const ctaUrl = payload.ctaUrl
+  const backgroundImage = payload.backgroundImage
+  const overlayOpacity = payload.overlayOpacity ?? 40
+  const backgroundColor = payload.backgroundColor ?? '#1a1a2e'
+  const textColor = payload.textColor ?? 'light'
 
   const heightMap: Record<string, string> = {
     small: '40vh',
@@ -320,7 +334,7 @@ function HeroBlock({ payload }: { payload: Record<string, unknown> }) {
     center: 'center',
     right: 'flex-end',
   }
-  const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
+  const textAlignMap: Record<string, CSSProperties['textAlign']> = {
     left: 'left',
     center: 'center',
     right: 'right',
@@ -363,11 +377,9 @@ function HeroBlock({ payload }: { payload: Record<string, unknown> }) {
 
 // ─── Grid block ───────────────────────────────────────────────────────────────
 
-function GridBlock({ payload }: { payload: Record<string, unknown> }) {
-  type CellBlock = { id: string; type: string; payload: Record<string, unknown> }
-  type Cell = { id: string; blocks: CellBlock[] }
-  const columns = (payload.columns as number) ?? 2
-  const cells = (payload.cells as Cell[]) ?? []
+function GridBlock({ payload }: BlockRendererProps<GridPayload>) {
+  const columns = payload.columns ?? 2
+  const cells = payload.cells ?? []
 
   return (
     <div
@@ -379,7 +391,7 @@ function GridBlock({ payload }: { payload: Record<string, unknown> }) {
           {cell.blocks.length === 0 ? (
             <div className={styles.gridCellEmpty} />
           ) : (
-            cell.blocks.map((b) => renderBlock(b as Block))
+            <PublicBlockRenderer blocks={cell.blocks as Block[]} />
           )}
         </div>
       ))}
@@ -387,12 +399,40 @@ function GridBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
+function ColumnsBlock({ payload }: BlockRendererProps<ColumnsPayload>) {
+  const normalized = normalizeColumnsPayload(payload)
+  const gapMap: Record<string, string> = { sm: '0.75rem', md: '1rem', lg: '1.5rem' }
+
+  return (
+    <div className={styles.columnsWrapper}>
+      {normalized.heading && (
+        <h2 className={styles.columnsHeading}>{normalized.heading}</h2>
+      )}
+      <div
+        className={styles.columns}
+        style={{ gridTemplateColumns: `repeat(${normalized.columns}, minmax(0, 1fr))`, gap: gapMap[normalized.gap ?? 'md'] }}
+      >
+        {normalized.items.map((column) => (
+          <div
+            key={column.id}
+            className={`${styles.column} ${column.showOnMobile === false ? styles.columnHiddenMobile : ''}`}
+          >
+            {column.blocks.length === 0
+              ? <div className={styles.gridCellEmpty} />
+              : <PublicBlockRenderer blocks={column.blocks as Block[]} />
+            }
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Quiz block ───────────────────────────────────────────────────────────────
 
-function QuizBlock({ payload }: { payload: Record<string, unknown> }) {
-  type Option = { id: string; label: string }
-  const question = (payload.question as string) ?? ''
-  const options = (payload.options as Option[]) ?? []
+function QuizBlock({ payload }: BlockRendererProps<QuizPayload>) {
+  const question = payload.question ?? ''
+  const options = payload.options ?? []
   return (
     <div className={styles.quiz}>
       <p className={styles.quizQuestion}>{question}</p>
@@ -419,19 +459,66 @@ interface FormFieldDef {
   fullWidth?: boolean
 }
 
-function FormBlock({ payload }: { payload: Record<string, unknown> }) {
-  const title = payload.title as string | undefined
+function FormBlock({ payload }: BlockRendererProps<FormPayload>) {
+  const location = useLocation()
+  const title = payload.title
   const fields = (payload.fields as FormFieldDef[]) ?? []
-  const layout = (payload.layout as string) ?? '1col'
-  const labelPosition = (payload.labelPosition as string) ?? 'above'
-  const submitLabel = (payload.submitLabel as string) || 'Submit'
+  const layout = payload.layout ?? '1col'
+  const labelPosition = payload.labelPosition ?? 'above'
+  const submitLabel = payload.submitLabel || 'Submit'
   const cols = layout === '2col' ? 2 : 1
 
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [errorActionUrl, setErrorActionUrl] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setSubmitted(true)
+    const form = e.currentTarget
+    const path = location.pathname.replace(/\/+$/, '') || '/'
+
+    if (path !== '/sign-up') {
+      setSubmitted(true)
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+    setErrorActionUrl(null)
+    try {
+      const formData = new FormData(form)
+      const submissionFields = fields.map((field) => ({
+        id: field.id,
+        label: field.label,
+        type: field.type,
+        required: field.required,
+        value: String(formData.get(field.id) ?? ''),
+      }))
+
+      const res = await fetch(`${apiBase()}/api/signup-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pagePath: path,
+          formTitle: title,
+          fields: submissionFields,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({})) as { error?: string; resetPasswordUrl?: string }
+      if (!res.ok) {
+        setErrorActionUrl(data.resetPasswordUrl ?? null)
+        throw new Error(data.error || `Sign-up request failed (${res.status})`)
+      }
+
+      form.reset()
+      setSubmitted(true)
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Unable to submit the form right now')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -494,10 +581,18 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
           </div>
         ))}
       </div>
+      {error && <p className={styles.formError} role="alert">{error}</p>}
+      {errorActionUrl && (
+        <p className={styles.formErrorAction}>
+          <a href={errorActionUrl} target="_blank" rel="noreferrer">
+            Reset password
+          </a>
+        </p>
+      )}
       {fields.length > 0 && (
         <div className={styles.formActions}>
-          <button type="submit" className={styles.formSubmit}>
-            {submitLabel}
+          <button type="submit" className={styles.formSubmit} disabled={submitting}>
+            {submitting ? 'Submitting…' : submitLabel}
           </button>
         </div>
       )}
@@ -505,33 +600,245 @@ function FormBlock({ payload }: { payload: Record<string, unknown> }) {
   )
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
+let registered = false
 
-function renderBlock(block: Block) {
-  const p = block.payload
-  switch (block.type) {
-    case 'heading':        return <HeadingBlock key={block.id} id={block.id} payload={p} />
-    case 'paragraph':      return <ParagraphBlock key={block.id} payload={p} />
-    case 'numbered-list':  return <NumberedListBlock key={block.id} payload={p} />
-    case 'bulleted-list':  return <BulletedListBlock key={block.id} payload={p} />
-    case 'detail':         return <DetailBlock key={block.id} payload={p} />
-    case 'image':          return <ImageBlock key={block.id} payload={p} />
-    case 'video':          return <VideoBlock key={block.id} payload={p} />
-    case 'audio':          return <AudioBlock key={block.id} payload={p} />
-    case 'callout':        return <CalloutBlock key={block.id} payload={p} />
-    case 'code':           return <CodeBlock key={block.id} payload={p} />
-    case 'accordion':      return <AccordionBlock key={block.id} payload={p} />
-    case 'buttons':        return <ButtonsBlock key={block.id} payload={p} />
-    case 'separator':      return <SeparatorBlock key={block.id} payload={p} />
-    case 'spacer':         return <SpacerBlock key={block.id} payload={p} />
-    case 'divider':        return <DividerBlock key={block.id} />
-    case 'quiz':           return <QuizBlock key={block.id} payload={p} />
-    case 'video-embed':    return <VideoEmbedBlock key={block.id} payload={p} />
-    case 'hero':           return <HeroBlock key={block.id} payload={p} />
-    case 'grid':           return <GridBlock key={block.id} payload={p} />
-    case 'form':           return <FormBlock key={block.id} payload={p} />
-    default:               return null
+export function registerPublicBlocks(): void {
+  if (registered) return
+  registered = true
+
+  registerBlock({
+    type: BlockType.HEADING,
+    group: BlockGroup.TEXT,
+    label: 'Heading',
+    icon: 'H',
+    payloadSchema: HeadingPayloadSchema,
+    defaultPayload: { text: '', level: 2 },
+    Renderer: HeadingBlock,
+  })
+
+  registerBlock({
+    type: BlockType.PARAGRAPH,
+    group: BlockGroup.TEXT,
+    label: 'Paragraph',
+    icon: 'P',
+    payloadSchema: ParagraphPayloadSchema,
+    defaultPayload: { html: '' },
+    Renderer: ParagraphBlock,
+  })
+
+  registerBlock({
+    type: BlockType.NUMBERED_LIST,
+    group: BlockGroup.TEXT,
+    label: 'Numbered list',
+    icon: '1.',
+    payloadSchema: BulletedListPayloadSchema,
+    defaultPayload: { items: [] },
+    Renderer: NumberedListBlock,
+  })
+
+  registerBlock({
+    type: BlockType.BULLETED_LIST,
+    group: BlockGroup.TEXT,
+    label: 'Bulleted list',
+    icon: '•',
+    payloadSchema: NumberedListPayloadSchema,
+    defaultPayload: { items: [] },
+    Renderer: BulletedListBlock,
+  })
+
+  registerBlock({
+    type: BlockType.DETAIL,
+    group: BlockGroup.TEXT,
+    label: 'Detail',
+    icon: '▸',
+    payloadSchema: DetailPayloadSchema,
+    defaultPayload: { summary: '', body: '' },
+    Renderer: DetailBlock,
+  })
+
+  registerBlock({
+    type: BlockType.IMAGE,
+    group: BlockGroup.MEDIA,
+    label: 'Image',
+    icon: '🖼',
+    payloadSchema: ImagePayloadSchema,
+    defaultPayload: { src: '', alt: '' },
+    Renderer: ImageBlock,
+  })
+
+  registerBlock({
+    type: BlockType.VIDEO,
+    group: BlockGroup.MEDIA,
+    label: 'Video',
+    icon: '▶',
+    payloadSchema: VideoPayloadSchema,
+    defaultPayload: { src: '', title: '' },
+    Renderer: VideoBlock,
+  })
+
+  registerBlock({
+    type: BlockType.AUDIO,
+    group: BlockGroup.MEDIA,
+    label: 'Audio',
+    icon: '♪',
+    payloadSchema: { parse: (data: unknown) => data, safeParse: (data: unknown) => ({ success: true, data }) },
+    defaultPayload: {},
+    Renderer: AudioBlock,
+  })
+
+  registerBlock({
+    type: BlockType.ACCORDION,
+    group: BlockGroup.DESIGN,
+    label: 'Accordion',
+    icon: '≡',
+    payloadSchema: AccordionPayloadSchema,
+    defaultPayload: { panels: [] },
+    Renderer: AccordionBlock,
+  })
+
+  registerBlock({
+    type: BlockType.BUTTONS,
+    group: BlockGroup.DESIGN,
+    label: 'Buttons',
+    icon: '⊡',
+    payloadSchema: { parse: (data: unknown) => data, safeParse: (data: unknown) => ({ success: true, data }) },
+    defaultPayload: { buttons: [] },
+    Renderer: ButtonsBlock,
+  })
+
+  registerBlock({
+    type: BlockType.SEPARATOR,
+    group: BlockGroup.DESIGN,
+    label: 'Separator',
+    icon: '─',
+    payloadSchema: { parse: (data: unknown) => data, safeParse: (data: unknown) => ({ success: true, data }) },
+    defaultPayload: {},
+    Renderer: SeparatorBlock,
+  })
+
+  registerBlock({
+    type: BlockType.SPACER,
+    group: BlockGroup.DESIGN,
+    label: 'Spacer',
+    icon: '↕',
+    payloadSchema: { parse: (data: unknown) => data, safeParse: (data: unknown) => ({ success: true, data }) },
+    defaultPayload: { height: 48 },
+    Renderer: SpacerBlock,
+  })
+
+  registerBlock({
+    type: BlockType.CALLOUT,
+    group: BlockGroup.LEARNING,
+    label: 'Callout',
+    icon: '!',
+    payloadSchema: CalloutPayloadSchema,
+    defaultPayload: { type: 'info', body: '' },
+    Renderer: CalloutBlock,
+  })
+
+  registerBlock({
+    type: BlockType.CODE,
+    group: BlockGroup.TEXT,
+    label: 'Code',
+    icon: '</>',
+    payloadSchema: CodePayloadSchema,
+    defaultPayload: { code: '', language: '' },
+    Renderer: CodeBlock,
+  })
+
+  registerBlock({
+    type: BlockType.DIVIDER,
+    group: BlockGroup.DESIGN,
+    label: 'Divider',
+    icon: '─',
+    payloadSchema: DividerPayloadSchema,
+    defaultPayload: {},
+    Renderer: DividerBlock,
+  })
+
+  registerBlock({
+    type: BlockType.QUIZ,
+    group: BlockGroup.LEARNING,
+    label: 'Quiz',
+    icon: '?',
+    payloadSchema: QuizPayloadSchema,
+    defaultPayload: { question: '', options: [], correctOptionId: '' },
+    Renderer: QuizBlock,
+  })
+
+  registerBlock({
+    type: BlockType.VIDEO_EMBED,
+    group: BlockGroup.MEDIA,
+    label: 'Video embed',
+    icon: '▶︎',
+    payloadSchema: VideoEmbedPayloadSchema,
+    defaultPayload: { url: '', aspectRatio: '16:9' },
+    Renderer: VideoEmbedBlock,
+  })
+
+  registerBlock({
+    type: BlockType.HERO,
+    group: BlockGroup.DESIGN,
+    label: 'Hero',
+    icon: '⬛',
+    payloadSchema: { parse: (data: unknown) => data, safeParse: (data: unknown) => ({ success: true, data }) },
+    defaultPayload: {},
+    Renderer: HeroBlock,
+  })
+
+  registerBlock({
+    type: BlockType.GRID,
+    group: BlockGroup.DESIGN,
+    label: 'Grid',
+    icon: '⊞',
+    payloadSchema: GridPayloadSchema,
+    defaultPayload: { columns: 2, rows: 1, cells: [] },
+    Renderer: GridBlock,
+  })
+
+  registerBlock({
+    type: BlockType.COLUMNS,
+    group: BlockGroup.DESIGN,
+    label: 'Columns',
+    icon: '⫾',
+    payloadSchema: ColumnsPayloadSchema,
+    defaultPayload: normalizeColumnsPayload({ columns: 2, gap: 'md' }) as ColumnsPayload,
+    Renderer: ColumnsBlock,
+  })
+
+  registerBlock({
+    type: BlockType.FORM,
+    group: BlockGroup.FORMS,
+    label: 'Form',
+    icon: '⊟',
+    payloadSchema: FormPayloadSchema,
+    defaultPayload: { fields: [] },
+    Renderer: FormBlock,
+  })
+}
+
+function renderRegisteredBlock(block: Block) {
+  if (!isRegisteredBlockType(block.type)) {
+    return null
   }
+
+  const definition = getBlock(block.type)
+  if (!definition) {
+    return null
+  }
+
+  const { Renderer } = definition
+  const bgCss = block.background ? BG_CSS[block.background] : undefined
+
+  if (bgCss) {
+    return (
+      <div key={block.id} style={{ background: bgCss }}>
+        <Renderer payload={block.payload} blockId={block.id} />
+      </div>
+    )
+  }
+
+  return <Renderer key={block.id} payload={block.payload} blockId={block.id} />
 }
 
 // ─── Public component ─────────────────────────────────────────────────────────
@@ -541,9 +848,11 @@ interface PublicBlockRendererProps {
 }
 
 export function PublicBlockRenderer({ blocks }: PublicBlockRendererProps) {
+  registerPublicBlocks()
+
   return (
     <div className={styles.root}>
-      {blocks.map(renderBlock)}
+      {blocks.map(renderRegisteredBlock)}
     </div>
   )
 }

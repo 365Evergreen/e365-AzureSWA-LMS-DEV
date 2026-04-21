@@ -10,11 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fluentui/react-icons": "^2.0.324",
+    "@lms/block-registry": "workspace:*",
     "@lms/shared-schemas": "workspace:*",
     "@lms/shared-ui": "workspace:*",
     "@types/react-router-dom": "^5.3.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.14.0"
   },
   "devDependencies": {

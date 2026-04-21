@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import AppNav from '../../components/AppNav';
+import MediaPickerModal from '../../components/MediaPickerModal';
+import PublishBar from '../../components/PublishBar';
+import ModuleAssessmentModal from '../../components/ModuleAssessmentModal';
+import type { MediaItem } from '../../api/media';
 import {
   loadEditorCatalogueItem,
   patchCatalogueItem,
@@ -12,6 +15,7 @@ import {
   removeUnit,
 } from '../../api/catalogue';
 import type { CatalogueItem, PathDetail } from '../../api/catalogue';
+import { UnitEditorCanvas } from '../EditUnitPage';
 import styles from './EditPathPage.module.css';
 
 interface UnitRow extends CatalogueItem { sortOrder: number; isOptional: boolean; }
@@ -33,17 +37,28 @@ export default function EditPathPage() {
   const [editSummary, setEditSummary] = useState('');
   const [editTags, setEditTags] = useState('');
   const [editDifficulty, setEditDifficulty] = useState<CatalogueItem['difficulty']>('Beginner');
-  const [editMinutes, setEditMinutes] = useState(0);
+  const [editRole, setEditRole] = useState('');
+  const [editLearningPath, setEditLearningPath] = useState('');
+  const [editIsMandatory, setEditIsMandatory] = useState(false);
   const [editLanguage, setEditLanguage] = useState('en');
   const [editVisibility, setEditVisibility] = useState<CatalogueItem['visibility']>('Public');
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
+  const [editIsCurrent, setEditIsCurrent] = useState(true);
   const [metaSaving, setMetaSaving] = useState(false);
   const [metaSaved, setMetaSaved] = useState(false);
 
-  // Inline module rename
+  // Module details editing
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [editingModuleTitle, setEditingModuleTitle] = useState('');
-  const [moduleRenameSaving, setModuleRenameSaving] = useState(false);
+  const [editingModuleSlug, setEditingModuleSlug] = useState('');
+  const [editingModuleSummary, setEditingModuleSummary] = useState('');
+  const [editingModuleThumbnailUrl, setEditingModuleThumbnailUrl] = useState('');
+  const [editingModuleIsCurrent, setEditingModuleIsCurrent] = useState(true);
+  const [moduleSaving, setModuleSaving] = useState(false);
+  const [showCourseMediaPicker, setShowCourseMediaPicker] = useState(false);
+  const [showModuleMediaPicker, setShowModuleMediaPicker] = useState(false);
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
+  const [editingAssessmentModuleId, setEditingAssessmentModuleId] = useState<string | null>(null);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -59,10 +74,13 @@ export default function EditPathPage() {
       setEditSummary(detail.summary ?? '');
       setEditTags(detail.tagsCsv.split(',').filter(Boolean).join(', '));
       setEditDifficulty(detail.difficulty ?? 'Beginner');
-      setEditMinutes(detail.estimatedMinutes ?? 0);
+      setEditRole(detail.role ?? '');
+      setEditLearningPath(detail.learningPath ?? '');
+      setEditIsMandatory(detail.isMandatory ?? false);
       setEditLanguage(detail.language ?? 'en');
       setEditVisibility(detail.visibility ?? 'Public');
       setEditThumbnailUrl(detail.thumbnailUrl ?? '');
+      setEditIsCurrent(detail.status !== 'Archived');
 
       const mods: ModuleRow[] = (detail.modules ?? []).map((m) => ({
         ...(m as ModuleRow),
@@ -82,14 +100,22 @@ export default function EditPathPage() {
   const toggleModule = (id: string) => {
     setExpandedModules(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
 
   const handleSaveMeta = async () => {
-    if (!pathId) return;
+    if (!pathId || !path) return;
     setMetaSaving(true);
+    const derivedMinutes = modules.reduce(
+      (courseSum, mod) => courseSum + mod.units.reduce((moduleSum, unit) => moduleSum + (unit.estimatedMinutes ?? 0), 0),
+      0
+    );
     try {
       await patchCatalogueItem('PATH', pathId, {
         title: editTitle,
@@ -97,10 +123,14 @@ export default function EditPathPage() {
         summary: editSummary,
         tags: editTags.split(',').map(t => t.trim()).filter(Boolean),
         difficulty: editDifficulty,
-        estimatedMinutes: editMinutes,
+        role: editRole.trim() || undefined,
+        learningPath: editLearningPath.trim() || undefined,
+        estimatedMinutes: derivedMinutes,
+        isMandatory: editIsMandatory,
         language: editLanguage,
         visibility: editVisibility,
         thumbnailUrl: editThumbnailUrl,
+        status: editIsCurrent ? (path.status === 'Archived' ? 'Draft' : path.status) : 'Archived',
       });
       setMetaSaved(true);
       setTimeout(() => setMetaSaved(false), 2000);
@@ -145,31 +175,79 @@ export default function EditPathPage() {
   const startEditingModule = (mod: ModuleRow) => {
     setEditingModuleId(mod.itemId);
     setEditingModuleTitle(mod.title);
+    setEditingModuleSlug(mod.slug ?? '');
+    setEditingModuleSummary(mod.summary ?? '');
+    setEditingModuleThumbnailUrl(mod.thumbnailUrl ?? '');
+    setEditingModuleIsCurrent(mod.status !== 'Archived');
   };
 
   const cancelEditingModule = () => {
     setEditingModuleId(null);
     setEditingModuleTitle('');
+    setEditingModuleSlug('');
+    setEditingModuleSummary('');
+    setEditingModuleThumbnailUrl('');
+    setEditingModuleIsCurrent(true);
+    setShowModuleMediaPicker(false);
   };
 
-  const handleRenameModule = async (moduleId: string) => {
+  const handleSaveModule = async (mod: ModuleRow) => {
+    await saveModuleWithStatus(mod, editingModuleIsCurrent ? 'Draft' : 'Archived');
+  };
+
+  const saveModuleWithStatus = async (
+    mod: ModuleRow,
+    status: CatalogueItem['status']
+  ) => {
     const trimmed = editingModuleTitle.trim();
-    if (!trimmed) return;
-    setModuleRenameSaving(true);
+    if (!trimmed) return false;
+    const derivedMinutes = mod.units.reduce((sum, unit) => sum + (unit.estimatedMinutes ?? 0), 0);
+    setModuleSaving(true);
+    setActionError(null);
     try {
-      await patchCatalogueItem('MODULE', moduleId, { title: trimmed });
+      await patchCatalogueItem('MODULE', mod.itemId, {
+        title: trimmed,
+        slug: editingModuleSlug.trim(),
+        summary: editingModuleSummary.trim(),
+        thumbnailUrl: editingModuleThumbnailUrl.trim() || undefined,
+        estimatedMinutes: derivedMinutes,
+        status,
+      });
       setEditingModuleId(null);
       await load();
+      return true;
     } catch (err) {
       setActionError((err as Error).message);
+      return false;
     } finally {
-      setModuleRenameSaving(false);
+      setModuleSaving(false);
     }
+  };
+
+  const handleModulePublishBarSave = async (mod: ModuleRow, publishStatus: 'draft' | 'published') => {
+    if (publishStatus === 'published') {
+      if (!editingModuleIsCurrent) {
+        setActionError('Archived modules cannot be published. Mark the module as current first.');
+        return;
+      }
+      const saved = await saveModuleWithStatus(mod, 'Draft');
+      if (!saved) return;
+      try {
+        await publishCatalogueItem('MODULE', mod.itemId);
+        await load();
+      } catch (err) {
+        setActionError((err as Error).message);
+      }
+      return;
+    }
+
+    await saveModuleWithStatus(mod, editingModuleIsCurrent ? 'Draft' : 'Archived');
   };
 
   const handleAddUnit = async (moduleId: string) => {
     try {
-      await addUnit(moduleId, 'New Unit');
+      const created = await addUnit(moduleId, 'New Unit');
+      setEditingUnitId(created.unit.itemId);
       await load();
     } catch (err) {
       setActionError((err as Error).message);
@@ -192,9 +270,14 @@ export default function EditPathPage() {
     Archived: '#f87171',
   };
 
+  const courseDuration = modules.reduce(
+    (courseSum, mod) => courseSum + mod.units.reduce((moduleSum, unit) => moduleSum + (unit.estimatedMinutes ?? 0), 0),
+    0
+  );
+
   if (loading) {
     return (
-      <div className={styles.page}><AppNav />
+      <div className={styles.page}>
         <div className={styles.loading}>Loading course…</div>
       </div>
     );
@@ -202,15 +285,17 @@ export default function EditPathPage() {
 
   if (error || !path) {
     return (
-      <div className={styles.page}><AppNav />
+      <div className={styles.page}>
         <div className={styles.error}>{error ?? 'Course not found'}</div>
       </div>
     );
   }
 
+  const modalPathId = pathId ?? path.itemId;
+  const editingAssessmentModule = modules.find((module) => module.itemId === editingAssessmentModuleId) ?? null;
+
   return (
     <div className={styles.page}>
-      <AppNav />
       <div className={styles.topBar}>
         <button className={styles.backBtn} onClick={() => navigate('/courses')}>← Courses</button>
         <h1 className={styles.pageTitle}>{path.title}</h1>
@@ -251,12 +336,14 @@ export default function EditPathPage() {
 
             <div className={styles.field}>
               <label className={styles.label}>Summary</label>
-              <textarea className={styles.textarea} value={editSummary} onChange={e => setEditSummary(e.target.value)} rows={3} />
+              <textarea className={styles.textarea} value={editSummary} onChange={e => setEditSummary(e.target.value)} rows={3} maxLength={1000} />
+              <span className={styles.fieldHint}>{editSummary.length}/1000 characters</span>
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Difficulty</label>
+              <label className={styles.label}>Level</label>
               <select className={styles.select} value={editDifficulty} onChange={e => setEditDifficulty(e.target.value as CatalogueItem['difficulty'])}>
+                <option value="Foundation">Foundation</option>
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced">Advanced</option>
@@ -264,8 +351,37 @@ export default function EditPathPage() {
             </div>
 
             <div className={styles.field}>
+              <label className={styles.label}>Role</label>
+              <input
+                className={styles.input}
+                value={editRole}
+                onChange={e => setEditRole(e.target.value)}
+                placeholder="Optional target role"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Learning path</label>
+              <input
+                className={styles.input}
+                value={editLearningPath}
+                onChange={e => setEditLearningPath(e.target.value)}
+                placeholder="Optional learning path"
+              />
+            </div>
+
+            <div className={styles.field}>
               <label className={styles.label}>Duration (minutes)</label>
-              <input className={styles.input} type="number" min={0} value={editMinutes} onChange={e => setEditMinutes(parseInt(e.target.value) || 0)} />
+              <input className={styles.input} type="number" min={0} value={courseDuration} readOnly />
+              <span className={styles.fieldHint}>Auto-calculated from module and unit durations</span>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.currentToggle}>
+                <input type="checkbox" checked={editIsMandatory} onChange={e => setEditIsMandatory(e.target.checked)} />
+                <span>Mandatory course</span>
+              </label>
+              <span className={styles.fieldHint}>Mandatory courses remain in learner course lists until completed.</span>
             </div>
 
             <div className={styles.field}>
@@ -291,18 +407,22 @@ export default function EditPathPage() {
               <input className={styles.input} value={editTags} onChange={e => setEditTags(e.target.value)} placeholder="comma-separated" />
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>
-                Featured image URL
-                <span className={styles.fieldHint}>Displayed on catalogue card</span>
-              </label>
-              <input
-                className={styles.input}
-                type="url"
-                value={editThumbnailUrl}
-                onChange={e => setEditThumbnailUrl(e.target.value)}
-                placeholder="https://..."
-              />
+                         <div className={styles.field}>
+                          <label className={styles.label}>Featured image</label>
+              <div className={styles.mediaActions}>
+                <button type="button" className={styles.mediaBtn} onClick={() => setShowCourseMediaPicker(true)}>
+                  Select from library
+                </button>
+                <button
+                  type="button"
+                  className={styles.mediaBtnSecondary}
+                  onClick={() => setEditThumbnailUrl('')}
+                  disabled={!editThumbnailUrl}
+                >
+                  Clear
+                </button>
+              </div>
+              <span className={styles.fieldHint}>Displayed on catalogue card</span>
               {editThumbnailUrl && (
                 <img
                   src={editThumbnailUrl}
@@ -311,6 +431,14 @@ export default function EditPathPage() {
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.currentToggle}>
+                <input type="checkbox" checked={editIsCurrent} onChange={e => setEditIsCurrent(e.target.checked)} />
+                <span>Current</span>
+              </label>
+              <span className={styles.fieldHint}>Archived courses remain available to editors only.</span>
             </div>
 
             <Button onClick={handleSaveMeta} disabled={metaSaving}>
@@ -342,16 +470,7 @@ export default function EditPathPage() {
                   <span className={styles.moduleIndex}>M{mi + 1}</span>
 
                   {editingModuleId === mod.itemId ? (
-                    <input
-                      className={styles.moduleTitleInput}
-                      value={editingModuleTitle}
-                      onChange={e => setEditingModuleTitle(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleRenameModule(mod.itemId);
-                        if (e.key === 'Escape') cancelEditingModule();
-                      }}
-                      autoFocus
-                    />
+                    <span className={styles.moduleTitle}>{mod.title}</span>
                   ) : (
                     <span className={styles.moduleTitle}>{mod.title}</span>
                   )}
@@ -363,9 +482,9 @@ export default function EditPathPage() {
                     <>
                       <button
                         className={styles.renameSaveBtn}
-                        onClick={() => handleRenameModule(mod.itemId)}
-                        disabled={moduleRenameSaving}
-                        title="Save"
+                        onClick={() => handleSaveModule(mod)}
+                        disabled={moduleSaving}
+                        title="Save details"
                       >✓</button>
                       <button className={styles.renameCancelBtn} onClick={cancelEditingModule} title="Cancel">✕</button>
                     </>
@@ -373,8 +492,8 @@ export default function EditPathPage() {
                     <button
                       className={styles.editModuleBtn}
                       onClick={() => startEditingModule(mod)}
-                      title="Rename module"
-                    >✎</button>
+                      title="Edit module details"
+                    >Edit</button>
                   )}
 
                   <button className={styles.removeBtn} onClick={() => handleRemoveModule(mod.itemId)} title="Remove module">✕</button>
@@ -382,26 +501,113 @@ export default function EditPathPage() {
 
                 {expandedModules.has(mod.itemId) && (
                   <div className={styles.unitList}>
+                    {editingModuleId === mod.itemId && (
+                      <div className={styles.moduleDetails}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>Title</label>
+                          <input className={styles.input} value={editingModuleTitle} onChange={e => setEditingModuleTitle(e.target.value)} autoFocus />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>Slug</label>
+                          <input className={styles.input} value={editingModuleSlug} onChange={e => setEditingModuleSlug(e.target.value)} />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>Summary</label>
+                          <textarea
+                            className={styles.textarea}
+                            value={editingModuleSummary}
+                            onChange={e => setEditingModuleSummary(e.target.value)}
+                            rows={3}
+                            maxLength={1000}
+                          />
+                          <span className={styles.fieldHint}>{editingModuleSummary.length}/1000 characters</span>
+                        </div>
+
+                        <div className={styles.moduleMetaRow}>
+                          <div className={styles.field}>
+                            <label className={styles.label}>Duration (minutes)</label>
+                            <input
+                              className={styles.input}
+                              value={mod.units.reduce((sum, unit) => sum + (unit.estimatedMinutes ?? 0), 0)}
+                              readOnly
+                            />
+                          </div>
+
+                          <div className={styles.field}>
+                            <label className={styles.currentToggle}>
+                              <input
+                                type="checkbox"
+                                checked={editingModuleIsCurrent}
+                                onChange={e => setEditingModuleIsCurrent(e.target.checked)}
+                              />
+                              <span>Current</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>Featured image</label>
+                          <div className={styles.mediaActions}>
+                            <button type="button" className={styles.mediaBtn} onClick={() => setShowModuleMediaPicker(true)}>
+                              Select from library
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.mediaBtnSecondary}
+                              onClick={() => setEditingModuleThumbnailUrl('')}
+                              disabled={!editingModuleThumbnailUrl}
+                            >
+                              Clear
+                            </button>
+                          </div>
+                          {editingModuleThumbnailUrl && (
+                            <img
+                              src={editingModuleThumbnailUrl}
+                              alt={`${mod.title} featured`}
+                              className={styles.imagePreview}
+                            />
+                          )}
+                        </div>
+
+                        <div className={styles.modulePublishBar}>
+                          <PublishBar
+                            itemLabel="module"
+                            status={mod.status === 'Published' ? 'published' : 'draft'}
+                            onSave={(status) => handleModulePublishBarSave(mod, status)}
+                            onDiscard={cancelEditingModule}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {mod.units.map((unit, ui) => (
                       <div key={unit.itemId} className={styles.unitRow}>
                         <span className={styles.unitIndex}>{mi + 1}.{ui + 1}</span>
                         <span className={styles.unitTitle}>{unit.title}</span>
                         <span className={styles.unitType}>{unit.unitType ?? 'Lesson'}</span>
                         <span className={styles.statusDot} style={{ background: statusColors[unit.status] }} title={unit.status} />
-                        {unit.status !== 'Published' && (
-                          <button
-                            className={styles.editUnitBtn}
-                            onClick={() => navigate(`/courses/units/${unit.itemId}/edit`)}
-                          >
-                            Edit content
-                          </button>
-                        )}
+                        <button
+                          className={styles.editUnitBtn}
+                          onClick={() => setEditingUnitId(unit.itemId)}
+                        >
+                          Edit unit
+                        </button>
                         {unit.status === 'Published' && (
                           <span className={styles.publishedUnit}>✓ Published</span>
                         )}
                         <button className={styles.removeBtn} onClick={() => handleRemoveUnit(mod.itemId, unit.itemId)} title="Remove unit">✕</button>
                       </div>
                     ))}
+                    <div className={styles.moduleActions}>
+                      <button
+                        className={styles.editAssessmentBtn}
+                        onClick={() => setEditingAssessmentModuleId(mod.itemId)}
+                      >
+                        Edit assessment
+                      </button>
+                    </div>
                     <button className={styles.addUnitBtn} onClick={() => handleAddUnit(mod.itemId)}>
                       + Add Unit
                     </button>
@@ -412,6 +618,47 @@ export default function EditPathPage() {
           </div>
         </main>
       </div>
+
+      <MediaPickerModal
+        isOpen={showCourseMediaPicker}
+        onClose={() => setShowCourseMediaPicker(false)}
+        onSelect={(item: MediaItem) => setEditThumbnailUrl(item.url)}
+        filter="image"
+        title="Select course image"
+      />
+
+      <MediaPickerModal
+        isOpen={showModuleMediaPicker}
+        onClose={() => setShowModuleMediaPicker(false)}
+        onSelect={(item: MediaItem) => setEditingModuleThumbnailUrl(item.url)}
+        filter="image"
+        title="Select module image"
+      />
+
+      {editingUnitId && (
+        <div className={styles.unitModalOverlay} role="dialog" aria-modal="true" aria-label="Edit unit">
+          <div className={styles.unitModalContent}>
+            <UnitEditorCanvas
+              unitId={editingUnitId}
+              pathId={modalPathId}
+              onClose={() => {
+                setEditingUnitId(null);
+                void load();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <ModuleAssessmentModal
+        isOpen={editingAssessmentModule !== null}
+        moduleId={editingAssessmentModule?.itemId ?? null}
+        moduleTitle={editingAssessmentModule?.title}
+        onClose={() => setEditingAssessmentModuleId(null)}
+        onSaved={() => {
+          void load();
+        }}
+      />
     </div>
   );
 }

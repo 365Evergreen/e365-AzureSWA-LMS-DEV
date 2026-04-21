@@ -48,6 +48,16 @@
   color: var(--color-text-primary);
 }
 
+.outline {
+  background-color: transparent;
+  color: var(--color-brand-primary);
+  border: 1.5px solid var(--color-brand-primary);
+}
+.outline:hover {
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+}
+
 /* Sizes */
 .sm {
   padding: var(--space-1) var(--space-3);

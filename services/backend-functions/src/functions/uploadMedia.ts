@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 import { uploadMediaBlob } from '../lib/storage';
 import { processImage } from '../lib/imageUtils';
 
@@ -29,8 +29,8 @@ async function uploadMediaHandler(
     return { status: 401, jsonBody: { error: 'Invalid or expired token' } };
   }
 
-  if (!hasRole(claims, 'ContentEditor')) {
-    return { status: 403, jsonBody: { error: 'ContentEditor role required' } };
+  if (!canEditContent(claims)) {
+    return { status: 403, jsonBody: { error: 'Author, Publisher, Admin, or ContentEditor role required' } };
   }
 
   let formData: FormData;

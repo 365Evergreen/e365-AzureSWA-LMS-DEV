@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 import { listAllSitePages } from '../lib/storage';
 
 async function adminListPagesHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -9,7 +9,7 @@ async function adminListPagesHandler(req: HttpRequest, context: InvocationContex
   if (!token) return { status: 401, body: 'Unauthorized' };
   const claims = await validateToken(token);
   if (!claims) return { status: 401, body: 'Invalid token' };
-  if (!hasRole(claims, 'ContentEditor') && !hasRole(claims, 'Admin')) {
+  if (!canEditContent(claims)) {
     return { status: 403, body: 'Forbidden' };
   }
 

@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { BlockType } from '@lms/block-registry';
-import AppNav from '../../components/AppNav';
 import BlockPalette from '../../components/BlockPalette';
 import BlockCanvas from '../../components/BlockCanvas';
 import BlockPropertyEditor from '../../components/BlockPropertyEditor';
-import { loadEditorCatalogueItem, saveUnitContent, publishCatalogueItem } from '../../api/catalogue';
+import {
+  loadEditorCatalogueItem,
+  saveUnitContent,
+  publishCatalogueItem,
+  patchCatalogueItem,
+  archiveCatalogueItem,
+} from '../../api/catalogue';
 import type { CatalogueItem, UnitDetail } from '../../api/catalogue';
 import styles from './EditUnitPage.module.css';
 
@@ -13,14 +18,17 @@ interface EditorBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
-export default function EditUnitPage() {
-  const { unitId } = useParams<{ unitId: string }>();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+interface UnitEditorCanvasProps {
+  unitId: string;
+  pathId?: string;
+  onClose?: () => void;
+}
 
-  const pathId = searchParams.get('pathId') ?? undefined;
+export function UnitEditorCanvas({ unitId, pathId, onClose }: UnitEditorCanvasProps) {
+  const navigate = useNavigate();
 
   const [unit, setUnit] = useState<CatalogueItem | null>(null);
   const [blocks, setBlocks] = useState<EditorBlock[]>([]);
@@ -30,16 +38,28 @@ export default function EditUnitPage() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [publishing, setPublishing] = useState(false);
+  const [metadataSaving, setMetadataSaving] = useState(false);
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [summary, setSummary] = useState('');
+  const [estimatedMinutes, setEstimatedMinutes] = useState(0);
+  const [unitType, setUnitType] = useState<CatalogueItem['unitType']>('Lesson');
+  const [isCurrent, setIsCurrent] = useState(true);
 
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
-    if (!unitId) return;
     setLoading(true);
     setError(null);
     try {
       const detail = await loadEditorCatalogueItem('UNIT', unitId) as UnitDetail;
       setUnit(detail);
+      setTitle(detail.title);
+      setSlug(detail.slug);
+      setSummary(detail.summary ?? '');
+      setEstimatedMinutes(detail.estimatedMinutes ?? 0);
+      setUnitType(detail.unitType ?? 'Lesson');
+      setIsCurrent(detail.status !== 'Archived');
       if (detail.blocks && Array.isArray(detail.blocks)) {
         setBlocks(detail.blocks as EditorBlock[]);
       }
@@ -54,7 +74,7 @@ export default function EditUnitPage() {
 
   // Auto-save on block change (debounced 3s)
   useEffect(() => {
-    if (!unitId || blocks.length === 0) return;
+    if (blocks.length === 0) return;
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
@@ -71,7 +91,6 @@ export default function EditUnitPage() {
   }, [blocks, unitId]);
 
   const handleSaveNow = async () => {
-    if (!unitId) return;
     setSaving(true);
     try {
       await saveUnitContent(unitId, blocks as Parameters<typeof saveUnitContent>[1]);
@@ -86,7 +105,7 @@ export default function EditUnitPage() {
   };
 
   const handlePublish = async () => {
-    if (!unitId || !confirm('Publish this unit?')) return;
+    if (!confirm('Publish this unit?')) return;
     setPublishing(true);
     try {
       await handleSaveNow();
@@ -99,6 +118,36 @@ export default function EditUnitPage() {
     }
   };
 
+  const handleSaveMetadata = async () => {
+    setMetadataSaving(true);
+    setError(null);
+    try {
+      await patchCatalogueItem('UNIT', unitId, {
+        title: title.trim(),
+        slug: slug.trim(),
+        summary: summary.trim(),
+        estimatedMinutes,
+        unitType,
+        status: isCurrent ? (unit?.status === 'Archived' ? 'Draft' : unit?.status) ?? 'Draft' : 'Archived',
+      });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setMetadataSaving(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!confirm('Archive this unit? It will remain visible to editors only.')) return;
+    try {
+      await archiveCatalogueItem('UNIT', unitId);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   function addBlock(type: BlockType, payload: unknown) {
     const id = crypto.randomUUID();
     setBlocks(prev => [...prev, { id, type, payload }]);
@@ -107,6 +156,10 @@ export default function EditUnitPage() {
 
   function updatePayload(id: string, payload: unknown) {
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, payload } : b));
+  }
+
+  function updateBackground(id: string, background: string | undefined) {
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, background } : b));
   }
 
   function deleteBlock(id: string) {
@@ -130,21 +183,27 @@ export default function EditUnitPage() {
   const selectedBlock = blocks.find(b => b.id === selectedBlockId) ?? null;
 
   const backTarget = pathId ? `/courses/edit/${pathId}` : '/courses';
+  const backLabel = onClose ? '✕ Close unit' : '← Back to course';
+  const handleBack = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    navigate(backTarget);
+  };
 
   if (loading) {
-    return <div className={styles.page}><AppNav /><div className={styles.loading}>Loading unit…</div></div>;
+    return <div className={styles.page}><div className={styles.loading}>Loading unit…</div></div>;
   }
 
   if (error && !unit) {
-    return <div className={styles.page}><AppNav /><div className={styles.error}>{error}</div></div>;
+    return <div className={styles.page}><div className={styles.error}>{error}</div></div>;
   }
 
   return (
     <div className={styles.page}>
-      <AppNav />
-
       <div className={styles.topBar}>
-        <button className={styles.backBtn} onClick={() => navigate(backTarget)}>← Back to course</button>
+        <button className={styles.backBtn} onClick={handleBack}>{backLabel}</button>
         <div className={styles.unitMeta}>
           <span className={styles.unitLabel}>{unit?.unitType ?? 'Unit'}</span>
           <h1 className={styles.pageTitle}>{unit?.title ?? 'Edit Unit'}</h1>
@@ -164,6 +223,11 @@ export default function EditUnitPage() {
           {unit?.status === 'Published' && (
             <span className={styles.publishedBadge}>✓ Published</span>
           )}
+          {unit?.status !== 'Archived' && (
+            <button className={styles.archiveBtn} onClick={handleArchive}>
+              Archive
+            </button>
+          )}
         </div>
       </div>
 
@@ -181,13 +245,59 @@ export default function EditUnitPage() {
             onSelectBlock={setSelectedBlockId}
             onRemoveBlock={deleteBlock}
             onReorderBlocks={reorderBlocks}
-            onUpdatePayload={updatePayload}
-            onInsertBlocksAfter={insertBlocksAfter}
+            onUpdatePayload={updatePayload}              onUpdateBackground={updateBackground}            onInsertBlocksAfter={insertBlocksAfter}
           />
         </main>
 
         {/* ── Properties pane ── */}
         <aside className={styles.properties}>
+          <div className={styles.metaSection}>
+            <h2 className={styles.sideTitle}>Unit details</h2>
+
+            <label className={styles.fieldLabel}>Title</label>
+            <input className={styles.fieldInput} value={title} onChange={(e) => setTitle(e.target.value)} />
+
+            <label className={styles.fieldLabel}>Slug</label>
+            <input className={styles.fieldInput} value={slug} onChange={(e) => setSlug(e.target.value)} />
+
+            <label className={styles.fieldLabel}>Summary</label>
+            <textarea
+              className={styles.fieldTextarea}
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              rows={4}
+              maxLength={1000}
+            />
+
+            <label className={styles.fieldLabel}>Duration (minutes)</label>
+            <input
+              className={styles.fieldInput}
+              type="number"
+              min={0}
+              value={estimatedMinutes}
+              onChange={(e) => setEstimatedMinutes(parseInt(e.target.value, 10) || 0)}
+            />
+
+            <label className={styles.fieldLabel}>Unit type</label>
+            <select className={styles.fieldInput} value={unitType ?? 'Lesson'} onChange={(e) => setUnitType(e.target.value as CatalogueItem['unitType'])}>
+              <option value="Lesson">Lesson</option>
+              <option value="Video">Video</option>
+              <option value="Assessment">Assessment</option>
+              <option value="Interactive">Interactive</option>
+            </select>
+
+            <label className={styles.currentToggle}>
+              <input type="checkbox" checked={isCurrent} onChange={(e) => setIsCurrent(e.target.checked)} />
+              <span>Current</span>
+            </label>
+
+            <button className={styles.metaSaveBtn} onClick={handleSaveMetadata} disabled={metadataSaving}>
+              {metadataSaving ? 'Saving details…' : 'Save details'}
+            </button>
+          </div>
+
+          <div className={styles.blockSection}>
+            <h2 className={styles.sideTitle}>Block properties</h2>
           {selectedBlock ? (
             <BlockPropertyEditor
               block={selectedBlock}
@@ -198,8 +308,20 @@ export default function EditUnitPage() {
               <p>Select a block to edit its properties.</p>
             </div>
           )}
+          </div>
         </aside>
       </div>
     </div>
   );
+}
+
+export default function EditUnitPage() {
+  const { unitId } = useParams<{ unitId: string }>();
+  const [searchParams] = useSearchParams();
+
+  if (!unitId) {
+    return <div className={styles.page}><div className={styles.error}>Unit not found.</div></div>;
+  }
+
+  return <UnitEditorCanvas unitId={unitId} pathId={searchParams.get('pathId') ?? undefined} />;
 }

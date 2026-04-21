@@ -39,3 +39,13 @@
 .avatarLink:hover .avatar {
   opacity: 0.85;
 }
+
+.profileLink {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.profileLink:hover {
+  color: var(--color-brand-primary);
+}

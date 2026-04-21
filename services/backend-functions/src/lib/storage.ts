@@ -3,11 +3,10 @@ import { BlobServiceClient } from '@azure/storage-blob';
 import { TableClient, TableEntity } from '@azure/data-tables';
 import { randomUUID } from 'crypto';
 import type { BlogCategory, ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
+import { getStorageConnectionString } from './config';
 
 function connectionString(): string {
-  const cs = process.env.STORAGE_CONNECTION_STRING;
-  if (!cs) throw new Error('STORAGE_CONNECTION_STRING is not configured');
-  return cs;
+  return getStorageConnectionString();
 }
 
 // ─── Blob Storage ─────────────────────────────────────────────────────────────
@@ -206,7 +205,7 @@ export interface SitePageMetadata {
   slug: string;
   title: string;
   description: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'published' | 'deleted';
   contentType: 'page' | 'post' | 'knowledge';
   templateId: string;
   bundleUrl: string;
@@ -221,6 +220,16 @@ export interface SitePageMetadata {
   navLabel?: string;
   navParent?: string;
   navOrder?: number;
+  linkedCourseId?: string;
+  linkedCourseSlug?: string;
+  linkedCourseTitle?: string;
+}
+
+function splitCsv(value?: string): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function siteContentTable(): TableClient {
@@ -236,10 +245,18 @@ export async function uploadSiteBundle(pageId: string, content: unknown): Promis
   await blob.upload(json, Buffer.byteLength(json), {
     blobHTTPHeaders: { blobContentType: 'application/json' },
   });
+  bundleCache.delete(pageId); // invalidate so next read fetches fresh data
   return blob.url;
 }
 
+// ── In-memory cache for site bundles (avoids repeated blob downloads) ─────────
+const BUNDLE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const bundleCache = new Map<string, { data: unknown; ts: number }>();
+
 export async function fetchSiteBundle(pageId: string): Promise<unknown | null> {
+  const hit = bundleCache.get(pageId);
+  if (hit && Date.now() - hit.ts < BUNDLE_CACHE_TTL) return hit.data;
+
   const client = BlobServiceClient.fromConnectionString(connectionString());
   const blob = client
     .getContainerClient(SITE_CONTENT_CONTAINER)
@@ -250,7 +267,9 @@ export async function fetchSiteBundle(pageId: string): Promise<unknown | null> {
     for await (const chunk of download.readableStreamBody as AsyncIterable<Buffer>) {
       chunks.push(chunk);
     }
-    return JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+    const data = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+    bundleCache.set(pageId, { data, ts: Date.now() });
+    return data;
   } catch {
     return null;
   }
@@ -280,6 +299,9 @@ export async function upsertSitePageMetadata(meta: SitePageMetadata): Promise<vo
       navLabel: meta.navLabel ?? '',
       navParent: meta.navParent ?? '',
       navOrder: meta.navOrder ?? 0,
+      linkedCourseId: meta.linkedCourseId ?? '',
+      linkedCourseSlug: meta.linkedCourseSlug ?? '',
+      linkedCourseTitle: meta.linkedCourseTitle ?? '',
     },
     'Replace'
   );
@@ -329,14 +351,17 @@ function entityToSitePageMetadata(e: Record<string, unknown>): SitePageMetadata 
     publishedAt: e.publishedAt as string,
     updatedAt: e.updatedAt as string,
     author: (e.author as string) || undefined,
-    tags: ((e.tags as string) || '').split(',').filter(Boolean),
+    tags: splitCsv(e.tags as string),
     featuredImage: (e.featuredImage as string) || undefined,
-    categoryIds: ((e.categoryIds as string) || '').split(',').filter(Boolean),
+    categoryIds: splitCsv(e.categoryIds as string),
     primaryCategoryId: (e.primaryCategoryId as string) || undefined,
     inNav: (e.inNav as boolean) ?? false,
     navLabel: (e.navLabel as string) || undefined,
     navParent: (e.navParent as string) || undefined,
     navOrder: (e.navOrder as number) ?? 0,
+    linkedCourseId: (e.linkedCourseId as string) || undefined,
+    linkedCourseSlug: (e.linkedCourseSlug as string) || undefined,
+    linkedCourseTitle: (e.linkedCourseTitle as string) || undefined,
   };
 }
 
@@ -367,17 +392,102 @@ export async function patchSitePageMeta(
   const hasCategoryIds = Object.prototype.hasOwnProperty.call(patch, 'categoryIds');
   const hasPrimaryCategoryId = Object.prototype.hasOwnProperty.call(patch, 'primaryCategoryId');
   const hasPublishedAt = Object.prototype.hasOwnProperty.call(patch, 'publishedAt');
+  const hasFeaturedImage = Object.prototype.hasOwnProperty.call(patch, 'featuredImage');
   const update: TableEntity<Record<string, unknown>> = {
     partitionKey: contentType,
     rowKey: slug,
     updatedAt: new Date().toISOString(),
     ...patch,
     ...(hasPublishedAt ? { publishedAt: patch.publishedAt ?? '' } : {}),
+    ...(hasFeaturedImage ? { featuredImage: patch.featuredImage ?? '' } : {}),
     ...(hasCategoryIds ? { categoryIds: (patch.categoryIds ?? []).join(',') } : {}),
     ...(hasPrimaryCategoryId ? { primaryCategoryId: patch.primaryCategoryId ?? '' } : {}),
     ...(patch.status === 'published' && !hasPublishedAt ? { publishedAt: new Date().toISOString() } : {}),
   };
   await client.updateEntity(update, 'Merge');
+}
+
+export async function getSitePageByLinkedCourseId(courseId: string): Promise<SitePageMetadata | null> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'page' and linkedCourseId eq '${courseId}'`,
+    },
+  });
+  for await (const entity of entities) {
+    return entityToSitePageMetadata(entity);
+  }
+  return null;
+}
+
+export async function deleteSitePageMetadata(
+  slug: string,
+  contentType: 'page' | 'post' | 'knowledge' = 'page'
+): Promise<void> {
+  const client = siteContentTable();
+  await client.createTable().catch(() => {});
+  try {
+    await client.deleteEntity(contentType, slug);
+  } catch {
+    // Safe if already absent.
+  }
+}
+
+export async function syncCourseLandingPageFromPath(course: CatalogueItem): Promise<SitePageMetadata> {
+  if (course.itemType !== 'PATH') {
+    throw new Error(`syncCourseLandingPageFromPath only supports PATH items, got ${course.itemType}`);
+  }
+
+  const existing = await getSitePageByLinkedCourseId(course.itemId);
+  const pageId = existing?.pageId ?? `course-landing-${course.itemId}`;
+  const now = new Date().toISOString();
+  const bundle = existing
+    ? ((await fetchSiteBundle(pageId)) as Record<string, unknown> | null)
+    : null;
+
+  const nextBundle = {
+    pageId,
+    slug: course.slug,
+    title: course.title,
+    templateId: 'course-landing',
+    savedAt: now,
+    blocks: Array.isArray(bundle?.blocks) ? bundle.blocks : [],
+  };
+  const bundleUrl = await uploadSiteBundle(pageId, nextBundle);
+
+  const metadata: SitePageMetadata = {
+    pageId,
+    slug: course.slug,
+    title: course.title,
+    description: course.summary ?? '',
+    status: existing?.status ?? 'draft',
+    contentType: 'page',
+    templateId: 'course-landing',
+    bundleUrl,
+    publishedAt: existing?.publishedAt ?? '',
+    updatedAt: now,
+    author: existing?.author ?? course.authorId,
+    tags: splitCsv(course.tagsCsv),
+    featuredImage: course.thumbnailUrl ?? '',
+    categoryIds: existing?.categoryIds ?? [],
+    primaryCategoryId: existing?.primaryCategoryId,
+    inNav: existing?.inNav ?? false,
+    navLabel: existing?.navLabel ?? '',
+    navParent: existing?.navParent ?? '',
+    navOrder: existing?.navOrder ?? 0,
+    linkedCourseId: course.itemId,
+    linkedCourseSlug: course.slug,
+    linkedCourseTitle: course.title,
+  };
+
+  await upsertSitePageMetadata(metadata);
+
+  if (existing && existing.slug !== course.slug) {
+    await deleteSitePageMetadata(existing.slug, 'page');
+  }
+
+  return metadata;
 }
 
 export async function listNavItems(): Promise<SitePageMetadata[]> {
@@ -393,6 +503,120 @@ export async function listNavItems(): Promise<SitePageMetadata[]> {
     results.push(entityToSitePageMetadata(e));
   }
   return results;
+}
+
+const SIGNUP_REQUESTS_TABLE = 'SignupRequests';
+
+export interface SignupRequestFieldValue {
+  id: string;
+  label: string;
+  type: string;
+  value: string;
+  required?: boolean;
+}
+
+export interface SignupRequestRecord {
+  requestId: string;
+  submittedAt: string;
+  status: 'Pending' | 'Invited' | 'Accepted' | 'Failed';
+  pagePath: string;
+  formTitle?: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  fields: SignupRequestFieldValue[];
+  invitedAt?: string;
+  invitedUserId?: string;
+  inviteRedeemUrl?: string;
+  acceptedAt?: string;
+  errorMessage?: string;
+}
+
+function signupRequestsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), SIGNUP_REQUESTS_TABLE);
+}
+
+export async function createSignupRequest(record: SignupRequestRecord): Promise<void> {
+  const client = signupRequestsTable();
+  await ensureTable(client);
+  await client.upsertEntity(
+    {
+      partitionKey: 'SIGNUP',
+      rowKey: record.requestId,
+      submittedAt: record.submittedAt,
+      status: record.status,
+      pagePath: record.pagePath,
+      formTitle: record.formTitle ?? '',
+      email: record.email,
+      firstName: record.firstName ?? '',
+      lastName: record.lastName ?? '',
+      invitedAt: record.invitedAt ?? '',
+      invitedUserId: record.invitedUserId ?? '',
+      inviteRedeemUrl: record.inviteRedeemUrl ?? '',
+      acceptedAt: record.acceptedAt ?? '',
+      errorMessage: record.errorMessage ?? '',
+      fieldsJson: JSON.stringify(record.fields),
+    },
+    'Replace',
+  );
+}
+
+export async function updateSignupRequest(
+  requestId: string,
+  patch: Partial<Pick<SignupRequestRecord, 'status' | 'invitedAt' | 'invitedUserId' | 'inviteRedeemUrl' | 'acceptedAt' | 'errorMessage'>>,
+): Promise<void> {
+  const client = signupRequestsTable();
+  await ensureTable(client);
+  await client.updateEntity(
+    {
+      partitionKey: 'SIGNUP',
+      rowKey: requestId,
+      ...(Object.prototype.hasOwnProperty.call(patch, 'status') ? { status: patch.status } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'invitedAt') ? { invitedAt: patch.invitedAt ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'invitedUserId') ? { invitedUserId: patch.invitedUserId ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'inviteRedeemUrl') ? { inviteRedeemUrl: patch.inviteRedeemUrl ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'acceptedAt') ? { acceptedAt: patch.acceptedAt ?? '' } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'errorMessage') ? { errorMessage: patch.errorMessage ?? '' } : {}),
+    },
+    'Merge',
+  );
+}
+
+export async function acceptSignupRequestByInvitedUserId(invitedUserId: string): Promise<boolean> {
+  const client = signupRequestsTable();
+  await ensureTable(client);
+
+  const matches: Array<{ rowKey: string; submittedAt: string; status: string }> = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'SIGNUP' and invitedUserId eq '${invitedUserId}'` },
+  })) {
+    matches.push({
+      rowKey: entity.rowKey as string,
+      submittedAt: (entity.submittedAt as string) || '',
+      status: (entity.status as string) || '',
+    });
+  }
+
+  const target = matches
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .find((entry) => entry.status === 'Invited' || entry.status === 'Accepted');
+
+  if (!target) {
+    return false;
+  }
+
+  await client.updateEntity(
+    {
+      partitionKey: 'SIGNUP',
+      rowKey: target.rowKey,
+      status: 'Accepted',
+      acceptedAt: new Date().toISOString(),
+      errorMessage: '',
+    },
+    'Merge',
+  );
+
+  return true;
 }
 
 const BLOG_CATEGORY_TABLE = 'blogCategories';
@@ -572,6 +796,12 @@ import type {
   ContentVersion,
   PathModuleLink,
   ModuleUnitLink,
+  AssessmentDefinition,
+  AssessmentQuestion,
+  AssessmentOption,
+  AssessmentDetail,
+  LearnerAssessmentAnswer,
+  AssessmentOutcome,
   EnrolmentRecord,
   ProgressState,
   ProgressEvent,
@@ -581,6 +811,11 @@ const CATALOGUE_TABLE = 'CatalogueItems';
 const CONTENT_VERSIONS_TABLE = 'ContentVersions';
 const PATH_MODULES_TABLE = 'PathModules';
 const MODULE_UNITS_TABLE = 'ModuleUnits';
+const MODULE_ASSESSMENTS_TABLE = 'ModuleAssessments';
+const ASSESSMENT_QUESTIONS_TABLE = 'AssessmentQuestions';
+const ASSESSMENT_OPTIONS_TABLE = 'AssessmentOptions';
+const LEARNER_ASSESSMENT_ANSWERS_TABLE = 'LearnerAssessmentAnswers';
+const ASSESSMENT_OUTCOMES_TABLE = 'AssessmentOutcomes';
 const ENROLMENTS_TABLE = 'Enrolments';
 const ENROLMENTS_BY_ITEM_TABLE = 'EnrolmentsByItem';
 const PROGRESS_TABLE = 'Progress';
@@ -599,6 +834,21 @@ function pathModulesTable(): TableClient {
 }
 function moduleUnitsTable(): TableClient {
   return TableClient.fromConnectionString(connectionString(), MODULE_UNITS_TABLE);
+}
+function moduleAssessmentsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), MODULE_ASSESSMENTS_TABLE);
+}
+function assessmentQuestionsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), ASSESSMENT_QUESTIONS_TABLE);
+}
+function assessmentOptionsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), ASSESSMENT_OPTIONS_TABLE);
+}
+function learnerAssessmentAnswersTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), LEARNER_ASSESSMENT_ANSWERS_TABLE);
+}
+function assessmentOutcomesTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), ASSESSMENT_OUTCOMES_TABLE);
 }
 function enrolmentsTable(): TableClient {
   return TableClient.fromConnectionString(connectionString(), ENROLMENTS_TABLE);
@@ -635,7 +885,10 @@ function entityToCatalogueItem(e: Record<string, unknown>): CatalogueItem {
     summary: (e.summary as string) || '',
     language: (e.language as string) || 'en',
     difficulty: (e.difficulty as CatalogueItem['difficulty']) || undefined,
+    role: (e.role as string) || '',
+    learningPath: (e.learningPath as string) || '',
     estimatedMinutes: (e.estimatedMinutes as number) || 0,
+    isMandatory: (e.isMandatory as boolean) ?? false,
     visibility: (e.visibility as CatalogueItem['visibility']) || 'Public',
     status: (e.status as CatalogueItem['status']) || 'Draft',
     currentVersionId: (e.currentVersionId as string) || undefined,
@@ -663,7 +916,10 @@ export async function upsertCatalogueItem(item: CatalogueItem): Promise<void> {
       summary: item.summary,
       language: item.language,
       difficulty: item.difficulty ?? '',
+      role: item.role ?? '',
+      learningPath: item.learningPath ?? '',
       estimatedMinutes: item.estimatedMinutes,
+      isMandatory: item.isMandatory ?? false,
       visibility: item.visibility,
       status: item.status,
       currentVersionId: item.currentVersionId ?? '',
@@ -693,6 +949,20 @@ export async function getCatalogueItem(
   } catch {
     return null;
   }
+}
+
+export async function getPublishedPathBySlug(slug: string): Promise<CatalogueItem | null> {
+  const client = catalogueTable();
+  await ensureTable(client);
+  const entities = client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'catalogue|PATH' and slug eq '${slug}' and status eq 'Published'`,
+    },
+  });
+  for await (const entity of entities) {
+    return entityToCatalogueItem(entity);
+  }
+  return null;
 }
 
 export async function listCatalogueItems(
@@ -959,6 +1229,328 @@ export async function reorderModuleUnits(moduleId: string, orderedUnitIds: strin
   }
 }
 
+// ─── Module assessments ─────────────────────────────────────────────────────────
+
+function entityToAssessmentDefinition(e: Record<string, unknown>): AssessmentDefinition {
+  return {
+    assessmentId: e.assessmentId as string,
+    moduleId: e.moduleId as string,
+    title: (e.title as string) || 'Module assessment',
+    description: (e.description as string) || '',
+    passingPercent: (e.passingPercent as number) ?? 70,
+    questionCount: (e.questionCount as number) ?? 0,
+    createdOn: e.createdOn as string,
+    updatedOn: e.updatedOn as string,
+    authorId: e.authorId as string,
+  };
+}
+
+function entityToAssessmentQuestion(e: Record<string, unknown>): AssessmentQuestion {
+  return {
+    questionId: e.questionId as string,
+    assessmentId: e.assessmentId as string,
+    prompt: e.prompt as string,
+    explanation: (e.explanation as string) || '',
+    allowsMultiple: (e.allowsMultiple as boolean) ?? false,
+    sortOrder: (e.sortOrder as number) ?? 0,
+    options: [],
+  };
+}
+
+function entityToAssessmentOption(e: Record<string, unknown>): AssessmentOption {
+  return {
+    optionId: e.optionId as string,
+    assessmentId: e.assessmentId as string,
+    questionId: e.questionId as string,
+    label: e.label as string,
+    sortOrder: (e.sortOrder as number) ?? 0,
+    isCorrect: (e.isCorrect as boolean) ?? false,
+  };
+}
+
+function entityToLearnerAssessmentAnswer(e: Record<string, unknown>): LearnerAssessmentAnswer {
+  return {
+    attemptId: e.attemptId as string,
+    userId: e.userId as string,
+    assessmentId: e.assessmentId as string,
+    moduleId: e.moduleId as string,
+    questionId: e.questionId as string,
+    selectedOptionIds: JSON.parse((e.selectedOptionIdsJson as string) || '[]'),
+    isCorrect: (e.isCorrect as boolean) ?? false,
+    answeredOn: e.answeredOn as string,
+  };
+}
+
+function entityToAssessmentOutcome(e: Record<string, unknown>): AssessmentOutcome {
+  return {
+    attemptId: e.attemptId as string,
+    userId: e.userId as string,
+    assessmentId: e.assessmentId as string,
+    moduleId: e.moduleId as string,
+    totalQuestions: (e.totalQuestions as number) ?? 0,
+    correctQuestions: (e.correctQuestions as number) ?? 0,
+    scorePercent: (e.scorePercent as number) ?? 0,
+    passed: (e.passed as boolean) ?? false,
+    submittedOn: e.submittedOn as string,
+  };
+}
+
+async function deletePartitionEntities(client: TableClient, partitionKey: string): Promise<void> {
+  await ensureTable(client);
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq '${partitionKey}'` },
+  })) {
+    await client.deleteEntity(partitionKey, entity.rowKey as string);
+  }
+}
+
+export async function createDefaultModuleAssessment(
+  moduleId: string,
+  authorId: string,
+  title = 'Module assessment',
+): Promise<AssessmentDefinition> {
+  const now = new Date().toISOString();
+  const assessment: AssessmentDefinition = {
+    assessmentId: randomUUID(),
+    moduleId,
+    title,
+    description: '',
+    passingPercent: 70,
+    questionCount: 0,
+    createdOn: now,
+    updatedOn: now,
+    authorId,
+  };
+
+  await upsertModuleAssessmentDefinition(assessment);
+  return assessment;
+}
+
+export async function upsertModuleAssessmentDefinition(assessment: AssessmentDefinition): Promise<void> {
+  const client = moduleAssessmentsTable();
+  await ensureTable(client);
+  await client.upsertEntity(
+    {
+      partitionKey: `ASSESS|MODULE|${assessment.moduleId}`,
+      rowKey: 'DEFINITION',
+      assessmentId: assessment.assessmentId,
+      moduleId: assessment.moduleId,
+      title: assessment.title,
+      description: assessment.description,
+      passingPercent: assessment.passingPercent,
+      questionCount: assessment.questionCount,
+      createdOn: assessment.createdOn,
+      updatedOn: assessment.updatedOn,
+      authorId: assessment.authorId,
+    },
+    'Replace',
+  );
+}
+
+export async function getModuleAssessmentDefinition(moduleId: string): Promise<AssessmentDefinition | null> {
+  const client = moduleAssessmentsTable();
+  await ensureTable(client);
+  try {
+    const entity = await client.getEntity<Record<string, unknown>>(
+      `ASSESS|MODULE|${moduleId}`,
+      'DEFINITION',
+    );
+    return entityToAssessmentDefinition(entity);
+  } catch {
+    return null;
+  }
+}
+
+export async function listAssessmentQuestions(assessmentId: string): Promise<AssessmentQuestion[]> {
+  const client = assessmentQuestionsTable();
+  await ensureTable(client);
+  const results: AssessmentQuestion[] = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ASSESS|${assessmentId}'` },
+  })) {
+    results.push(entityToAssessmentQuestion(entity));
+  }
+  return results.sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function listAssessmentOptions(assessmentId: string): Promise<AssessmentOption[]> {
+  const client = assessmentOptionsTable();
+  await ensureTable(client);
+  const results: AssessmentOption[] = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ASSESS|${assessmentId}'` },
+  })) {
+    results.push(entityToAssessmentOption(entity));
+  }
+  return results.sort((a, b) => {
+    if (a.questionId === b.questionId) {
+      return a.sortOrder - b.sortOrder;
+    }
+    return a.questionId.localeCompare(b.questionId);
+  });
+}
+
+export async function getModuleAssessmentDetail(moduleId: string): Promise<AssessmentDetail | null> {
+  const assessment = await getModuleAssessmentDefinition(moduleId);
+  if (!assessment) {
+    return null;
+  }
+
+  const [questions, options] = await Promise.all([
+    listAssessmentQuestions(assessment.assessmentId),
+    listAssessmentOptions(assessment.assessmentId),
+  ]);
+
+  const optionsByQuestion = new Map<string, AssessmentOption[]>();
+  for (const option of options) {
+    const group = optionsByQuestion.get(option.questionId) ?? [];
+    group.push(option);
+    optionsByQuestion.set(option.questionId, group);
+  }
+
+  return {
+    ...assessment,
+    questionCount: questions.length,
+    questions: questions.map((question) => ({
+      ...question,
+      options: (optionsByQuestion.get(question.questionId) ?? []).sort((a, b) => a.sortOrder - b.sortOrder),
+    })),
+  };
+}
+
+export async function replaceModuleAssessment(detail: AssessmentDetail): Promise<void> {
+  await Promise.all([
+    ensureTable(moduleAssessmentsTable()),
+    ensureTable(assessmentQuestionsTable()),
+    ensureTable(assessmentOptionsTable()),
+  ]);
+
+  const now = new Date().toISOString();
+  await upsertModuleAssessmentDefinition({
+    ...detail,
+    questionCount: detail.questions.length,
+    updatedOn: now,
+  });
+
+  const questionsClient = assessmentQuestionsTable();
+  const optionsClient = assessmentOptionsTable();
+  await Promise.all([
+    deletePartitionEntities(questionsClient, `ASSESS|${detail.assessmentId}`),
+    deletePartitionEntities(optionsClient, `ASSESS|${detail.assessmentId}`),
+  ]);
+
+  for (const question of detail.questions) {
+    await questionsClient.upsertEntity(
+      {
+        partitionKey: `ASSESS|${detail.assessmentId}`,
+        rowKey: `${padSort(question.sortOrder)}|QUESTION|${question.questionId}`,
+        assessmentId: detail.assessmentId,
+        questionId: question.questionId,
+        prompt: question.prompt,
+        explanation: question.explanation,
+        allowsMultiple: question.allowsMultiple,
+        sortOrder: question.sortOrder,
+      },
+      'Replace',
+    );
+
+    for (const option of question.options) {
+      await optionsClient.upsertEntity(
+        {
+          partitionKey: `ASSESS|${detail.assessmentId}`,
+          rowKey: `QUESTION|${question.questionId}|OPTION|${padSort(option.sortOrder)}|${option.optionId}`,
+          assessmentId: detail.assessmentId,
+          questionId: question.questionId,
+          optionId: option.optionId,
+          label: option.label,
+          sortOrder: option.sortOrder,
+          isCorrect: option.isCorrect,
+        },
+        'Replace',
+      );
+    }
+  }
+}
+
+export async function createLearnerAssessmentAnswers(
+  answers: LearnerAssessmentAnswer[],
+): Promise<void> {
+  const client = learnerAssessmentAnswersTable();
+  await ensureTable(client);
+  for (const answer of answers) {
+    await client.upsertEntity(
+      {
+        partitionKey: `ATTEMPT|${answer.attemptId}`,
+        rowKey: `QUESTION|${answer.questionId}`,
+        attemptId: answer.attemptId,
+        userId: answer.userId,
+        assessmentId: answer.assessmentId,
+        moduleId: answer.moduleId,
+        questionId: answer.questionId,
+        selectedOptionIdsJson: JSON.stringify(answer.selectedOptionIds),
+        isCorrect: answer.isCorrect,
+        answeredOn: answer.answeredOn,
+      },
+      'Replace',
+    );
+  }
+}
+
+export async function listLearnerAssessmentAnswers(
+  attemptId: string,
+): Promise<LearnerAssessmentAnswer[]> {
+  const client = learnerAssessmentAnswersTable();
+  await ensureTable(client);
+  const results: LearnerAssessmentAnswer[] = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ATTEMPT|${attemptId}'` },
+  })) {
+    results.push(entityToLearnerAssessmentAnswer(entity));
+  }
+  return results;
+}
+
+export async function createAssessmentOutcome(outcome: AssessmentOutcome): Promise<void> {
+  const client = assessmentOutcomesTable();
+  await ensureTable(client);
+  await client.upsertEntity(
+    {
+      partitionKey: `OUTCOME|USER|${outcome.userId}|ASSESS|${outcome.assessmentId}`,
+      rowKey: `${outcome.submittedOn}|ATTEMPT|${outcome.attemptId}`,
+      attemptId: outcome.attemptId,
+      userId: outcome.userId,
+      assessmentId: outcome.assessmentId,
+      moduleId: outcome.moduleId,
+      totalQuestions: outcome.totalQuestions,
+      correctQuestions: outcome.correctQuestions,
+      scorePercent: outcome.scorePercent,
+      passed: outcome.passed,
+      submittedOn: outcome.submittedOn,
+    },
+    'Replace',
+  );
+}
+
+export async function getLatestAssessmentOutcome(
+  userId: string,
+  assessmentId: string,
+): Promise<AssessmentOutcome | null> {
+  const client = assessmentOutcomesTable();
+  await ensureTable(client);
+  let latest: AssessmentOutcome | null = null;
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'OUTCOME|USER|${userId}|ASSESS|${assessmentId}'`,
+    },
+  })) {
+    const outcome = entityToAssessmentOutcome(entity);
+    if (!latest || outcome.submittedOn > latest.submittedOn) {
+      latest = outcome;
+    }
+  }
+  return latest;
+}
+
 // ─── Enrolments (new model) ───────────────────────────────────────────────────
 
 export async function upsertEnrolmentRecord(record: EnrolmentRecord): Promise<void> {
@@ -970,7 +1562,8 @@ export async function upsertEnrolmentRecord(record: EnrolmentRecord): Promise<vo
     rowKey: `ITEM|${record.pathId}`,
     userId: record.userId,
     pathId: record.pathId,
-    enrolledOn: record.enrolledOn,
+    enrolledOn: record.enrolledOn ?? '',
+    assignedOn: record.assignedOn ?? '',
     status: record.status,
     dueOn: record.dueOn ?? '',
     source: record.source,
@@ -984,7 +1577,8 @@ export async function upsertEnrolmentRecord(record: EnrolmentRecord): Promise<vo
       partitionKey: `ENROL|ITEM|${record.pathId}`,
       rowKey: `USER|${record.userId}`,
       status: record.status,
-      enrolledOn: record.enrolledOn,
+      enrolledOn: record.enrolledOn ?? '',
+      assignedOn: record.assignedOn ?? '',
       userId: record.userId,
     },
     'Replace'
@@ -1001,11 +1595,32 @@ export async function listEnrolmentsByUser(userId: string): Promise<EnrolmentRec
     results.push({
       userId: e.userId as string,
       pathId: e.pathId as string,
-      enrolledOn: e.enrolledOn as string,
+      enrolledOn: (e.enrolledOn as string) || undefined,
+      assignedOn: (e.assignedOn as string) || undefined,
       status: e.status as EnrolmentRecord['status'],
       dueOn: (e.dueOn as string) || undefined,
       source: (e.source as EnrolmentRecord['source']) || 'Self',
       tenantId: (e.tenantId as string) || 'default',
+    });
+  }
+  return results;
+}
+
+export async function listEnrolmentsByPath(pathId: string): Promise<EnrolmentRecord[]> {
+  const client = enrolmentsByItemTable();
+  await ensureTable(client);
+  const results: EnrolmentRecord[] = [];
+  for await (const e of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ENROL|ITEM|${pathId}'` },
+  })) {
+    results.push({
+      userId: e.userId as string,
+      pathId,
+      enrolledOn: (e.enrolledOn as string) || undefined,
+      assignedOn: (e.assignedOn as string) || undefined,
+      status: e.status as EnrolmentRecord['status'],
+      source: 'Assigned',
+      tenantId: 'default',
     });
   }
   return results;
@@ -1116,7 +1731,10 @@ export async function writeCatalogueBrowseEntry(item: CatalogueItem): Promise<vo
       title: item.title,
       summary: item.summary,
       difficulty: item.difficulty ?? '',
+      role: item.role ?? '',
+      learningPath: item.learningPath ?? '',
       estimatedMinutes: item.estimatedMinutes,
+      isMandatory: item.isMandatory ?? false,
       thumbnailUrl: item.thumbnailUrl ?? '',
       language: item.language,
       slug: item.slug,
@@ -1160,7 +1778,10 @@ export async function listCatalogueBrowse(
       summary: (e.summary as string) || '',
       language: (e.language as string) || 'en',
       difficulty: (e.difficulty as CatalogueItem['difficulty']) || undefined,
+      role: (e.role as string) || '',
+      learningPath: (e.learningPath as string) || '',
       estimatedMinutes: (e.estimatedMinutes as number) || 0,
+      isMandatory: (e.isMandatory as boolean) ?? false,
       visibility: 'Public',
       status,
       thumbnailUrl: (e.thumbnailUrl as string) || undefined,

@@ -5,5 +5,5 @@ export const msalInstance = createMsalInstance({
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_ENTRA_TENANT_ID ?? 'common'}`,
     redirectUri: `${window.location.origin}/auth/callback`,
   },
-  cache: { cacheLocation: 'sessionStorage' },
+  cache: { cacheLocation: 'localStorage' },
 });

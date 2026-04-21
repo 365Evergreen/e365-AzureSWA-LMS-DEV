@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import { useAuth } from '@lms/shared-auth';
+import { canAccessEditor, useAuth } from '@lms/shared-auth';
 import { msalInstance } from '../../auth/msalConfig';
-import AppNav from '../../components/AppNav';
 import styles from './WelcomePage.module.css';
 
 export default function WelcomePage() {
@@ -11,11 +10,10 @@ export default function WelcomePage() {
 
   const displayName = user?.account.name ?? user?.account.username ?? 'there';
   const firstName = displayName.split(' ')[0];
-  const isEditor = user?.roles.includes('ContentEditor') ?? false;
+  const isEditor = user ? canAccessEditor(user.roles) : false;
 
   return (
     <div className={styles.page}>
-      <AppNav />
       <main className={styles.main}>
         <div className={styles.greeting}>
           <h1 className={styles.title}>Welcome back, {firstName} 👋</h1>
@@ -28,7 +26,7 @@ export default function WelcomePage() {
 
         {isEditor && (
           <div className={styles.actions}>
-            <div className={styles.card} onClick={() => navigate('/')} role="button" tabIndex={0}>
+            <div className={styles.card} onClick={() => navigate('/dashboard')} role="button" tabIndex={0}>
               <div className={styles.cardIcon}>📚</div>
               <h2 className={styles.cardTitle}>My Courses</h2>
               <p className={styles.cardDesc}>View and manage your course library</p>

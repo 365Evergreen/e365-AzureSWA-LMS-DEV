@@ -52,6 +52,36 @@ export const BlockType = {
 
 export type BlockType = (typeof BlockType)[keyof typeof BlockType];
 
+// ─── Block Backgrounds ────────────────────────────────────────────────────────
+
+export const BLOCK_BACKGROUNDS = [
+  { value: 'none',           label: 'None',        color: 'transparent' },
+  { value: 'surface',        label: 'White',        color: '#ffffff' },
+  { value: 'surface-subtle', label: 'Light grey',   color: '#f8fafc' },
+  { value: 'surface-muted',  label: 'Muted grey',   color: '#f1f5f9' },
+  { value: 'brand',          label: 'Brand green',  color: '#027a00' },
+  { value: 'success-bg',     label: 'Green tint',   color: '#f0fdf4' },
+  { value: 'dark',           label: 'Dark navy',    color: '#0f172a' },
+  { value: 'warning-bg',     label: 'Yellow tint',  color: '#fffbeb' },
+  { value: 'danger-bg',      label: 'Red tint',     color: '#fef2f2' },
+  { value: 'info-bg',        label: 'Blue tint',    color: '#f0f9ff' },
+] as const;
+
+export type BlockBackground = typeof BLOCK_BACKGROUNDS[number]['value'];
+
+/** Maps a BlockBackground value to its CSS variable expression. */
+export const BG_CSS: Record<string, string> = {
+  surface:          'var(--color-surface)',
+  'surface-subtle': 'var(--color-surface-subtle)',
+  'surface-muted':  'var(--color-surface-muted)',
+  brand:            'var(--color-brand-primary)',
+  'success-bg':     'var(--color-success-bg)',
+  dark:             'var(--color-text-primary)',
+  'warning-bg':     'var(--color-warning-bg)',
+  'danger-bg':      'var(--color-danger-bg)',
+  'info-bg':        'var(--color-info-bg)',
+};
+
 // ─── Shared Sub-schemas ───────────────────────────────────────────────────────
 
 export const LinkSchema = z.object({
@@ -149,6 +179,25 @@ export interface GridPayload {
   columns: 2 | 3 | 4;
   rows: 1 | 2 | 3;
   cells: GridCell[];
+}
+
+export interface ColumnsItemBlock {
+  id: string;
+  type: BlockType;
+  payload: unknown;
+}
+
+export interface ColumnsItem {
+  id: string;
+  blocks: ColumnsItemBlock[];
+  showOnMobile?: boolean;
+}
+
+export interface ColumnsPayload {
+  columns: 2 | 3 | 4;
+  gap?: 'sm' | 'md' | 'lg';
+  heading?: string;
+  items: ColumnsItem[];
 }
 
 export interface QuizPayload {
@@ -338,6 +387,60 @@ export const GridPayloadSchema = z.object({
   rows: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1 as 1),
   cells: z.array(GridCellSchema).default([]),
 });
+
+const ColumnsItemBlockSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  payload: z.any(),
+});
+
+const ColumnsItemSchema = z.object({
+  id: z.string(),
+  blocks: z.array(ColumnsItemBlockSchema).default([]),
+  showOnMobile: z.boolean().optional().default(true),
+});
+
+export const ColumnsPayloadSchema = z.object({
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(2 as 2),
+  gap: z.enum(['sm', 'md', 'lg']).optional().default('md'),
+  heading: z.string().optional(),
+  items: z.array(ColumnsItemSchema).default([]),
+});
+
+function ensureColumnsItems(count: 2 | 3 | 4, existing: ColumnsItem[]): ColumnsItem[] {
+  const items: ColumnsItem[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const current = existing[index];
+    items.push(current ?? {
+      id: crypto.randomUUID(),
+      blocks: [],
+      showOnMobile: true,
+    });
+  }
+  return items;
+}
+
+export function normalizeColumnsPayload(payload: unknown): ColumnsPayload {
+  const parsed = ColumnsPayloadSchema.safeParse(payload);
+  if (parsed.success) {
+    return {
+      ...parsed.data,
+      items: ensureColumnsItems(parsed.data.columns, parsed.data.items as ColumnsItem[]),
+    } as ColumnsPayload;
+  }
+
+  const legacy = payload as {
+    columns?: number;
+    gap?: 'sm' | 'md' | 'lg';
+  };
+
+  const columns = legacy.columns === 3 || legacy.columns === 4 ? legacy.columns : 2;
+  return {
+    columns,
+    gap: legacy.gap ?? 'md',
+    items: ensureColumnsItems(columns, []),
+  };
+}
 
 export function normalizeAccordionPayload(payload: unknown): AccordionPayload {
   const parsed = AccordionPayloadSchema.safeParse(payload);

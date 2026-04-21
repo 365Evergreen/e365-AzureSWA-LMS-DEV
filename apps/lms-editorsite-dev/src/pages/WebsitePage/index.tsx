@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@lms/shared-ui';
-import AppNav from '../../components/AppNav';
+import { Button, getTemplate, getTemplatesByCategory } from '@lms/shared-ui';
 import { listPages, patchPageMeta, type PageSummary, type PatchPageMetaRequest } from '../../api/pages';
 import styles from './WebsitePage.module.css';
 
 type ViewMode = 'grid' | 'list';
+type TemplateFilterValue = 'all' | PageSummary['templateId'];
 
 function StatusBadge({ status }: { status: 'draft' | 'published' }) {
   return (
@@ -18,6 +18,10 @@ function StatusBadge({ status }: { status: 'draft' | 'published' }) {
 function formatDate(iso: string) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getTemplateLabel(templateId: string) {
+  return getTemplate(templateId)?.label ?? templateId;
 }
 
 interface QuickEditDrawerProps {
@@ -152,6 +156,7 @@ function PageCard({ page, onQuickEdit, onEdit, previewBase }: PageCardProps) {
       </div>
       <h3 className={styles.cardTitle}>{page.title}</h3>
       {page.description && <p className={styles.cardDesc}>{page.description}</p>}
+      <div className={styles.cardTemplate}>{getTemplateLabel(page.templateId)}</div>
       <div className={styles.cardMeta}>
         <span>Updated {formatDate(page.updatedAt)}</span>
         <span className={styles.cardSlug}>/{page.slug}</span>
@@ -191,6 +196,7 @@ function PageRow({ page, onQuickEdit, onEdit, previewBase }: PageRowProps) {
       <td className={styles.cell}>
         <div className={styles.rowTitle}>{page.title}</div>
         <div className={styles.rowSlug}>/{page.slug}</div>
+        <div className={styles.rowTemplate}>{getTemplateLabel(page.templateId)}</div>
       </td>
       <td className={styles.cell}><StatusBadge status={page.status} /></td>
       <td className={styles.cell}>{page.inNav ? <span className={styles.navPill}>Yes</span> : <span className={styles.muted}>No</span>}</td>
@@ -215,8 +221,13 @@ export default function WebsitePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingPage, setEditingPage] = useState<PageSummary | null>(null);
+  const [templateFilter, setTemplateFilter] = useState<TemplateFilterValue>('all');
 
   const previewBase = (import.meta.env.VITE_PUBLIC_SITE_URL ?? '').replace(/\/$/, '');
+  const templateOptions = getTemplatesByCategory('page');
+  const filteredPages = templateFilter === 'all'
+    ? pages
+    : pages.filter((page) => page.templateId === templateFilter);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -247,11 +258,23 @@ export default function WebsitePage() {
 
   return (
     <div className={styles.page}>
-      <AppNav />
       <main className={styles.main}>
         <div className={styles.header}>
           <h1 className={styles.title}>Website</h1>
           <div className={styles.headerRight}>
+            <label className={styles.filterField}>
+              <span className={styles.filterLabel}>Template</span>
+              <select
+                className={styles.filterSelect}
+                value={templateFilter}
+                onChange={(e) => setTemplateFilter(e.target.value as TemplateFilterValue)}
+              >
+                <option value="all">All templates</option>
+                {templateOptions.map((template) => (
+                  <option key={template.id} value={template.id}>{template.label}</option>
+                ))}
+              </select>
+            </label>
             <div className={styles.viewToggle}>
               <button
                 className={`${styles.toggleBtn} ${view === 'grid' ? styles.toggleActive : ''}`}
@@ -286,19 +309,19 @@ export default function WebsitePage() {
         {loading && <p className={styles.stateMsg}>Loading pages…</p>}
         {error && <p className={styles.errorMsg}>{error}</p>}
 
-        {!loading && !error && pages.length === 0 && (
+        {!loading && !error && filteredPages.length === 0 && (
           <p className={styles.stateMsg}>No pages yet. Create your first page to get started.</p>
         )}
 
-        {!loading && !error && pages.length > 0 && view === 'grid' && (
+        {!loading && !error && filteredPages.length > 0 && view === 'grid' && (
           <div className={styles.grid}>
-            {pages.map((p) => (
+            {filteredPages.map((p) => (
               <PageCard key={p.slug} page={p} onQuickEdit={setEditingPage} onEdit={handleEdit} previewBase={previewBase} />
             ))}
           </div>
         )}
 
-        {!loading && !error && pages.length > 0 && view === 'list' && (
+        {!loading && !error && filteredPages.length > 0 && view === 'list' && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -311,7 +334,7 @@ export default function WebsitePage() {
                 </tr>
               </thead>
               <tbody>
-                {pages.map((p) => (
+                {filteredPages.map((p) => (
                   <PageRow key={p.slug} page={p} onQuickEdit={setEditingPage} onEdit={handleEdit} previewBase={previewBase} />
                 ))}
               </tbody>

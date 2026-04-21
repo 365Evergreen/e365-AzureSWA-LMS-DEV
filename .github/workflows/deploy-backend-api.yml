@@ -5,26 +5,60 @@ on:
     branches:
       - main
       - feature/project-setup
+    paths:
+      - services/backend-functions/**
+      - .github/workflows/deploy-backend-api.yml
+      - package.json
+      - pnpm-lock.yaml
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     name: Build and deploy backend API
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Azure
-        uses: azure/login@v2
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          version: 10.27.0
 
-      - name: Deploy backend API
-        uses: azure/CLI@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          inlineScript: |
-            az deployment group create \
-              --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-              --template-file backend-api/deploy.bicep \
-              --parameters @backend-api/deploy.parameters.json
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build backend functions
+        run: pnpm run build:backend
+
+      - name: Stage deployment package
+        run: |
+          rm -rf .deploy
+          mkdir -p .deploy/dist
+          cp services/backend-functions/host.json .deploy/
+          cp -R services/backend-functions/dist/. .deploy/dist/
+
+          node -e "const fs=require('fs'); const pkg=require('./services/backend-functions/package.json'); const out={name:pkg.name,version:pkg.version,main:pkg.main,dependencies:{'@azure/functions':pkg.dependencies['@azure/functions'],sharp:pkg.dependencies.sharp}}; fs.writeFileSync('./.deploy/package.json', JSON.stringify(out, null, 2));"
+
+      - name: Install runtime dependencies for Linux
+        working-directory: ./.deploy
+        run: |
+          npm install --omit=dev @azure/functions
+          npm install --omit=dev --ignore-scripts sharp
+          npm install --omit=dev @img/sharp-linux-x64 @img/sharp-libvips-linux-x64
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.AZURE_FUNCTIONS_APP_NAME }}
+          package: ./.deploy
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}

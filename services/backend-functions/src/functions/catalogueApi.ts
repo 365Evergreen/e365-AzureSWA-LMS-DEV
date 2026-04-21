@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, extractBearerToken, validateToken, type AuthClaims } from '../middleware/validateToken';
 import {
   upsertCatalogueItem,
   getCatalogueItem,
@@ -15,6 +15,7 @@ import {
   listModuleUnits,
   removeUnitFromModule,
   reorderModuleUnits,
+  createDefaultModuleAssessment,
   uploadUnitContent,
   fetchUnitContent,
   createContentVersion,
@@ -23,24 +24,30 @@ import {
   writeCatalogueBrowseEntry,
   deleteCatalogueBrowseEntry,
   listCatalogueBrowse,
+  syncCourseLandingPageFromPath,
+  listEnrolmentsByPath,
+  upsertEnrolmentRecord,
 } from '../lib/storage';
 import type { CatalogueItem, PathDetail, UnitDetail } from '@lms/shared-schemas';
+import { listGroupMemberUserIds } from '../lib/entra';
+
+const INTERNAL_USERS_GROUP_ID = '848a02f0-407f-4dc1-a77c-8d314f8d0de3';
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
-async function requireContentEditor(req: HttpRequest): Promise<
-  { claims: Record<string, unknown> } | HttpResponseInit
-> {
+async function requireContentEditor(
+  req: HttpRequest
+): Promise<{ claims: AuthClaims } | { error: HttpResponseInit }> {
   const token = extractBearerToken(req);
-  if (!token) return { status: 401, jsonBody: { error: 'Missing bearer token' } };
-  let claims: Record<string, unknown>;
+  if (!token) return { error: { status: 401, jsonBody: { error: 'Missing bearer token' } } };
+  let claims: AuthClaims;
   try {
     claims = await validateToken(token);
   } catch (err) {
-    return { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } };
+    return { error: { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } } };
   }
-  if (!hasRole(claims, 'ContentEditor')) {
-    return { status: 403, jsonBody: { error: 'ContentEditor role required' } };
+  if (!canEditContent(claims)) {
+    return { error: { status: 403, jsonBody: { error: 'Author, Publisher, Admin, or ContentEditor role required' } } };
   }
   return { claims };
 }
@@ -53,7 +60,7 @@ async function editorListCatalogueHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const type = (req.query.get('type') ?? 'PATH') as CatalogueItem['itemType'];
   const status = req.query.get('status') as CatalogueItem['status'] | null;
@@ -71,7 +78,7 @@ async function editorGetCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -107,10 +114,10 @@ async function editorGetCatalogueItemHandler(
   if (itemType === 'UNIT' && item.currentVersionId) {
     const vNum = parseInt(item.currentVersionId, 10);
     const version = await getContentVersion(itemId, vNum);
-    let blocks: unknown[] = [];
+    let blocks: UnitDetail['blocks'] = [];
     if (version) {
       const content = await fetchUnitContent(version.contentUri);
-      blocks = (content?.blocks as unknown[]) ?? [];
+      blocks = (content?.blocks as UnitDetail['blocks']) ?? [];
     }
     const detail: UnitDetail = { ...item, currentVersion: version ?? undefined, blocks };
     return { status: 200, jsonBody: detail };
@@ -126,8 +133,11 @@ const CreatePathSchema = z.object({
   title: z.string().min(1),
   slug: z.string().min(1),
   summary: z.string().optional().default(''),
-  difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional(),
+  difficulty: z.enum(['Foundation', 'Beginner', 'Intermediate', 'Advanced']).optional(),
+  role: z.string().optional().default(''),
+  learningPath: z.string().optional().default(''),
   estimatedMinutes: z.number().int().nonnegative().optional().default(0),
+  isMandatory: z.boolean().optional().default(false),
   visibility: z.enum(['Public', 'Enrolled']).optional().default('Public'),
   thumbnailUrl: z.string().optional(),
   tags: z.array(z.string()).optional().default([]),
@@ -139,7 +149,7 @@ async function createPathHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   let body: unknown;
@@ -157,7 +167,10 @@ async function createPathHandler(
     summary: parsed.data.summary,
     language: parsed.data.language,
     difficulty: parsed.data.difficulty,
+    role: parsed.data.role,
+    learningPath: parsed.data.learningPath,
     estimatedMinutes: parsed.data.estimatedMinutes,
+    isMandatory: parsed.data.isMandatory,
     visibility: parsed.data.visibility,
     status: 'Draft',
     thumbnailUrl: parsed.data.thumbnailUrl,
@@ -169,6 +182,10 @@ async function createPathHandler(
   };
 
   await upsertCatalogueItem(item);
+  await syncCourseLandingPageFromPath(item);
+  if (item.isMandatory) {
+    await syncMandatoryEnrolments(item.itemId, item.tenantId, context);
+  }
   context.log(`[catalogue] created PATH ${item.itemId} "${item.title}"`);
   return { status: 201, jsonBody: item };
 }
@@ -180,8 +197,11 @@ const PatchItemSchema = z.object({
   title: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
   summary: z.string().optional(),
-  difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional(),
+  difficulty: z.enum(['Foundation', 'Beginner', 'Intermediate', 'Advanced']).optional(),
+  role: z.string().optional(),
+  learningPath: z.string().optional(),
   estimatedMinutes: z.number().int().nonnegative().optional(),
+  isMandatory: z.boolean().optional(),
   visibility: z.enum(['Public', 'Enrolled']).optional(),
   thumbnailUrl: z.string().optional(),
   tags: z.array(z.string()).optional(),
@@ -195,7 +215,7 @@ async function patchCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -213,8 +233,49 @@ async function patchCatalogueItemHandler(
   }
 
   await patchCatalogueItem(itemType, itemId, patch);
+  if (itemType === 'PATH') {
+    const updated = await getCatalogueItem(itemType, itemId);
+    if (updated) {
+      await syncCourseLandingPageFromPath(updated);
+      if (updated.isMandatory) {
+        await syncMandatoryEnrolments(updated.itemId, updated.tenantId, context);
+      }
+    }
+  }
   context.log(`[catalogue] patched ${itemType} ${itemId}`);
   return { status: 200, jsonBody: { ok: true } };
+}
+
+async function syncMandatoryEnrolments(
+  pathId: string,
+  tenantId: string,
+  context: InvocationContext,
+): Promise<void> {
+  const [memberIds, existingEnrolments] = await Promise.all([
+    listGroupMemberUserIds(INTERNAL_USERS_GROUP_ID),
+    listEnrolmentsByPath(pathId),
+  ]);
+
+  const existingByUserId = new Map(existingEnrolments.map((enrolment) => [enrolment.userId, enrolment]));
+  const assignedOn = new Date().toISOString();
+
+  for (const userId of memberIds) {
+    const existing = existingByUserId.get(userId);
+    if (existing && existing.status !== 'Withdrawn') {
+      continue;
+    }
+
+    await upsertEnrolmentRecord({
+      userId,
+      pathId,
+      assignedOn,
+      status: 'Assigned',
+      source: 'Assigned',
+      tenantId: tenantId || 'default',
+    });
+  }
+
+  context.log(`[catalogue] synced ${memberIds.length} mandatory enrolments for PATH ${pathId}`);
 }
 
 // ─── Soft-delete (archive) ────────────────────────────────────────────────────
@@ -225,7 +286,7 @@ async function archiveCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -252,7 +313,7 @@ async function addModuleHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   const { pathId } = req.params as { pathId: string };
@@ -277,11 +338,15 @@ async function addModuleHandler(
     tagsCsv: '',
     createdOn: now,
     updatedOn: now,
+    role: '',
+    learningPath: '',
+    isMandatory: false,
     authorId: claims.oid as string || '',
     tenantId: 'default',
   };
 
   await upsertCatalogueItem(moduleItem);
+  await createDefaultModuleAssessment(moduleItem.itemId, claims.oid as string || '', `${parsed.data.title} assessment`);
 
   const existing = await listPathModules(pathId);
   const sortOrder = existing.length === 0 ? 10 : (Math.max(...existing.map(m => m.sortOrder)) + 10);
@@ -300,7 +365,7 @@ async function reorderModulesHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { pathId } = req.params as { pathId: string };
   let body: unknown;
@@ -322,7 +387,7 @@ async function removeModuleHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { pathId, moduleId } = req.params as { pathId: string; moduleId: string };
   await removeModuleFromPath(pathId, moduleId);
@@ -344,7 +409,7 @@ async function addUnitHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   const { moduleId } = req.params as { moduleId: string };
@@ -370,6 +435,9 @@ async function addUnitHandler(
     unitType: parsed.data.unitType,
     createdOn: now,
     updatedOn: now,
+    role: '',
+    learningPath: '',
+    isMandatory: false,
     authorId: claims.oid as string || '',
     tenantId: 'default',
   };
@@ -399,7 +467,7 @@ async function reorderUnitsHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { moduleId } = req.params as { moduleId: string };
   let body: unknown;
@@ -420,7 +488,7 @@ async function removeUnitHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { moduleId, unitId } = req.params as { moduleId: string; unitId: string };
   await removeUnitFromModule(moduleId, unitId);
@@ -445,7 +513,7 @@ async function saveUnitContentHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   const { unitId } = req.params as { unitId: string };
@@ -485,7 +553,7 @@ async function publishCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -546,7 +614,24 @@ async function publicGetPathHandler(
   const modules = await Promise.all(
     moduleLinks.map(async (link) => {
       const mod = await getCatalogueItem('MODULE', link.moduleId);
-      return mod ? { ...mod, sortOrder: link.sortOrder, isOptional: link.isOptional } : null;
+      if (!mod) return null;
+
+      const unitLinks = await listModuleUnits(link.moduleId);
+      const units = await Promise.all(
+        unitLinks.map(async (unitLink) => {
+          const unit = await getCatalogueItem('UNIT', unitLink.unitId);
+          return unit
+            ? { ...unit, sortOrder: unitLink.sortOrder, isOptional: unitLink.isOptional, unitType: unitLink.unitType }
+            : null;
+        })
+      );
+
+      return {
+        ...mod,
+        sortOrder: link.sortOrder,
+        isOptional: link.isOptional,
+        units: units.filter(Boolean),
+      };
     })
   );
 
@@ -713,6 +798,13 @@ app.http('publicBrowseCatalogue', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'catalogue/browse',
+  handler: publicBrowseCatalogueHandler,
+});
+
+app.http('publicBrowseCatalogueIndex', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'catalogue-index',
   handler: publicBrowseCatalogueHandler,
 });
 

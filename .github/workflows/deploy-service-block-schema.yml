@@ -1,10 +1,7 @@
 name: Deploy Block Schema Service
 
 on:
-  push:
-    branches:
-      - main
-      - feature/project-setup
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:

@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, canPublishContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 import { uploadSiteBundle, upsertSitePageMetadata } from '../lib/storage';
 
 const BlockSchema = z.object({
@@ -27,6 +27,9 @@ const SavePageSchema = z.object({
   navLabel: z.string().optional().default(''),
   navParent: z.string().optional().default(''),
   navOrder: z.number().optional().default(0),
+  linkedCourseId: z.string().optional().default(''),
+  linkedCourseSlug: z.string().optional().default(''),
+  linkedCourseTitle: z.string().optional().default(''),
 });
 
 async function savePageHandler(
@@ -44,10 +47,6 @@ async function savePageHandler(
     return { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } };
   }
 
-  if (!hasRole(claims, 'ContentEditor')) {
-    return { status: 403, jsonBody: { error: 'ContentEditor role required' } };
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -63,8 +62,21 @@ async function savePageHandler(
     };
   }
 
+  const isPublishing = parsed.data.status === 'published';
+  if (isPublishing ? !canPublishContent(claims) : !canEditContent(claims)) {
+    return {
+      status: 403,
+      jsonBody: {
+        error: isPublishing
+          ? 'Publisher, Admin, or ContentEditor role required'
+          : 'Author, Publisher, Admin, or ContentEditor role required',
+      },
+    };
+  }
+
   const { slug, title, description, templateId, contentType, blocks, status, publishedAt, tags, featuredImage,
-          categoryIds, primaryCategoryId, inNav, navLabel, navParent, navOrder } = parsed.data;
+          categoryIds, primaryCategoryId, inNav, navLabel, navParent, navOrder,
+          linkedCourseId, linkedCourseSlug, linkedCourseTitle } = parsed.data;
   if (primaryCategoryId && !categoryIds.includes(primaryCategoryId)) {
     return { status: 400, jsonBody: { error: 'primaryCategoryId must be included in categoryIds' } };
   }
@@ -95,6 +107,9 @@ async function savePageHandler(
     navLabel: navLabel || title,
     navParent,
     navOrder,
+    linkedCourseId: linkedCourseId || undefined,
+    linkedCourseSlug: linkedCourseSlug || undefined,
+    linkedCourseTitle: linkedCourseTitle || undefined,
   });
 
   context.log(`Saved ${contentType} "${slug}" (${pageId}) by ${claims.oid} — status: ${status}`);

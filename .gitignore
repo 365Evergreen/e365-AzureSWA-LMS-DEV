@@ -29,6 +29,11 @@ Thumbs.db
 .azure/local/
 agent
 
+# Azure Pipelines agent runtime binaries (large files, not for git)
+azure-lms-agent/*
+azure-lms-agent/bin/
+azure-lms-agent/externals/
+
 # Azure Functions local settings (may contain connection strings / secrets)
 local.settings.json
 
@@ -38,3 +43,8 @@ npm-debug.log*
 localhost.har
 lms.365evergreendev.com.har
 func-deploy.zip
+azure-lms-agent
+azure-lms-agent/
+apps/lms-publicsite-dev/docs
+lms.365evergreendev.com-*
+lms.365evergreendev.com-*.html

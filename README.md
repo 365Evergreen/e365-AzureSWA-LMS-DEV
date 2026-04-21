@@ -127,9 +127,23 @@ The backend pipeline uses the **`lms-azure-functions`** variable group and an Az
 
 | Variable | Description |
 |---|---|
-| `AZURE_TENANT_ID` | Entra tenant ID |
-| `BACKEND_API_CLIENT_ID` | Backend API app registration client ID |
-| `BLOB_STORAGE_CONNECTION_STRING` | Azure Blob Storage connection string |
+| `ENTRA_TENANT_ID` | Entra tenant ID used for backend token validation |
+| `ENTRA_CLIENT_ID` | Backend API app registration client ID used as the API audience |
+| `STORAGE_CONNECTION_STRING` | Azure Storage connection string for tables/blobs |
+| `ACS_CONNECTION_STRING` | Azure Communication Services connection string for sign-up confirmation emails |
+| `SIGNUP_EMAIL_SENDER` | ACS sender address for sign-up confirmation emails |
+| `LEARNER_RESOURCE_SP_OBJECT_ID` | Service principal object ID of the backend API app role resource |
+| `LEARNER_APP_ROLE_ID` | App role ID for the backend API `Learner` role |
+| `LEARNER_INVITE_REDIRECT_URL` | Post-invitation redirect URL, currently the learner app home |
+
+The Function App also uses a **system-assigned managed identity** for Microsoft Graph application permissions. Grant it:
+
+- `User.Invite.All`
+- `User.Read.All`
+- `GroupMember.Read.All`
+- `AppRoleAssignment.ReadWrite.All`
+
+The backend currently accepts the older aliases `AZURE_TENANT_ID`, `BACKEND_API_CLIENT_ID`, and `BLOB_STORAGE_CONNECTION_STRING` for compatibility during migration.
 
 See `shared/auth/README.md` for Entra app registration setup.
 
@@ -138,7 +152,7 @@ See `shared/auth/README.md` for Entra app registration setup.
 ## Auth
 
 - **Public site & Knowledge site**: Anonymous — no login required
-- **Editor app**: Entra ID, requires app role (`Author`, `Publisher`, or `Admin`)
+- **Editor app**: Entra ID, requires an editor-capable app role (`Author`, `Publisher`, `Admin`, or legacy `ContentEditor`)
 - **Learner app**: Entra ID, requires app role (`Learner`)
 
 Each app ships a `staticwebapp.config.json` (in `public/`) that configures SWA route rules and Entra auth. Replace `__TENANT_ID__` placeholders with your actual Entra tenant ID before deploying the editor and learner apps.

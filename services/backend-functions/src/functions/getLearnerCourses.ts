@@ -1,27 +1,176 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { extractBearerToken, validateToken } from '../middleware/validateToken';
+import { extractBearerToken, hasAnyRole, validateToken } from '../middleware/validateToken';
 import {
-  listPublishedCourses,
-  getCourseBySlug,
-  fetchBundle,
-  fetchEnrolments,
+  fetchUnitContent,
+  getCatalogueItem,
+  getContentVersion,
+  listCatalogueBrowse,
+  listEnrolmentsByUser,
+  listModuleUnits,
+  listPathModules,
+  listProgressByUser,
 } from '../lib/storage';
-import type { CourseMetadata } from '@lms/shared-schemas';
+import type { CatalogueItem } from '@lms/shared-schemas';
+import type { AuthClaims } from '../middleware/validateToken';
 
-// Strip the raw blob URL before sending to clients — content is served via this API only.
-function sanitiseCourse(course: CourseMetadata): Omit<CourseMetadata, 'bundleUrl'> {
-  const { bundleUrl: _omit, ...safe } = course;
-  return safe;
+type LearnerListCourse = {
+  courseId: string;
+  slug: string;
+  title: string;
+  description: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  tags: string[];
+  thumbnailUrl?: string;
+  moduleCount: number;
+  durationMinutes: number;
+  progress: number;
+  enrolled: boolean;
+  isMandatory: boolean;
+  role?: string;
+  learningPath?: string;
+  updatedOn: string;
+};
+
+function toLegacyLevel(difficulty?: CatalogueItem['difficulty']): LearnerListCourse['level'] {
+  switch (difficulty) {
+    case 'Advanced':
+      return 'advanced';
+    case 'Intermediate':
+      return 'intermediate';
+    case 'Foundation':
+      return 'beginner';
+    default:
+      return 'beginner';
+  }
 }
 
-async function requireLearner(req: HttpRequest) {
+async function listPublishedPaths(): Promise<CatalogueItem[]> {
+  return listCatalogueBrowse('PATH', 'Published');
+}
+
+async function getPublishedPathBySlug(slug: string): Promise<CatalogueItem | null> {
+  const paths = await listPublishedPaths();
+  const match = paths.find((path) => path.slug === slug);
+  if (!match) return null;
+  return getCatalogueItem('PATH', match.itemId);
+}
+
+async function getLearnerState(userId: string): Promise<{
+  enrolments: Map<string, 'Assigned' | 'Active' | 'Completed' | 'Withdrawn'>;
+  progress: Map<string, number>;
+}> {
+  const enrolments = await listEnrolmentsByUser(userId);
+  const progressStates = await listProgressByUser(userId);
+
+  return {
+    enrolments: new Map(enrolments.map((enrolment) => [enrolment.pathId, enrolment.status])),
+    progress: new Map(
+      progressStates
+        .filter((state) => state.itemType === 'PATH')
+        .map((state) => [state.itemId, state.percentComplete ?? 0]),
+    ),
+  };
+}
+
+async function toLearnerCourse(
+  path: CatalogueItem,
+  learnerState: {
+    enrolments: Map<string, 'Assigned' | 'Active' | 'Completed' | 'Withdrawn'>;
+    progress: Map<string, number>;
+  },
+): Promise<LearnerListCourse> {
+  const modules = await listPathModules(path.itemId);
+  const enrolmentStatus = learnerState.enrolments.get(path.itemId);
+  const progress = learnerState.progress.get(path.itemId) ?? (enrolmentStatus === 'Completed' ? 100 : 0);
+  return {
+    courseId: path.itemId,
+    slug: path.slug,
+    title: path.title,
+    description: path.summary ?? '',
+    level: toLegacyLevel(path.difficulty),
+    tags: path.tagsCsv ? path.tagsCsv.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
+    thumbnailUrl: path.thumbnailUrl,
+    moduleCount: modules.length,
+    durationMinutes: path.estimatedMinutes ?? 0,
+    progress,
+    enrolled: enrolmentStatus !== undefined && enrolmentStatus !== 'Withdrawn',
+    isMandatory: path.isMandatory ?? false,
+    role: path.role || undefined,
+    learningPath: path.learningPath || undefined,
+    updatedOn: path.updatedOn,
+  };
+}
+
+async function buildPathBundle(path: CatalogueItem) {
+  const moduleLinks = await listPathModules(path.itemId);
+  const blocks: unknown[] = [];
+
+  for (const moduleLink of moduleLinks) {
+    const module = await getCatalogueItem('MODULE', moduleLink.moduleId);
+    if (!module) continue;
+
+    blocks.push({
+      id: `${module.itemId}-heading`,
+      type: 'heading',
+      version: 1,
+      payload: { text: module.title, level: 2 },
+    });
+
+    const unitLinks = await listModuleUnits(module.itemId);
+    for (const unitLink of unitLinks) {
+      const unit = await getCatalogueItem('UNIT', unitLink.unitId);
+      if (!unit) continue;
+
+      blocks.push({
+        id: `${unit.itemId}-heading`,
+        type: 'heading',
+        version: 1,
+        payload: { text: unit.title, level: 3 },
+      });
+
+      if (!unit.currentVersionId) continue;
+
+      const versionNumber = parseInt(unit.currentVersionId, 10);
+      if (!Number.isFinite(versionNumber)) continue;
+
+      const version = await getContentVersion(unit.itemId, versionNumber);
+      if (!version) continue;
+
+      const content = await fetchUnitContent(version.contentUri);
+      if (content?.blocks?.length) {
+        blocks.push(...content.blocks);
+      }
+    }
+  }
+
+  return {
+    bundleId: path.itemId,
+    courseId: path.itemId,
+    platformVersion: '2.0.0',
+    publishedAt: path.updatedOn,
+    publishedBy: path.authorId,
+    metadata: {
+      title: path.title,
+      description: path.summary ?? '',
+      audienceRoles: ['Learner' as const],
+    },
+    blocks,
+  };
+}
+
+async function requireLearner(
+  req: HttpRequest
+): Promise<{ claims: AuthClaims } | { error: HttpResponseInit }> {
   const token = extractBearerToken(req);
   if (!token) return { error: { status: 401, jsonBody: { error: 'Missing bearer token' } } };
-  let claims;
+  let claims: AuthClaims;
   try {
     claims = await validateToken(token);
   } catch {
     return { error: { status: 401, jsonBody: { error: 'Invalid or expired token' } } };
+  }
+  if (!hasAnyRole(claims, ['Learner', 'Admin'])) {
+    return { error: { status: 403, jsonBody: { error: 'Learner or Admin role required' } } };
   }
   return { claims };
 }
@@ -35,14 +184,16 @@ async function listLearnerCoursesHandler(
 ): Promise<HttpResponseInit> {
   const auth = await requireLearner(req);
   if ('error' in auth) return auth.error;
+  const { claims } = auth;
 
-  const courses = await listPublishedCourses();
-  const sanitised = courses.map(sanitiseCourse);
+  const paths = await listPublishedPaths();
+  const learnerState = await getLearnerState(claims.oid as string);
+  const courses = await Promise.all(paths.map((path) => toLearnerCourse(path, learnerState)));
 
-  context.log(`[learner/courses] returning ${sanitised.length} courses`);
+  context.log(`[learner/courses] returning ${courses.length} published paths`);
   return {
     status: 200,
-    jsonBody: { courses: sanitised, total: sanitised.length },
+    jsonBody: { courses, total: courses.length },
     headers: { 'Cache-Control': 'private, max-age=30' },
   };
 }
@@ -63,27 +214,24 @@ async function getLearnerCourseHandler(
   const slug = req.params.slug;
   if (!slug) return { status: 400, jsonBody: { error: 'slug is required' } };
 
-  const course = await getCourseBySlug(slug);
-  if (!course || course.status !== 'published') {
+  const path = await getPublishedPathBySlug(slug);
+  if (!path || path.status !== 'Published') {
     return { status: 404, jsonBody: { error: 'Course not found' } };
   }
 
-  // Enrolment gate — active when the course is marked enrolled-only or the caller
-  // explicitly requests an enrolment check via ?enrolled=true.
+  const learnerState = await getLearnerState(claims.oid as string);
   const checkEnrolment = req.query.get('enrolled') === 'true';
   if (checkEnrolment) {
-    const enrolments = await fetchEnrolments(claims.oid as string);
-    const enrolled = enrolments.some((e) => e.courseId === course.courseId);
-    if (!enrolled) {
+    const enrolmentStatus = learnerState.enrolments.get(path.itemId);
+    if (!enrolmentStatus || enrolmentStatus === 'Withdrawn') {
       return { status: 403, jsonBody: { error: 'Enrolment required to access this content' } };
     }
   }
 
-  // Extract bundleId from the stored URL and fetch privately (connection-string access).
-  const bundleId = course.bundleUrl.split('/').pop()?.replace('.json', '');
-  const bundle = bundleId ? await fetchBundle(bundleId) : null;
+  const bundle = await buildPathBundle(path);
+  const course = await toLearnerCourse(path, learnerState);
 
-  if (!bundle) {
+  if (!bundle.blocks.length) {
     context.warn(`[learner/courses] missing bundle for course ${slug}`);
     return { status: 404, jsonBody: { error: 'Course content not available' } };
   }
@@ -91,7 +239,7 @@ async function getLearnerCourseHandler(
   context.log(`[learner/courses] served ${slug} to ${claims.oid}`);
   return {
     status: 200,
-    jsonBody: { ...sanitiseCourse(course), bundle },
+    jsonBody: { ...course, bundle },
     headers: { 'Cache-Control': 'private, max-age=60' },
   };
 }

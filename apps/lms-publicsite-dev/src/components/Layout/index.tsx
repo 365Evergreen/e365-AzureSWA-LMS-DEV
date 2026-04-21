@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { CopilotStudioAgent } from '../CopilotStudioAgent'
 import { SiteHeader } from '../SiteHeader'
 import { SiteFooter } from '../SiteFooter'
 import styles from './Layout.module.css'
@@ -13,6 +14,7 @@ export function Layout({ children }: LayoutProps) {
       <SiteHeader />
       <main className={styles.main}>{children}</main>
       <SiteFooter />
+      <CopilotStudioAgent />
     </div>
   )
 }

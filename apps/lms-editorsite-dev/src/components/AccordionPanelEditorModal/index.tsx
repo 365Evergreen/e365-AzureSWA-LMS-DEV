@@ -9,6 +9,7 @@ interface PanelBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 interface AccordionPanelEditorModalProps {
@@ -41,6 +42,10 @@ export default function AccordionPanelEditorModal({
 
   function updatePayload(id: string, payload: unknown) {
     setPanelBlocks((previous) => previous.map((block) => (block.id === id ? { ...block, payload } : block)));
+  }
+
+  function updateBackground(id: string, background: string | undefined) {
+    setPanelBlocks((previous) => previous.map((block) => (block.id === id ? { ...block, background } : block)));
   }
 
   function deleteBlock(id: string) {
@@ -103,6 +108,7 @@ export default function AccordionPanelEditorModal({
                 onRemoveBlock={deleteBlock}
                 onReorderBlocks={reorderBlocks}
                 onUpdatePayload={updatePayload}
+                onUpdateBackground={updateBackground}
                 onInsertBlocksAfter={insertBlocksAfter}
               />
             )}

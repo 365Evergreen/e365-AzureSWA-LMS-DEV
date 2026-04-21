@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
 import { createBlogCategory, listBlogCategories } from '../lib/storage';
-import { extractBearerToken, hasRole, validateToken } from '../middleware/validateToken';
+import { canEditContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 
 const CreateCategorySchema = z.object({
   taxonomy: z.enum(['post']).optional().default('post'),
@@ -26,7 +26,7 @@ async function categoriesHandler(req: HttpRequest, context: InvocationContext): 
 
   const claims = await validateToken(token);
   if (!claims) return { status: 401, body: 'Invalid token' };
-  if (!hasRole(claims, 'ContentEditor') && !hasRole(claims, 'Admin')) {
+  if (!canEditContent(claims)) {
     return { status: 403, body: 'Forbidden' };
   }
 

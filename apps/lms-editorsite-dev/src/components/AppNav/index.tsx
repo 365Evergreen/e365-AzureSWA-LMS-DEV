@@ -23,17 +23,7 @@ export default function AppNav() {
           <span className={styles.logoTitle}>365 Evergreen LMS admin portal</span>
         </Link>
       }
-      items={
-        user
-          ? [
-              { label: 'Courses', href: '/courses' },
-              { label: 'Knowledge Base', href: '/knowledge-base' },
-              { label: 'Website', href: '/website' },
-              { label: 'Blog Posts', href: '/blog-posts' },
-              { label: 'Media', href: '/media' },
-            ]
-          : []
-      }
+      items={[]}
       actions={
         <div className={styles.actions}>
           {user ? (

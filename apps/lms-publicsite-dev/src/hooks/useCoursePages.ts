@@ -22,7 +22,7 @@ interface UseCoursePageResult {
 }
 
 /**
- * Fetches all published pages with templateId === 'course-overview'.
+ * Fetches all published pages with a course landing template.
  * Public endpoint — no auth required.
  */
 export function useCoursePages(): UseCoursePageResult {
@@ -37,7 +37,9 @@ export function useCoursePages(): UseCoursePageResult {
       const res = await fetch(`${apiBase()}/api/pages?type=page`)
       if (!res.ok) throw new Error(`API error ${res.status}`)
       const data = await res.json() as { pages: CoursePage[] }
-      const coursePages = data.pages.filter((p) => p.templateId === 'course-overview' && p.status === 'published')
+      const coursePages = data.pages.filter(
+        (p) => ['course-overview', 'course-landing'].includes(p.templateId) && p.status === 'published',
+      )
       setPages(coursePages)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load courses')

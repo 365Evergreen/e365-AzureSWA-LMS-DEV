@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { BlockType } from '@lms/block-registry';
 import { LoadingSpinner } from '@lms/shared-ui';
-import AppNav from '../../components/AppNav';
 import ContentEditor, { type ContentEditorInitialData } from '../../components/ContentEditor';
 import { loadEditorPage } from '../../api/pages';
 import styles from './EditKnowledgePage.module.css';
@@ -36,7 +35,6 @@ export default function EditKnowledgePage() {
   if (error) {
     return (
       <div className={styles.page}>
-        <AppNav />
         <main className={styles.main}>
           <p className={styles.error}>{error}</p>
           <button className={styles.back} onClick={() => navigate('/knowledge-base')}>← Back to articles</button>
@@ -48,7 +46,6 @@ export default function EditKnowledgePage() {
   if (!initialData) {
     return (
       <div className={styles.page}>
-        <AppNav />
         <main className={styles.main}><LoadingSpinner /></main>
       </div>
     );

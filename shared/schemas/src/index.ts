@@ -7,6 +7,7 @@ export const BlockSchema = z.object({
   type: z.string(),
   version: z.number().int().positive(),
   payload: z.record(z.unknown()),
+  background: z.string().optional(),
 });
 
 export type Block = z.infer<typeof BlockSchema>;
@@ -117,7 +118,7 @@ export type ItemType = z.infer<typeof ItemTypeSchema>;
 export const ItemStatusSchema = z.enum(['Draft', 'Published', 'Archived']);
 export type ItemStatus = z.infer<typeof ItemStatusSchema>;
 
-export const DifficultySchema = z.enum(['Beginner', 'Intermediate', 'Advanced']);
+export const DifficultySchema = z.enum(['Foundation', 'Beginner', 'Intermediate', 'Advanced']);
 export type Difficulty = z.infer<typeof DifficultySchema>;
 
 export const UnitTypeSchema = z.enum(['Lesson', 'Video', 'Assessment', 'Interactive']);
@@ -138,7 +139,10 @@ export const CatalogueItemSchema = z.object({
   summary: z.string().default(''),
   language: z.string().default('en'),
   difficulty: DifficultySchema.optional(),
+  role: z.string().default(''),
+  learningPath: z.string().default(''),
   estimatedMinutes: z.number().int().nonnegative().default(0),
+  isMandatory: z.boolean().default(false),
   visibility: VisibilitySchema.default('Public'),
   status: ItemStatusSchema.default('Draft'),
   currentVersionId: z.string().optional(),
@@ -204,8 +208,9 @@ export const EnrolmentSourceSchema = z.enum(['Self', 'Assigned', 'AdminImport'])
 export const EnrolmentRecordSchema = z.object({
   userId: z.string(),
   pathId: z.string().uuid(),
-  enrolledOn: z.string().datetime(),
-  status: z.enum(['Active', 'Completed', 'Withdrawn']),
+  enrolledOn: z.string().datetime().optional(),
+  assignedOn: z.string().datetime().optional(),
+  status: z.enum(['Assigned', 'Active', 'Completed', 'Withdrawn']),
   dueOn: z.string().datetime().optional(),
   source: EnrolmentSourceSchema.default('Self'),
   tenantId: z.string().default('default'),
@@ -275,3 +280,80 @@ export const UnitDetailSchema = CatalogueItemSchema.extend({
   blocks: z.array(BlockSchema).optional(),
 });
 export type UnitDetail = z.infer<typeof UnitDetailSchema>;
+
+// ─── Module assessment model ───────────────────────────────────────────────────
+
+export const AssessmentDefinitionSchema = z.object({
+  assessmentId: z.string().uuid(),
+  moduleId: z.string().uuid(),
+  title: z.string().min(1),
+  description: z.string().default(''),
+  passingPercent: z.number().min(0).max(100).default(70),
+  questionCount: z.number().int().nonnegative().default(0),
+  createdOn: z.string().datetime(),
+  updatedOn: z.string().datetime(),
+  authorId: z.string(),
+});
+export type AssessmentDefinition = z.infer<typeof AssessmentDefinitionSchema>;
+
+export const AssessmentOptionSchema = z.object({
+  optionId: z.string().uuid(),
+  assessmentId: z.string().uuid(),
+  questionId: z.string().uuid(),
+  label: z.string().min(1),
+  sortOrder: z.number().int().nonnegative(),
+  isCorrect: z.boolean().default(false),
+});
+export type AssessmentOption = z.infer<typeof AssessmentOptionSchema>;
+
+export const AssessmentQuestionSchema = z.object({
+  questionId: z.string().uuid(),
+  assessmentId: z.string().uuid(),
+  prompt: z.string().min(1),
+  explanation: z.string().default(''),
+  allowsMultiple: z.boolean().default(false),
+  sortOrder: z.number().int().nonnegative(),
+  options: z.array(AssessmentOptionSchema).default([]),
+});
+export type AssessmentQuestion = z.infer<typeof AssessmentQuestionSchema>;
+
+export const AssessmentDetailSchema = AssessmentDefinitionSchema.extend({
+  questions: z.array(AssessmentQuestionSchema).default([]),
+});
+export type AssessmentDetail = z.infer<typeof AssessmentDetailSchema>;
+
+export const AssessmentSubmissionAnswerSchema = z.object({
+  questionId: z.string().uuid(),
+  selectedOptionIds: z.array(z.string().uuid()).default([]),
+});
+export type AssessmentSubmissionAnswer = z.infer<typeof AssessmentSubmissionAnswerSchema>;
+
+export const AssessmentAttemptSubmissionSchema = z.object({
+  answers: z.array(AssessmentSubmissionAnswerSchema).default([]),
+});
+export type AssessmentAttemptSubmission = z.infer<typeof AssessmentAttemptSubmissionSchema>;
+
+export const LearnerAssessmentAnswerSchema = z.object({
+  attemptId: z.string().uuid(),
+  userId: z.string(),
+  assessmentId: z.string().uuid(),
+  moduleId: z.string().uuid(),
+  questionId: z.string().uuid(),
+  selectedOptionIds: z.array(z.string().uuid()).default([]),
+  isCorrect: z.boolean(),
+  answeredOn: z.string().datetime(),
+});
+export type LearnerAssessmentAnswer = z.infer<typeof LearnerAssessmentAnswerSchema>;
+
+export const AssessmentOutcomeSchema = z.object({
+  attemptId: z.string().uuid(),
+  userId: z.string(),
+  assessmentId: z.string().uuid(),
+  moduleId: z.string().uuid(),
+  totalQuestions: z.number().int().nonnegative(),
+  correctQuestions: z.number().int().nonnegative(),
+  scorePercent: z.number().min(0).max(100),
+  passed: z.boolean(),
+  submittedOn: z.string().datetime(),
+});
+export type AssessmentOutcome = z.infer<typeof AssessmentOutcomeSchema>;

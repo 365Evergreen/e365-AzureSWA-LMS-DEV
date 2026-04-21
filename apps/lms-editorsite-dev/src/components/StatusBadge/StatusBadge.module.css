@@ -22,3 +22,8 @@
   background-color: var(--color-success-bg);
   color: var(--color-success);
 }
+
+.archived {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}

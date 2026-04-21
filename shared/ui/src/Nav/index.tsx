@@ -16,15 +16,17 @@ export function Nav({ logo, items, actions }: NavProps) {
   return (
     <nav className={styles.nav}>
       {logo && <div className={styles.logo}>{logo}</div>}
-      <ul className={styles.items}>
-        {items.map((item) => (
-          <li key={item.href}>
-            <a href={item.href} className={styles.link}>
-              {item.label}
-            </a>
-          </li>
-        ))}
-      </ul>
+      {items.length > 0 && (
+        <ul className={styles.items}>
+          {items.map((item) => (
+            <li key={item.href}>
+              <a href={item.href} className={styles.link}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
       {actions && <div className={styles.actions}>{actions}</div>}
     </nav>
   );

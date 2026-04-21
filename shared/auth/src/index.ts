@@ -3,12 +3,13 @@ import {
   type Configuration,
   type AccountInfo,
   type SilentRequest,
+  InteractionRequiredAuthError,
 } from '@azure/msal-browser';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // ─── App Roles ───────────────────────────────────────────────────────────────
 
-export type AppRole = 'ContentEditor' | 'Learner';
+export type AppRole = 'Author' | 'Publisher' | 'Admin' | 'ContentEditor' | 'Learner';
 
 export interface AuthUser {
   account: AccountInfo;
@@ -36,11 +37,20 @@ export async function acquireToken(
   msalInstance: PublicClientApplication,
   request: SilentRequest,
 ): Promise<string | null> {
+  const account = request.account ?? msalInstance.getActiveAccount() ?? undefined;
+  if (!account) {
+    return null;
+  }
+
   try {
-    const result = await msalInstance.acquireTokenSilent(request);
+    const result = await msalInstance.acquireTokenSilent({ ...request, account });
     return result.accessToken;
-  } catch {
-    await msalInstance.acquireTokenRedirect(request);
+  } catch (error) {
+    if (error instanceof InteractionRequiredAuthError) {
+      await msalInstance.acquireTokenRedirect({ ...request, account });
+    } else {
+      console.warn('[auth] acquireTokenSilent failed', error);
+    }
     return null;
   }
 }
@@ -50,8 +60,20 @@ function parseRoles(account: AccountInfo): AppRole[] {
   const raw = claims?.['roles'];
   if (!Array.isArray(raw)) return [];
   return raw.filter((r): r is AppRole =>
-    ['ContentEditor', 'Learner'].includes(r as string),
+    ['Author', 'Publisher', 'Admin', 'ContentEditor', 'Learner'].includes(r as string),
   );
+}
+
+export function hasAnyRole(roles: readonly AppRole[], allowedRoles: readonly AppRole[]): boolean {
+  return roles.some((role) => allowedRoles.includes(role));
+}
+
+export function canAccessEditor(roles: readonly AppRole[]): boolean {
+  return hasAnyRole(roles, ['Author', 'Publisher', 'Admin', 'ContentEditor']);
+}
+
+export function canPublishContent(roles: readonly AppRole[]): boolean {
+  return hasAnyRole(roles, ['Publisher', 'Admin', 'ContentEditor']);
 }
 
 // ─── useAuth hook ─────────────────────────────────────────────────────────────
@@ -65,40 +87,64 @@ export function useAuth(msalInstance: PublicClientApplication): {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    msalInstance.initialize().then(async () => {
-      // Process the redirect response (auth code) returned by Entra after loginRedirect.
-      const result = await msalInstance.handleRedirectPromise();
-      if (result?.account) {
-        msalInstance.setActiveAccount(result.account);
-      }
+    let cancelled = false;
 
-      let account = msalInstance.getActiveAccount();
+    (async () => {
+      try {
+        await msalInstance.initialize();
 
-      // If no cached account, attempt SSO silent using the existing Entra browser session.
-      // This signs in the user automatically if they are already authenticated with Microsoft
-      // (e.g. logged into Microsoft 365 in the same browser) without any redirect or popup.
-      if (!account) {
-        try {
-          const ssoResult = await msalInstance.ssoSilent({ scopes: ['User.Read'] });
-          if (ssoResult?.account) {
-            msalInstance.setActiveAccount(ssoResult.account);
-            account = ssoResult.account;
+        // Process the redirect response (auth code) returned by Entra after loginRedirect.
+        const result = await msalInstance.handleRedirectPromise();
+        if (result?.account) {
+          msalInstance.setActiveAccount(result.account);
+        }
+
+        let account = msalInstance.getActiveAccount();
+
+        if (!account) {
+          const [firstAccount] = msalInstance.getAllAccounts();
+          if (firstAccount) {
+            msalInstance.setActiveAccount(firstAccount);
+            account = firstAccount;
           }
-        } catch {
-          // No existing Entra session — user will need to sign in manually.
+        }
+
+        // If no cached account, attempt SSO silent using the existing Entra browser session.
+        // This signs in the user automatically if they are already authenticated with Microsoft
+        // (e.g. logged into Microsoft 365 in the same browser) without any redirect or popup.
+        if (!account) {
+          try {
+            const ssoResult = await msalInstance.ssoSilent({ scopes: ['User.Read'] });
+            if (ssoResult?.account) {
+              msalInstance.setActiveAccount(ssoResult.account);
+              account = ssoResult.account;
+            }
+          } catch {
+            // No existing Entra session — user will need to sign in manually.
+          }
+        }
+
+        if (!cancelled && account) {
+          setUser({ account, roles: parseRoles(account) });
+        }
+      } catch (error) {
+        console.error('[auth] failed to initialise MSAL', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
         }
       }
+    })();
 
-      if (account) {
-        setUser({ account, roles: parseRoles(account) });
-      }
-      setIsLoading(false);
-    });
+    return () => {
+      cancelled = true;
+    };
   }, [msalInstance]);
 
-  async function getAccessToken(scopes: string[]): Promise<string | null> {
-    return acquireToken(msalInstance, { scopes });
-  }
+  const getAccessToken = useCallback(
+    async (scopes: string[]): Promise<string | null> => acquireToken(msalInstance, { scopes }),
+    [msalInstance],
+  );
 
   return { user, isLoading, getAccessToken };
 }

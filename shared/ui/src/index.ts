@@ -3,6 +3,7 @@ export { Card } from './Card/index';
 export { Nav } from './Nav/index';
 export { LoadingSpinner } from './LoadingSpinner/index';
 export { ErrorBoundary } from './ErrorBoundary/index';
+export { sanitizeHtml } from './sanitizeHtml';
 export type { ButtonProps } from './Button/index';
 export type { CardProps } from './Card/index';
 export type { NavProps, NavItem } from './Nav/index';
@@ -19,4 +20,8 @@ export type { PostLayoutProps, PostMetadata } from './layouts/PostLayout/index';
 // Template registry
 export { templates, getTemplate, getTemplatesByCategory } from './templates/registry';
 export type { TemplateDefinition, TemplateCategory } from './templates/registry';
+
+// Icons
+export { ICONS_MAP } from './Icons';
+export { DashboardIcon, CoursesIcon, KnowledgeBaseIcon, WebsiteIcon, BlogIcon, MediaIcon, WebPagesIcon } from './Icons';
 

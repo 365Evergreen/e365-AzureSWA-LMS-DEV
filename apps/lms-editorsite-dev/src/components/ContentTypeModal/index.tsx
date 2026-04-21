@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { WebPagesIcon } from '@lms/shared-ui';
 import styles from './ContentTypeModal.module.css';
 
 interface ContentTypeModalProps {
@@ -10,7 +12,7 @@ const contentTypes = [
     type: 'page' as const,
     label: 'New page',
     description: 'Fairly static content. Choose from landing, content, or search results layouts.',
-    icon: '⬜',
+    icon: <WebPagesIcon />,
   },
   {
     type: 'post' as const,
@@ -18,7 +20,12 @@ const contentTypes = [
     description: 'Regularly updated content with metadata for filtering and search.',
     icon: '📄',
   },
-];
+] satisfies Array<{
+  type: 'page' | 'post';
+  label: string;
+  description: string;
+  icon: ReactNode;
+}>;
 
 export default function ContentTypeModal({ onSelect, onCancel }: ContentTypeModalProps) {
   return (

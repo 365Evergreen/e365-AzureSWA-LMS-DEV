@@ -1,6 +1,7 @@
 import React from 'react';
-import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema, FormPayloadSchema, AccordionPayloadSchema, normalizeAccordionPayload } from '@lms/block-registry';
-import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload, FormPayload, FormField, AccordionPayload } from '@lms/block-registry';
+import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema, FormPayloadSchema, AccordionPayloadSchema, ColumnsPayloadSchema, normalizeAccordionPayload, normalizeColumnsPayload } from '@lms/block-registry';
+import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload, FormPayload, FormField, AccordionPayload, ColumnsPayload } from '@lms/block-registry';
+import { sanitizeHtml } from '@lms/shared-ui';
 import { z } from 'zod';
 
 // ─── Stub renderer for blocks not yet implemented ─────────────────────────────
@@ -86,7 +87,7 @@ export function registerDefaultBlocks(): void {
         textDecoration: payload.underline ? 'underline' : undefined,
         fontSize: payload.size ? sizeMap[payload.size] : undefined,
       };
-      return <div style={style} dangerouslySetInnerHTML={{ __html: payload.html }} />;
+      return <div style={style} dangerouslySetInnerHTML={{ __html: sanitizeHtml(payload.html) }} />;
     },
   });
 
@@ -147,7 +148,7 @@ export function registerDefaultBlocks(): void {
     Renderer: ({ payload }) => (
       <details style={{ border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '4px', padding: '0.5rem 1rem' }}>
         <summary style={{ cursor: 'pointer', fontWeight: 600 }}>{payload.summary}</summary>
-        <div style={{ paddingTop: '0.5rem' }} dangerouslySetInnerHTML={{ __html: payload.body }} />
+        <div style={{ paddingTop: '0.5rem' }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(payload.body) }} />
       </details>
     ),
   });
@@ -481,20 +482,17 @@ export function registerDefaultBlocks(): void {
     group: BlockGroup.DESIGN,
     label: 'Columns',
     icon: '⫾',
-    payloadSchema: z.object({
-      columns: z.number().int().min(2).max(6).default(2),
-      gap: z.enum(['sm', 'md', 'lg']).optional().default('md'),
-    }),
-    defaultPayload: { columns: 2, gap: 'md' as const },
+    payloadSchema: ColumnsPayloadSchema,
+    defaultPayload: normalizeColumnsPayload({ columns: 2, gap: 'md' }) as ColumnsPayload,
     Renderer: ({ payload }) => {
-      const p = payload as { columns: number; gap?: string };
+      const p = normalizeColumnsPayload(payload);
       const gapMap: Record<string, string> = { sm: '0.5rem', md: '1rem', lg: '2rem' };
       const gap = gapMap[p.gap ?? 'md'];
       return (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${p.columns}, 1fr)`, gap, minHeight: '60px' }}>
-          {Array.from({ length: p.columns }).map((_, i) => (
-            <div key={i} style={{ border: '1px dashed var(--color-border, #d1d5db)', borderRadius: '4px', minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary, #9ca3af)', fontSize: '0.78rem', padding: '0.5rem' }}>
-              Column {i + 1}
+          {p.items.map((column, i) => (
+            <div key={column.id} style={{ border: '1px dashed var(--color-border, #d1d5db)', borderRadius: '4px', minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary, #9ca3af)', fontSize: '0.78rem', padding: '0.5rem', textAlign: 'center' }}>
+              Column {i + 1} · {column.blocks.length} block{column.blocks.length === 1 ? '' : 's'}{column.showOnMobile === false ? ' · hidden on mobile' : ''}
             </div>
           ))}
         </div>

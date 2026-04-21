@@ -9,6 +9,7 @@ interface CellBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 interface GridCellEditorModalProps {
@@ -41,6 +42,10 @@ export default function GridCellEditorModal({
 
   function updatePayload(id: string, payload: unknown) {
     setCellBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, payload } : b)));
+  }
+
+  function updateBackground(id: string, background: string | undefined) {
+    setCellBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, background } : b)));
   }
 
   function deleteBlock(id: string) {
@@ -105,6 +110,7 @@ export default function GridCellEditorModal({
                 onRemoveBlock={deleteBlock}
                 onReorderBlocks={reorderBlocks}
                 onUpdatePayload={updatePayload}
+                onUpdateBackground={updateBackground}
                 onInsertBlocksAfter={insertBlocksAfter}
               />
             )}

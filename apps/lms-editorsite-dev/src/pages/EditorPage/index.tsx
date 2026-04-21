@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { BlockType } from '@lms/block-registry';
-import AppNav from '../../components/AppNav';
 import BlockPalette from '../../components/BlockPalette';
 import BlockCanvas from '../../components/BlockCanvas';
 import BlockPropertyEditor from '../../components/BlockPropertyEditor';
@@ -19,6 +18,7 @@ interface EditorBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 type ContentType = 'page' | 'post';
@@ -67,6 +67,13 @@ export default function EditorPage() {
     setState((s) => ({
       ...s,
       blocks: s.blocks.map((b) => (b.id === id ? { ...b, payload } : b)),
+    }));
+  }
+
+  function updateBlockBackground(id: string, background: string | undefined) {
+    setState((s) => ({
+      ...s,
+      blocks: s.blocks.map((b) => (b.id === id ? { ...b, background } : b)),
     }));
   }
 
@@ -142,6 +149,7 @@ export default function EditorPage() {
         type: b.type,
         version: 1,
         payload: b.payload as Record<string, unknown>,
+        background: b.background,
       })),
       status,
     });
@@ -154,7 +162,6 @@ export default function EditorPage() {
 
   return (
     <div className={styles.root}>
-      <AppNav />
       <div className={styles.layout}>
         <aside className={styles.palette}>
           <BlockPalette onAddBlock={addBlock} />
@@ -168,6 +175,7 @@ export default function EditorPage() {
               onRemoveBlock={removeBlock}
               onReorderBlocks={reorderBlocks}
               onUpdatePayload={updateBlockPayload}
+              onUpdateBackground={updateBlockBackground}
               onInsertBlocksAfter={insertBlocksAfter}
             />
           </CanvasLayoutPreview>
@@ -251,5 +259,4 @@ export default function EditorPage() {
     </div>
   );
 }
-
 

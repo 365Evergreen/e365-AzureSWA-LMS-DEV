@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
-import { fetchEnrolments } from '../lib/storage';
+import { listEnrolmentsByUser } from '../lib/storage';
 
 async function getEnrolmentHandler(
   req: HttpRequest,
@@ -24,7 +24,7 @@ async function getEnrolmentHandler(
     return { status: 403, jsonBody: { error: 'Access denied' } };
   }
 
-  const enrolments = await fetchEnrolments(userId);
+  const enrolments = await listEnrolmentsByUser(userId);
 
   context.log(`Fetched ${enrolments.length} enrolment(s) for user ${userId}`);
   return { status: 200, jsonBody: enrolments };

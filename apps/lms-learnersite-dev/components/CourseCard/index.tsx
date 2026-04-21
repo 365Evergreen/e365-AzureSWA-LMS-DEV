@@ -42,6 +42,9 @@ export function CourseCard({ course }: CourseCardProps) {
           {course.moduleCount > 0 && (
             <span className={styles.metaItem}>{course.moduleCount} module{course.moduleCount !== 1 ? 's' : ''}</span>
           )}
+          {course.isMandatory && (
+            <span className={styles.tag}>Mandatory</span>
+          )}
           {course.tags.slice(0, 2).map((tag) => (
             <span key={tag} className={styles.tag}>{tag}</span>
           ))}
@@ -57,7 +60,7 @@ export function CourseCard({ course }: CourseCardProps) {
           </Link>
           {!course.enrolled && (
             <Button variant="secondary" size="sm" disabled>
-              Not enrolled
+              {course.isMandatory ? 'Mandatory' : 'Not enrolled'}
             </Button>
           )}
         </div>

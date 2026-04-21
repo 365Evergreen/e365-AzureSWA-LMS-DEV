@@ -16,6 +16,7 @@ interface CourseSelectorModalProps {
 }
 
 const DIFFICULTY_LABEL: Record<string, string> = {
+  Foundation: '🔵 Foundation',
   Beginner: '🟢 Beginner',
   Intermediate: '🟡 Intermediate',
   Advanced: '🔴 Advanced',

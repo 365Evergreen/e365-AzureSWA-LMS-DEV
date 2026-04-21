@@ -5,9 +5,19 @@ import type {
   CatalogueItem,
   PathDetail,
   UnitDetail,
+  AssessmentDetail,
+  AssessmentQuestion,
+  AssessmentOption,
 } from '@lms/shared-schemas';
 
-export type { CatalogueItem, PathDetail, UnitDetail };
+export type {
+  CatalogueItem,
+  PathDetail,
+  UnitDetail,
+  AssessmentDetail,
+  AssessmentQuestion,
+  AssessmentOption,
+};
 
 // ─── Auth token helper (shared with pages.ts pattern) ────────────────────────
 
@@ -22,8 +32,15 @@ async function getToken(): Promise<string | null> {
       return result.accessToken;
     } catch (err) {
       if (err instanceof InteractionRequiredAuthError) {
-        const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
-        return result.accessToken;
+        try {
+          const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
+          return result.accessToken;
+        } catch {
+          // Popup also failed (e.g. AADSTS160021 — session no longer exists).
+          // Fall back to a full redirect so the user is prompted to sign in again.
+          await msalInstance.acquireTokenRedirect({ scopes: [scope], account });
+          return null;
+        }
       }
       throw err;
     }
@@ -87,7 +104,10 @@ export interface CreatePathRequest {
   slug: string;
   summary?: string;
   difficulty?: CatalogueItem['difficulty'];
+  role?: string;
+  learningPath?: string;
   estimatedMinutes?: number;
+  isMandatory?: boolean;
   visibility?: CatalogueItem['visibility'];
   thumbnailUrl?: string;
   tags?: string[];
@@ -158,6 +178,39 @@ export async function removeModule(pathId: string, moduleId: string): Promise<vo
   await apiFetch(`/api/catalogue/paths/${pathId}/modules/${moduleId}`, { method: 'DELETE' });
 }
 
+export interface SaveModuleAssessmentRequest {
+  title?: string;
+  description?: string;
+  passingPercent?: number;
+  questions: Array<{
+    questionId?: string;
+    prompt: string;
+    explanation?: string;
+    allowsMultiple?: boolean;
+    sortOrder?: number;
+    options: Array<{
+      optionId?: string;
+      label: string;
+      isCorrect: boolean;
+      sortOrder?: number;
+    }>;
+  }>;
+}
+
+export async function loadEditorModuleAssessment(moduleId: string): Promise<AssessmentDetail> {
+  return apiFetch<AssessmentDetail>(`/api/editor/catalogue/modules/${moduleId}/assessment`);
+}
+
+export async function saveModuleAssessment(
+  moduleId: string,
+  data: SaveModuleAssessmentRequest,
+): Promise<AssessmentDetail> {
+  return apiFetch<AssessmentDetail>(`/api/catalogue/modules/${moduleId}/assessment`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 // ─── Units ────────────────────────────────────────────────────────────────────
 
 export interface AddUnitResponse {
@@ -195,6 +248,7 @@ export interface Block {
   type: string;
   version?: number;
   payload: Record<string, unknown>;
+  background?: string;
 }
 
 export interface SaveUnitContentResponse {

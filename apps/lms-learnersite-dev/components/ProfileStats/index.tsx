@@ -27,7 +27,7 @@ function StatItem({ value, label, accent }: StatItemProps) {
 export function ProfileStats({ enrolled, completed, inProgress, learningHours }: ProfileStatsProps) {
   return (
     <div className={styles.bar}>
-      <StatItem value={String(enrolled)} label="Enrolled Courses" accent={enrolled > 0} />
+      <StatItem value={String(enrolled)} label="Active Courses" accent={enrolled > 0} />
       <div className={styles.divider} />
       <StatItem value={String(completed)} label="Completed" accent={completed > 0} />
       <div className={styles.divider} />

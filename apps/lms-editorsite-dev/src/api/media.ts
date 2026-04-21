@@ -1,5 +1,6 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance } from '../auth/msalConfig';
+import { apiBase } from './apiBase';
 
 export interface MediaItem {
   id: string;
@@ -29,8 +30,15 @@ async function getToken(): Promise<string | null> {
     } catch (err) {
       if (err instanceof InteractionRequiredAuthError) {
         console.warn('[media] getToken: interaction required — opening popup');
-        const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
-        return result.accessToken;
+        try {
+          const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
+          return result.accessToken;
+        } catch {
+          // Popup also failed (e.g. AADSTS160021 — session no longer exists).
+          // Fall back to a full redirect so the user is prompted to sign in again.
+          await msalInstance.acquireTokenRedirect({ scopes: [scope], account });
+          return null;
+        }
       }
       throw err;
     }
@@ -48,7 +56,7 @@ async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   } else {
     console.warn('[media] apiFetch: no token — request will be sent without Authorization header');
   }
-  return fetch(url, { ...init, headers });
+  return fetch(`${apiBase()}${url}`, { ...init, headers });
 }
 
 export async function listMedia(): Promise<MediaItem[]> {

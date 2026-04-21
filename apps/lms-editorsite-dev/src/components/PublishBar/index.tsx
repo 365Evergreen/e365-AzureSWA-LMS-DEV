@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { canPublishContent, type AppRole } from '@lms/shared-auth';
 import { msalInstance } from '../../auth/msalConfig';
 import ConfirmModal from '../ConfirmModal';
 import styles from './PublishBar.module.css';
@@ -7,6 +8,7 @@ type PublishStatus = 'draft' | 'published';
 
 interface PublishBarProps {
   status: PublishStatus;
+  itemLabel?: string;
   /** Save as draft or publish. */
   onSave: (status: PublishStatus) => Promise<void>;
   /** Called after the user confirms discard — should navigate away. */
@@ -42,7 +44,13 @@ const MODAL_CONFIG: Record<
   },
 };
 
-export default function PublishBar({ status, onSave, onDiscard, onDelete }: PublishBarProps) {
+export default function PublishBar({
+  status,
+  itemLabel = 'page',
+  onSave,
+  onDiscard,
+  onDelete,
+}: PublishBarProps) {
   // Roles must be read from the access token, not the ID token.
   // The ContentEditor role is assigned on the backend API app registration so it
   // only appears in the access token (scoped to the API), not the SPA's ID token.
@@ -57,8 +65,8 @@ export default function PublishBar({ status, onSave, onDiscard, onDelete }: Publ
       try {
         const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
         const payload = JSON.parse(atob(result.accessToken.split('.')[1])) as { roles?: unknown };
-        const roles: string[] = Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
-        setCanPublish(roles.includes('ContentEditor'));
+        const roles = Array.isArray(payload.roles) ? (payload.roles as AppRole[]) : [];
+        setCanPublish(canPublishContent(roles));
       } catch {
         setCanPublish(false);
       }
@@ -116,6 +124,13 @@ export default function PublishBar({ status, onSave, onDiscard, onDelete }: Publ
   }
 
   const activeModal = modal ? MODAL_CONFIG[modal] : null;
+  const modalCopy = activeModal
+    ? {
+        ...activeModal,
+        title: activeModal.title.replace('page', itemLabel),
+        message: activeModal.message.replace('page', itemLabel),
+      }
+    : null;
 
   return (
     <>
@@ -179,13 +194,13 @@ export default function PublishBar({ status, onSave, onDiscard, onDelete }: Publ
         </div>
       </div>
 
-      {activeModal && (
+      {modalCopy && (
         <ConfirmModal
           isOpen={true}
-          title={activeModal.title}
-          message={activeModal.message}
-          confirmLabel={activeModal.confirmLabel}
-          confirmVariant={activeModal.confirmVariant}
+          title={modalCopy.title}
+          message={modalCopy.message}
+          confirmLabel={modalCopy.confirmLabel}
+          confirmVariant={modalCopy.confirmVariant}
           onCancel={() => setModal(null)}
           onConfirm={
             modal === 'publish'

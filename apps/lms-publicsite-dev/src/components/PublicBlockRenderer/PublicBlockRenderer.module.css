@@ -212,7 +212,7 @@ details[open] > .accordionSummary::before { transform: rotate(90deg); }
 .btnPrimary {
   background: var(--color-primary);
   color: #fff;
-  border: 1.5px solid var(--color-primary);
+  border: 1.5px solid #fff;
 }
 .btnSecondary {
   background: transparent;
@@ -272,7 +272,7 @@ details[open] > .accordionSummary::before { transform: rotate(90deg); }
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  width: 100%;
+  width: 50%;
   max-width: var(--max-width-content, 860px);
   margin: 0;
   padding: var(--space-12) var(--space-6);
@@ -325,6 +325,32 @@ details[open] > .accordionSummary::before { transform: rotate(90deg); }
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   min-height: 4rem;
+}
+
+.columnsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.columnsHeading {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.columns {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 /* Quiz */
@@ -437,9 +463,29 @@ textarea.formControl {
   display: flex;
 }
 
+.formError {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm, 4px);
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: var(--font-size-sm);
+}
+
+.formErrorAction {
+  margin: calc(var(--space-3) * -1) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.formErrorAction a {
+  color: #b91c1c;
+  font-weight: var(--font-weight-semibold);
+}
+
 .formSubmit {
   padding: var(--space-2) var(--space-6);
-  background: var(--color-primary);
+  background: var(--color-brand-primary);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm, 4px);
@@ -448,10 +494,16 @@ textarea.formControl {
   font-family: inherit;
   cursor: pointer;
   transition: opacity 0.15s;
+  width: 100%;
 }
 
 .formSubmit:hover {
   opacity: 0.88;
+}
+
+.formSubmit:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .formSuccess {
@@ -476,4 +528,14 @@ textarea.formControl {
   font-size: var(--font-size-base);
   color: #15803d;
   font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 768px) {
+  .columns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .columnHiddenMobile {
+    display: none;
+  }
 }

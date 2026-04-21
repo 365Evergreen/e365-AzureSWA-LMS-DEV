@@ -3,9 +3,10 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getBlock, TEXT_SIZE_CSS } from '@lms/block-registry';
-import type { AccordionPayload, BlockType, TextSize } from '@lms/block-registry';
+import { getBlock, TEXT_SIZE_CSS, BLOCK_BACKGROUNDS, BG_CSS } from '@lms/block-registry';
+import type { AccordionPayload, BlockType, ColumnsPayload, TextSize } from '@lms/block-registry';
 import AccordionCanvasEditor from '../AccordionCanvasEditor';
+import ColumnsBlockEditor from '../ColumnsBlockEditor';
 import styles from './BlockCanvas.module.css';
 
 // ─── Block types that support inline editing ──────────────────────────────────
@@ -319,6 +320,7 @@ interface CanvasBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 interface BlockCanvasProps {
@@ -328,6 +330,7 @@ interface BlockCanvasProps {
   onRemoveBlock: (id: string) => void;
   onReorderBlocks: (blocks: CanvasBlock[]) => void;
   onUpdatePayload: (id: string, payload: unknown) => void;
+  onUpdateBackground: (id: string, background: string | undefined) => void;
   onInsertBlocksAfter: (afterId: string, blocks: Array<{ type: BlockType; payload: unknown }>) => void;
 }
 
@@ -337,16 +340,18 @@ interface BlockCanvasItemProps {
   onSelect: () => void;
   onRemove: () => void;
   onUpdatePayload: (payload: unknown) => void;
+  onUpdateBackground: (background: string | undefined) => void;
   onInsertAfter: (blocks: Array<{ type: BlockType; payload: unknown }>) => void;
 }
 
-function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayload, onInsertAfter }: BlockCanvasItemProps) {
+function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayload, onUpdateBackground, onInsertAfter }: BlockCanvasItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
   const [showLinkRow, setShowLinkRow] = useState(false);
   const def = getBlock(block.type);
   const canInline = INLINE_EDITABLE.has(block.type);
   const canFormat = INLINE_FORMATTED.has(block.type);
   const isAccordion = block.type === 'accordion';
+  const isColumns = block.type === 'columns';
 
   useEffect(() => {
     if (!isSelected) setShowLinkRow(false);
@@ -376,9 +381,31 @@ function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayloa
       {isSelected && showLinkRow && canFormat && (
         <LinkRow payload={block.payload as Record<string, unknown>} onChange={onUpdatePayload} onClose={() => setShowLinkRow(false)} />
       )}
-      <div className={styles.renderer}>
+      {isSelected && (
+        <div className={styles.bgRow} onClick={(e) => e.stopPropagation()}>
+          <span className={styles.bgLabel}>Background</span>
+          <div className={styles.bgPicker}>
+            {BLOCK_BACKGROUNDS.map((bg) => (
+              <button
+                key={bg.value}
+                type="button"
+                title={bg.label}
+                className={`${styles.bgSwatch} ${bg.value === 'none' ? styles.bgSwatchNone : ''} ${(block.background ?? 'none') === bg.value ? styles.bgSwatchActive : ''}`}
+                style={bg.value !== 'none' ? { background: bg.color } : undefined}
+                onMouseDown={(e) => { e.preventDefault(); onUpdateBackground(bg.value === 'none' ? undefined : bg.value); }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      <div
+        className={styles.renderer}
+        style={block.background ? { background: BG_CSS[block.background] } : undefined}
+      >
         {isSelected && isAccordion
           ? <AccordionCanvasEditor payload={block.payload as AccordionPayload} onChange={onUpdatePayload} />
+          : isSelected && isColumns
+          ? <ColumnsBlockEditor payload={block.payload as ColumnsPayload} onChange={onUpdatePayload} />
           : isSelected && canInline
           ? <InlineEditor block={block} onChange={onUpdatePayload} onInsertAfter={onInsertAfter} />
           : def ? <def.Renderer payload={block.payload} blockId={block.id} /> : <p>Unknown block type</p>
@@ -390,7 +417,7 @@ function BlockCanvasItem({ block, isSelected, onSelect, onRemove, onUpdatePayloa
 
 // ─── Canvas ───────────────────────────────────────────────────────────────────
 
-export default function BlockCanvas({ blocks, selectedBlockId, onSelectBlock, onRemoveBlock, onReorderBlocks, onUpdatePayload, onInsertBlocksAfter }: BlockCanvasProps) {
+export default function BlockCanvas({ blocks, selectedBlockId, onSelectBlock, onRemoveBlock, onReorderBlocks, onUpdatePayload, onUpdateBackground, onInsertBlocksAfter }: BlockCanvasProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (over && active.id !== over.id) {
@@ -420,6 +447,7 @@ export default function BlockCanvas({ blocks, selectedBlockId, onSelectBlock, on
               onSelect={() => onSelectBlock(block.id)}
               onRemove={() => onRemoveBlock(block.id)}
               onUpdatePayload={(payload) => onUpdatePayload(block.id, payload)}
+              onUpdateBackground={(bg) => onUpdateBackground(block.id, bg)}
               onInsertAfter={(newBlocks) => onInsertBlocksAfter(block.id, newBlocks)}
             />
           ))}
