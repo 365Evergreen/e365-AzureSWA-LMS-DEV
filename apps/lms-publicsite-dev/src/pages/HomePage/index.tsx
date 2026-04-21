@@ -4,7 +4,9 @@ import { PublicBlockRenderer } from '../../components/PublicBlockRenderer'
 import type { Block } from '../../components/PublicBlockRenderer'
 import { Hero } from './Hero/Hero'
 import { StatsBar } from '../../components/StatsBar'
+import { AudienceCards } from '../../components/AudienceCards'
 import { FeaturedCourses } from '../../components/FeaturedCourses'
+import { SocialProof } from '../../components/SocialProof'
 import styles from './HomePage.module.css'
 
 const SITE_URL = import.meta.env.VITE_SITE_URL ?? 'https://lms.365evergreendev.com'
@@ -58,7 +60,9 @@ export default function HomePage() {
       )}
 
       <StatsBar />
+      <AudienceCards />
       <FeaturedCourses />
+      <SocialProof />
     </div>
   )
 }
