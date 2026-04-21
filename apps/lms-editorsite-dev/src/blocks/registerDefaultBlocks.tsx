@@ -1,6 +1,7 @@
 import React from 'react';
 import { registerBlock, BlockGroup, BlockType, getBlock, HeadingPayloadSchema, ParagraphPayloadSchema, NumberedListPayloadSchema, BulletedListPayloadSchema, CodePayloadSchema, DetailPayloadSchema, ImagePayloadSchema, VideoPayloadSchema, VideoEmbedPayloadSchema, HeroPayloadSchema, GridPayloadSchema, QuizPayloadSchema, CalloutPayloadSchema, DividerPayloadSchema, FormPayloadSchema, AccordionPayloadSchema, ColumnsPayloadSchema, normalizeAccordionPayload, normalizeColumnsPayload } from '@lms/block-registry';
 import type { HeadingPayload, ParagraphPayload, NumberedListPayload, BulletedListPayload, CodePayload, DetailPayload, ImagePayload, VideoPayload, VideoEmbedPayload, HeroPayload, GridPayload, QuizPayload, CalloutPayload, FormPayload, FormField, AccordionPayload, ColumnsPayload } from '@lms/block-registry';
+import { sanitizeHtml } from '@lms/shared-ui';
 import { z } from 'zod';
 
 // ─── Stub renderer for blocks not yet implemented ─────────────────────────────
@@ -86,7 +87,7 @@ export function registerDefaultBlocks(): void {
         textDecoration: payload.underline ? 'underline' : undefined,
         fontSize: payload.size ? sizeMap[payload.size] : undefined,
       };
-      return <div style={style} dangerouslySetInnerHTML={{ __html: payload.html }} />;
+      return <div style={style} dangerouslySetInnerHTML={{ __html: sanitizeHtml(payload.html) }} />;
     },
   });
 
@@ -147,7 +148,7 @@ export function registerDefaultBlocks(): void {
     Renderer: ({ payload }) => (
       <details style={{ border: '1px solid var(--color-border, #e0e0e0)', borderRadius: '4px', padding: '0.5rem 1rem' }}>
         <summary style={{ cursor: 'pointer', fontWeight: 600 }}>{payload.summary}</summary>
-        <div style={{ paddingTop: '0.5rem' }} dangerouslySetInnerHTML={{ __html: payload.body }} />
+        <div style={{ paddingTop: '0.5rem' }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(payload.body) }} />
       </details>
     ),
   });

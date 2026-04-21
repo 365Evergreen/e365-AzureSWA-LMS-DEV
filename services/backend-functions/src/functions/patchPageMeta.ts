@@ -1,13 +1,13 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 import { patchSitePageMeta } from '../lib/storage';
 
 const PatchSchema = z.object({
   contentType: z.enum(['page', 'post', 'knowledge']).default('page'),
   title: z.string().optional(),
   description: z.string().optional(),
-  status: z.enum(['draft', 'published', 'deleted']).optional(),
+  status: z.enum(['draft', 'published']).optional(),
   publishedAt: z.string().datetime().optional(),
   featuredImage: z.string().optional(),
   categoryIds: z.array(z.string()).optional(),
@@ -26,7 +26,7 @@ async function patchPageMetaHandler(req: HttpRequest, context: InvocationContext
   if (!token) return { status: 401, body: 'Unauthorized' };
   const claims = await validateToken(token);
   if (!claims) return { status: 401, body: 'Invalid token' };
-  if (!hasRole(claims, 'ContentEditor') && !hasRole(claims, 'Admin')) {
+  if (!canEditContent(claims)) {
     return { status: 403, body: 'Forbidden' };
   }
 

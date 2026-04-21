@@ -3,11 +3,10 @@ import { BlobServiceClient } from '@azure/storage-blob';
 import { TableClient, TableEntity } from '@azure/data-tables';
 import { randomUUID } from 'crypto';
 import type { BlogCategory, ProgressRecord, CourseEnrolment, CourseMetadata } from '@lms/shared-schemas';
+import { getStorageConnectionString } from './config';
 
 function connectionString(): string {
-  const cs = process.env.STORAGE_CONNECTION_STRING;
-  if (!cs) throw new Error('STORAGE_CONNECTION_STRING is not configured');
-  return cs;
+  return getStorageConnectionString();
 }
 
 // ─── Blob Storage ─────────────────────────────────────────────────────────────
@@ -206,7 +205,7 @@ export interface SitePageMetadata {
   slug: string;
   title: string;
   description: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'published' | 'deleted';
   contentType: 'page' | 'post' | 'knowledge';
   templateId: string;
   bundleUrl: string;

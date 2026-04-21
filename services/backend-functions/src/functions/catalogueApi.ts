@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, extractBearerToken, validateToken, type AuthClaims } from '../middleware/validateToken';
 import {
   upsertCatalogueItem,
   getCatalogueItem,
@@ -34,19 +34,19 @@ const INTERNAL_USERS_GROUP_ID = '848a02f0-407f-4dc1-a77c-8d314f8d0de3';
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
-async function requireContentEditor(req: HttpRequest): Promise<
-  { claims: Record<string, unknown> } | HttpResponseInit
-> {
+async function requireContentEditor(
+  req: HttpRequest
+): Promise<{ claims: AuthClaims } | { error: HttpResponseInit }> {
   const token = extractBearerToken(req);
-  if (!token) return { status: 401, jsonBody: { error: 'Missing bearer token' } };
-  let claims: Record<string, unknown>;
+  if (!token) return { error: { status: 401, jsonBody: { error: 'Missing bearer token' } } };
+  let claims: AuthClaims;
   try {
     claims = await validateToken(token);
   } catch (err) {
-    return { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } };
+    return { error: { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } } };
   }
-  if (!hasRole(claims, 'ContentEditor')) {
-    return { status: 403, jsonBody: { error: 'ContentEditor role required' } };
+  if (!canEditContent(claims)) {
+    return { error: { status: 403, jsonBody: { error: 'Author, Publisher, Admin, or ContentEditor role required' } } };
   }
   return { claims };
 }
@@ -59,7 +59,7 @@ async function editorListCatalogueHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const type = (req.query.get('type') ?? 'PATH') as CatalogueItem['itemType'];
   const status = req.query.get('status') as CatalogueItem['status'] | null;
@@ -77,7 +77,7 @@ async function editorGetCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -113,10 +113,10 @@ async function editorGetCatalogueItemHandler(
   if (itemType === 'UNIT' && item.currentVersionId) {
     const vNum = parseInt(item.currentVersionId, 10);
     const version = await getContentVersion(itemId, vNum);
-    let blocks: unknown[] = [];
+    let blocks: UnitDetail['blocks'] = [];
     if (version) {
       const content = await fetchUnitContent(version.contentUri);
-      blocks = (content?.blocks as unknown[]) ?? [];
+      blocks = (content?.blocks as UnitDetail['blocks']) ?? [];
     }
     const detail: UnitDetail = { ...item, currentVersion: version ?? undefined, blocks };
     return { status: 200, jsonBody: detail };
@@ -148,7 +148,7 @@ async function createPathHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   let body: unknown;
@@ -214,7 +214,7 @@ async function patchCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -285,7 +285,7 @@ async function archiveCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];
@@ -312,7 +312,7 @@ async function addModuleHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   const { pathId } = req.params as { pathId: string };
@@ -360,7 +360,7 @@ async function reorderModulesHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { pathId } = req.params as { pathId: string };
   let body: unknown;
@@ -382,7 +382,7 @@ async function removeModuleHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { pathId, moduleId } = req.params as { pathId: string; moduleId: string };
   await removeModuleFromPath(pathId, moduleId);
@@ -404,7 +404,7 @@ async function addUnitHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   const { moduleId } = req.params as { moduleId: string };
@@ -459,7 +459,7 @@ async function reorderUnitsHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { moduleId } = req.params as { moduleId: string };
   let body: unknown;
@@ -480,7 +480,7 @@ async function removeUnitHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { moduleId, unitId } = req.params as { moduleId: string; unitId: string };
   await removeUnitFromModule(moduleId, unitId);
@@ -505,7 +505,7 @@ async function saveUnitContentHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
   const { claims } = auth;
 
   const { unitId } = req.params as { unitId: string };
@@ -545,7 +545,7 @@ async function publishCatalogueItemHandler(
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   const auth = await requireContentEditor(req);
-  if ('status' in auth) return auth;
+  if ('error' in auth) return auth.error;
 
   const { type, itemId } = req.params as { type: string; itemId: string };
   const itemType = type.toUpperCase() as CatalogueItem['itemType'];

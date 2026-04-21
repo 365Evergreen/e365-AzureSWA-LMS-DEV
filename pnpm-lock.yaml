@@ -206,6 +206,9 @@ importers:
 
   apps/lms-publicsite-dev:
     dependencies:
+      '@lms/block-registry':
+        specifier: workspace:*
+        version: link:../../shared/block-registry
       '@lms/shared-schemas':
         specifier: workspace:*
         version: link:../../shared/schemas

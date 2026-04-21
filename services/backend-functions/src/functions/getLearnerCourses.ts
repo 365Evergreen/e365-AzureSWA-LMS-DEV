@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { extractBearerToken, validateToken } from '../middleware/validateToken';
+import { extractBearerToken, hasAnyRole, validateToken } from '../middleware/validateToken';
 import {
   fetchUnitContent,
   getCatalogueItem,
@@ -11,6 +11,7 @@ import {
   listProgressByUser,
 } from '../lib/storage';
 import type { CatalogueItem } from '@lms/shared-schemas';
+import type { AuthClaims } from '../middleware/validateToken';
 
 type LearnerListCourse = {
   courseId: string;
@@ -157,14 +158,19 @@ async function buildPathBundle(path: CatalogueItem) {
   };
 }
 
-async function requireLearner(req: HttpRequest) {
+async function requireLearner(
+  req: HttpRequest
+): Promise<{ claims: AuthClaims } | { error: HttpResponseInit }> {
   const token = extractBearerToken(req);
   if (!token) return { error: { status: 401, jsonBody: { error: 'Missing bearer token' } } };
-  let claims;
+  let claims: AuthClaims;
   try {
     claims = await validateToken(token);
   } catch {
     return { error: { status: 401, jsonBody: { error: 'Invalid or expired token' } } };
+  }
+  if (!hasAnyRole(claims, ['Learner', 'Admin'])) {
+    return { error: { status: 403, jsonBody: { error: 'Learner or Admin role required' } } };
   }
   return { claims };
 }

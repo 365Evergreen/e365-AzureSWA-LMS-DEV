@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { LoadingSpinner } from '@lms/shared-ui'
+import { LoadingSpinner, sanitizeHtml } from '@lms/shared-ui'
 import { usePage } from '../../hooks/usePage'
 import { PublicBlockRenderer } from '../../components/PublicBlockRenderer'
 import { blogArticles } from '../../data/blog'
@@ -85,7 +85,7 @@ export default function BlogPostPage() {
         <h1 className={styles.heading}>{article.title}</h1>
         <div
           className={styles.body}
-          dangerouslySetInnerHTML={{ __html: article.body }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.body) }}
         />
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { randomUUID } from 'crypto';
 import { ContentBundleSchema } from '@lms/shared-schemas';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canPublishContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 import { uploadBundle, upsertCourseMetadata } from '../lib/storage';
 
 async function publishHandler(
@@ -19,8 +19,8 @@ async function publishHandler(
     return { status: 401, jsonBody: { error: 'Invalid or expired token' } };
   }
 
-  if (!hasRole(claims, 'ContentEditor')) {
-    return { status: 403, jsonBody: { error: 'ContentEditor role required' } };
+  if (!canPublishContent(claims)) {
+    return { status: 403, jsonBody: { error: 'Publisher, Admin, or ContentEditor role required' } };
   }
 
   let body: unknown;

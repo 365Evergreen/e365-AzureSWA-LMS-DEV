@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { z } from 'zod';
-import { extractBearerToken, validateToken, hasRole } from '../middleware/validateToken';
+import { canEditContent, canPublishContent, extractBearerToken, validateToken } from '../middleware/validateToken';
 import { uploadSiteBundle, upsertSitePageMetadata } from '../lib/storage';
 
 const BlockSchema = z.object({
@@ -47,10 +47,6 @@ async function savePageHandler(
     return { status: 401, jsonBody: { error: 'Invalid or expired token', detail: (err as Error).message } };
   }
 
-  if (!hasRole(claims, 'ContentEditor')) {
-    return { status: 403, jsonBody: { error: 'ContentEditor role required' } };
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -63,6 +59,18 @@ async function savePageHandler(
     return {
       status: 400,
       jsonBody: { error: 'Invalid request', details: parsed.error.flatten() },
+    };
+  }
+
+  const isPublishing = parsed.data.status === 'published';
+  if (isPublishing ? !canPublishContent(claims) : !canEditContent(claims)) {
+    return {
+      status: 403,
+      jsonBody: {
+        error: isPublishing
+          ? 'Publisher, Admin, or ContentEditor role required'
+          : 'Author, Publisher, Admin, or ContentEditor role required',
+      },
     };
   }
 

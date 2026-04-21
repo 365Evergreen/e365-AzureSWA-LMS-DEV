@@ -143,6 +143,8 @@ The Function App also uses a **system-assigned managed identity** for Microsoft 
 - `GroupMember.Read.All`
 - `AppRoleAssignment.ReadWrite.All`
 
+The backend currently accepts the older aliases `AZURE_TENANT_ID`, `BACKEND_API_CLIENT_ID`, and `BLOB_STORAGE_CONNECTION_STRING` for compatibility during migration.
+
 See `shared/auth/README.md` for Entra app registration setup.
 
 ---
@@ -150,7 +152,7 @@ See `shared/auth/README.md` for Entra app registration setup.
 ## Auth
 
 - **Public site & Knowledge site**: Anonymous — no login required
-- **Editor app**: Entra ID, requires app role (`Author`, `Publisher`, or `Admin`)
+- **Editor app**: Entra ID, requires an editor-capable app role (`Author`, `Publisher`, `Admin`, or legacy `ContentEditor`)
 - **Learner app**: Entra ID, requires app role (`Learner`)
 
 Each app ships a `staticwebapp.config.json` (in `public/`) that configures SWA route rules and Entra auth. Replace `__TENANT_ID__` placeholders with your actual Entra tenant ID before deploying the editor and learner apps.

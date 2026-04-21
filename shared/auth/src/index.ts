@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 // ─── App Roles ───────────────────────────────────────────────────────────────
 
-export type AppRole = 'ContentEditor' | 'Learner';
+export type AppRole = 'Author' | 'Publisher' | 'Admin' | 'ContentEditor' | 'Learner';
 
 export interface AuthUser {
   account: AccountInfo;
@@ -60,8 +60,20 @@ function parseRoles(account: AccountInfo): AppRole[] {
   const raw = claims?.['roles'];
   if (!Array.isArray(raw)) return [];
   return raw.filter((r): r is AppRole =>
-    ['ContentEditor', 'Learner'].includes(r as string),
+    ['Author', 'Publisher', 'Admin', 'ContentEditor', 'Learner'].includes(r as string),
   );
+}
+
+export function hasAnyRole(roles: readonly AppRole[], allowedRoles: readonly AppRole[]): boolean {
+  return roles.some((role) => allowedRoles.includes(role));
+}
+
+export function canAccessEditor(roles: readonly AppRole[]): boolean {
+  return hasAnyRole(roles, ['Author', 'Publisher', 'Admin', 'ContentEditor']);
+}
+
+export function canPublishContent(roles: readonly AppRole[]): boolean {
+  return hasAnyRole(roles, ['Publisher', 'Admin', 'ContentEditor']);
 }
 
 // ─── useAuth hook ─────────────────────────────────────────────────────────────

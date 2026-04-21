@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { canPublishContent, type AppRole } from '@lms/shared-auth';
 import { msalInstance } from '../../auth/msalConfig';
 import ConfirmModal from '../ConfirmModal';
 import styles from './PublishBar.module.css';
@@ -64,8 +65,8 @@ export default function PublishBar({
       try {
         const result = await msalInstance.acquireTokenSilent({ scopes: [scope], account });
         const payload = JSON.parse(atob(result.accessToken.split('.')[1])) as { roles?: unknown };
-        const roles: string[] = Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
-        setCanPublish(roles.includes('ContentEditor'));
+        const roles = Array.isArray(payload.roles) ? (payload.roles as AppRole[]) : [];
+        setCanPublish(canPublishContent(roles));
       } catch {
         setCanPublish(false);
       }

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lms/block-registry": "workspace:*",
     "@lms/shared-schemas": "workspace:*",
     "@lms/shared-ui": "workspace:*",
     "@types/react-router-dom": "^5.3.3",

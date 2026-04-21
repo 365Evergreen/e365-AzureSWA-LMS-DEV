@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
-import { useAuth } from '@lms/shared-auth';
+import { canAccessEditor, useAuth } from '@lms/shared-auth';
 import { msalInstance } from '../../auth/msalConfig';
 import styles from './WelcomePage.module.css';
 
@@ -10,7 +10,7 @@ export default function WelcomePage() {
 
   const displayName = user?.account.name ?? user?.account.username ?? 'there';
   const firstName = displayName.split(' ')[0];
-  const isEditor = user?.roles.includes('ContentEditor') ?? false;
+  const isEditor = user ? canAccessEditor(user.roles) : false;
 
   return (
     <div className={styles.page}>
