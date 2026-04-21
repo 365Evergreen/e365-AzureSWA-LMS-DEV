@@ -35,10 +35,12 @@ export default function HomePage() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
       </Helmet>
-      {hasCmsContent && heroBlocks.length > 0 ? (
-        <PublicBlockRenderer blocks={heroBlocks as Block[]} />
-      ) : (
-        <Hero />
+      {!loading && (
+        hasCmsContent && heroBlocks.length > 0 ? (
+          <PublicBlockRenderer blocks={heroBlocks as Block[]} />
+        ) : (
+          <Hero />
+        )
       )}
 
       {loading && (
