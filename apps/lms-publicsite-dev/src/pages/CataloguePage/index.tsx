@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { useCatalogue } from '../../hooks/useCatalogue'
 import { CourseCard } from '../../components/CourseCard'
 import { CatalogueFilters } from '../../components/CatalogueFilters'
@@ -24,6 +25,14 @@ export default function CataloguePage() {
 
   return (
     <div className={styles.page}>
+      <Helmet>
+        <title>Course Catalogue | 365 Evergreen Learning</title>
+        <meta name="description" content="Browse our library of Microsoft 365 and business skills courses. Filter by role, level, and course type." />
+        <link rel="canonical" href="https://lms.365evergreendev.com/catalogue" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Course Catalogue | 365 Evergreen Learning" />
+        <meta property="og:description" content="Browse our library of Microsoft 365 and business skills courses. Filter by role, level, and course type." />
+      </Helmet>
       <ArchiveHeader
         slug="course-catalogue"
         fallbackTitle="Course Catalogue"

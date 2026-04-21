@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { LoadingSpinner } from '@lms/shared-ui'
 import { apiBase } from '../../api/apiBase'
 import { usePage } from '../../hooks/usePage'
@@ -83,11 +84,36 @@ export default function WebsitePage() {
   const otherBlocks = hasHero ? blocks.filter((_, i) => i !== heroIndex) : blocks
 
   if (metadata.templateId === 'course-landing') {
-    return <CourseLandingPage metadata={{ ...metadata, slug: metadata.linkedCourseSlug ?? slug }} blocks={blocks as Block[]} />
+    const courseMeta = { ...metadata, slug: metadata.linkedCourseSlug ?? slug }
+    const pageTitle = `${courseMeta.title} | 365 Evergreen Learning`
+    return (
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          {courseMeta.description && <meta name="description" content={courseMeta.description} />}
+          {courseMeta.featuredImage && <meta property="og:image" content={courseMeta.featuredImage} />}
+          <meta property="og:type" content="article" />
+          <meta property="og:title" content={pageTitle} />
+          {courseMeta.description && <meta property="og:description" content={courseMeta.description} />}
+        </Helmet>
+        <CourseLandingPage metadata={courseMeta} blocks={blocks as Block[]} />
+      </>
+    )
   }
+
+  const pageTitle = metadata.title
+    ? `${metadata.title} | 365 Evergreen Learning`
+    : '365 Evergreen Learning'
 
   return (
     <article className={styles.page}>
+      <Helmet>
+        <title>{pageTitle}</title>
+        {metadata.description && <meta name="description" content={metadata.description} />}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        {metadata.description && <meta property="og:description" content={metadata.description} />}
+      </Helmet>
       {heroBlock && <PublicBlockRenderer blocks={[heroBlock as Block]} />}
       <div className={styles.inner}>
         {!hasHero && (

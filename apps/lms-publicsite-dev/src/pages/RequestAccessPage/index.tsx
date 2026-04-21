@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { apiBase } from '../../api/apiBase'
 import styles from './RequestAccessPage.module.css'
 
@@ -141,6 +142,11 @@ export default function RequestAccessPage() {
 
   return (
     <div className={styles.page}>
+      <Helmet>
+        <title>Request Access | 365 Evergreen Learning</title>
+        <meta name="description" content="Request access to our online learning platform. Fill in your details and we'll review your request and send an invitation." />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <div className={styles.card}>
         <header className={styles.formHeader}>
           <h1 className={styles.heading}>Request access</h1>
