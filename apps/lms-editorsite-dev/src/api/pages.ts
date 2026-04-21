@@ -11,7 +11,7 @@ export interface SavePageRequest {
   description?: string;
   templateId: string;
   contentType: SiteContentType;
-  blocks: { id: string; type: string; version?: number; payload: Record<string, unknown> }[];
+  blocks: { id: string; type: string; version?: number; payload: Record<string, unknown>; background?: string }[];
   status: 'draft' | 'published';
   publishedAt?: string;
   tags?: string[];
@@ -132,7 +132,7 @@ export interface EditorPageResponse {
     slug: string;
     title: string;
     templateId: string;
-    blocks: Array<{ id: string; type: string; version?: number; payload: Record<string, unknown> }>;
+    blocks: Array<{ id: string; type: string; version?: number; payload: Record<string, unknown>; background?: string }>;
     savedAt: string;
   } | null;
 }

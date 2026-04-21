@@ -52,6 +52,36 @@ export const BlockType = {
 
 export type BlockType = (typeof BlockType)[keyof typeof BlockType];
 
+// ─── Block Backgrounds ────────────────────────────────────────────────────────
+
+export const BLOCK_BACKGROUNDS = [
+  { value: 'none',           label: 'None',        color: 'transparent' },
+  { value: 'surface',        label: 'White',        color: '#ffffff' },
+  { value: 'surface-subtle', label: 'Light grey',   color: '#f8fafc' },
+  { value: 'surface-muted',  label: 'Muted grey',   color: '#f1f5f9' },
+  { value: 'brand',          label: 'Brand green',  color: '#027a00' },
+  { value: 'success-bg',     label: 'Green tint',   color: '#f0fdf4' },
+  { value: 'dark',           label: 'Dark navy',    color: '#0f172a' },
+  { value: 'warning-bg',     label: 'Yellow tint',  color: '#fffbeb' },
+  { value: 'danger-bg',      label: 'Red tint',     color: '#fef2f2' },
+  { value: 'info-bg',        label: 'Blue tint',    color: '#f0f9ff' },
+] as const;
+
+export type BlockBackground = typeof BLOCK_BACKGROUNDS[number]['value'];
+
+/** Maps a BlockBackground value to its CSS variable expression. */
+export const BG_CSS: Record<string, string> = {
+  surface:          'var(--color-surface)',
+  'surface-subtle': 'var(--color-surface-subtle)',
+  'surface-muted':  'var(--color-surface-muted)',
+  brand:            'var(--color-brand-primary)',
+  'success-bg':     'var(--color-success-bg)',
+  dark:             'var(--color-text-primary)',
+  'warning-bg':     'var(--color-warning-bg)',
+  'danger-bg':      'var(--color-danger-bg)',
+  'info-bg':        'var(--color-info-bg)',
+};
+
 // ─── Shared Sub-schemas ───────────────────────────────────────────────────────
 
 export const LinkSchema = z.object({

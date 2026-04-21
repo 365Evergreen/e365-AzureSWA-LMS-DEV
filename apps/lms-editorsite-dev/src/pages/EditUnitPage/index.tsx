@@ -18,6 +18,7 @@ interface EditorBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 interface UnitEditorCanvasProps {
@@ -157,6 +158,10 @@ export function UnitEditorCanvas({ unitId, pathId, onClose }: UnitEditorCanvasPr
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, payload } : b));
   }
 
+  function updateBackground(id: string, background: string | undefined) {
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, background } : b));
+  }
+
   function deleteBlock(id: string) {
     setBlocks(prev => prev.filter(b => b.id !== id));
     setSelectedBlockId(prev => prev === id ? null : prev);
@@ -240,8 +245,7 @@ export function UnitEditorCanvas({ unitId, pathId, onClose }: UnitEditorCanvasPr
             onSelectBlock={setSelectedBlockId}
             onRemoveBlock={deleteBlock}
             onReorderBlocks={reorderBlocks}
-            onUpdatePayload={updatePayload}
-            onInsertBlocksAfter={insertBlocksAfter}
+            onUpdatePayload={updatePayload}              onUpdateBackground={updateBackground}            onInsertBlocksAfter={insertBlocksAfter}
           />
         </main>
 

@@ -9,6 +9,7 @@ interface ColumnBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 interface ColumnCanvasEditorModalProps {
@@ -41,6 +42,10 @@ export default function ColumnCanvasEditorModal({
 
   function updatePayload(id: string, payload: unknown) {
     setColumnBlocks((prev) => prev.map((block) => (block.id === id ? { ...block, payload } : block)));
+  }
+
+  function updateBackground(id: string, background: string | undefined) {
+    setColumnBlocks((prev) => prev.map((block) => (block.id === id ? { ...block, background } : block)));
   }
 
   function deleteBlock(id: string) {
@@ -103,6 +108,7 @@ export default function ColumnCanvasEditorModal({
                 onRemoveBlock={deleteBlock}
                 onReorderBlocks={reorderBlocks}
                 onUpdatePayload={updatePayload}
+                onUpdateBackground={updateBackground}
                 onInsertBlocksAfter={insertBlocksAfter}
               />
             )}

@@ -42,6 +42,7 @@ import {
   VideoPayloadSchema,
   normalizeAccordionPayload,
   normalizeColumnsPayload,
+  BG_CSS,
 } from '@lms/block-registry'
 import { sanitizeHtml } from '@lms/shared-ui'
 import type { Block as SharedBlock } from '@lms/shared-schemas'
@@ -827,6 +828,16 @@ function renderRegisteredBlock(block: Block) {
   }
 
   const { Renderer } = definition
+  const bgCss = block.background ? BG_CSS[block.background] : undefined
+
+  if (bgCss) {
+    return (
+      <div key={block.id} style={{ background: bgCss }}>
+        <Renderer payload={block.payload} blockId={block.id} />
+      </div>
+    )
+  }
+
   return <Renderer key={block.id} payload={block.payload} blockId={block.id} />
 }
 

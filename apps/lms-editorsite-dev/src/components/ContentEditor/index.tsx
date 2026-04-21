@@ -21,6 +21,7 @@ interface EditorBlock {
   id: string;
   type: BlockType;
   payload: unknown;
+  background?: string;
 }
 
 export interface ContentEditorInitialData {
@@ -29,7 +30,7 @@ export interface ContentEditorInitialData {
   description?: string;
   templateId: string;
   status: 'draft' | 'published';
-  blocks: Array<{ id: string; type: BlockType; payload: unknown }>;
+  blocks: Array<{ id: string; type: BlockType; payload: unknown; background?: string }>;
   inNav?: boolean;
   navLabel?: string;
   navParent?: string;
@@ -147,6 +148,13 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
     }));
   }
 
+  function updateBlockBackground(id: string, background: string | undefined) {
+    setState((s) => ({
+      ...s,
+      blocks: s.blocks.map((b) => (b.id === id ? { ...b, background } : b)),
+    }));
+  }
+
   function insertBlocksAfter(afterId: string, newBlocks: Array<{ type: BlockType; payload: unknown }>) {
     setState((s) => {
       const idx = s.blocks.findIndex((b) => b.id === afterId);
@@ -223,6 +231,7 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
         type: b.type,
         version: 1,
         payload: b.payload as Record<string, unknown>,
+        background: b.background,
       })),
       status,
       ...(contentType === 'page' ? {
@@ -274,6 +283,7 @@ export default function ContentEditor({ contentType, defaultTemplateId, returnPa
               onRemoveBlock={removeBlock}
               onReorderBlocks={reorderBlocks}
               onUpdatePayload={updateBlockPayload}
+              onUpdateBackground={updateBlockBackground}
               onInsertBlocksAfter={insertBlocksAfter}
             />
           </CanvasLayoutPreview>

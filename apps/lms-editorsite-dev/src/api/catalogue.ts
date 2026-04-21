@@ -205,6 +205,7 @@ export interface Block {
   type: string;
   version?: number;
   payload: Record<string, unknown>;
+  background?: string;
 }
 
 export interface SaveUnitContentResponse {

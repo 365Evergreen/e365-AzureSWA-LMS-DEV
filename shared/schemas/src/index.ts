@@ -7,6 +7,7 @@ export const BlockSchema = z.object({
   type: z.string(),
   version: z.number().int().positive(),
   payload: z.record(z.unknown()),
+  background: z.string().optional(),
 });
 
 export type Block = z.infer<typeof BlockSchema>;
