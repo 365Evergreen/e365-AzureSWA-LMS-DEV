@@ -30,6 +30,7 @@ Thumbs.db
 agent
 
 # Azure Pipelines agent runtime binaries (large files, not for git)
+azure-lms-agent/*
 azure-lms-agent/bin/
 azure-lms-agent/externals/
 
@@ -42,3 +43,5 @@ npm-debug.log*
 localhost.har
 lms.365evergreendev.com.har
 func-deploy.zip
+azure-lms-agent
+azure-lms-agent/

@@ -66,6 +66,7 @@ export default function WebsitePage() {
           featuredImage: fallbackCourse.thumbnailUrl,
           tags: fallbackCourse.tags,
           linkedCourseId: fallbackCourse.courseId,
+          slug,
         }}
         blocks={[]}
       />
@@ -82,7 +83,7 @@ export default function WebsitePage() {
   const otherBlocks = hasHero ? blocks.filter((_, i) => i !== heroIndex) : blocks
 
   if (metadata.templateId === 'course-landing') {
-    return <CourseLandingPage metadata={metadata} blocks={blocks as Block[]} />
+    return <CourseLandingPage metadata={{ ...metadata, slug: metadata.linkedCourseSlug ?? slug }} blocks={blocks as Block[]} />
   }
 
   return (

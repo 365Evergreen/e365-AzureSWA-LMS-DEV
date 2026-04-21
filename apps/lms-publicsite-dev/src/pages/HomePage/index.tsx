@@ -2,7 +2,8 @@ import { usePage } from '../../hooks/usePage'
 import { PublicBlockRenderer } from '../../components/PublicBlockRenderer'
 import type { Block } from '../../components/PublicBlockRenderer'
 import { Hero } from './Hero/Hero'
-import { KBTeaser } from './KBTeaser/KBTeaser'
+import { StatsBar } from '../../components/StatsBar'
+import { FeaturedCourses } from '../../components/FeaturedCourses'
 import styles from './HomePage.module.css'
 
 export default function HomePage() {
@@ -38,7 +39,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {!hasCmsContent && <KBTeaser />}
+      <StatsBar />
+      <FeaturedCourses />
     </div>
   )
 }

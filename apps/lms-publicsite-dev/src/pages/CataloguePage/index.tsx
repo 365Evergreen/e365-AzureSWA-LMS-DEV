@@ -1,26 +1,26 @@
 import { useState, useMemo } from 'react'
 import { useCatalogue } from '../../hooks/useCatalogue'
 import { CourseCard } from '../../components/CourseCard'
-import { BlogFilters } from '../../components/BlogFilters'
+import { CatalogueFilters } from '../../components/CatalogueFilters'
 import { ViewToggle, type ViewMode } from '../../components/ViewToggle'
 import { ArchiveHeader } from '../../components/ArchiveHeader'
 import styles from './CataloguePage.module.css'
 
 export default function CataloguePage() {
-  const [tag, setTag] = useState('')
+  const [role, setRole] = useState('')
+  const [level, setLevel] = useState('')
+  const [courseType, setCourseType] = useState('')
   const [view, setView] = useState<ViewMode>('grid')
 
   const { courses, loading, error, refetch } = useCatalogue()
 
-  const filtered = useMemo(
-    () => tag ? courses.filter((course) => course.tags.includes(tag)) : courses,
-    [courses, tag],
-  )
-
-  const allTags = useMemo(
-    () => Array.from(new Set(courses.flatMap((course) => course.tags))).sort(),
-    [courses],
-  )
+  const filtered = useMemo(() => {
+    let result = courses
+    if (role) result = result.filter((c) => c.audience === role || c.audience === 'all')
+    if (level) result = result.filter((c) => c.level === level)
+    if (courseType) result = result.filter((c) => c.tags.includes(courseType))
+    return result
+  }, [courses, role, level, courseType])
 
   return (
     <div className={styles.page}>
@@ -32,11 +32,14 @@ export default function CataloguePage() {
 
       <div className={styles.listing}>
         <div className={styles.toolbar}>
-          <BlogFilters
-            categories={allTags}
-            selectedCategory={tag}
-            onCategoryChange={setTag}
-            onReset={() => setTag('')}
+          <CatalogueFilters
+            role={role}
+            level={level}
+            courseType={courseType}
+            onRoleChange={setRole}
+            onLevelChange={setLevel}
+            onCourseTypeChange={setCourseType}
+            onReset={() => { setRole(''); setLevel(''); setCourseType('') }}
           />
           <div className={styles.toolbarRight}>
             {!loading && !error && (
@@ -67,7 +70,7 @@ export default function CataloguePage() {
         {!loading && !error && (
           <div className={view === 'grid' ? styles.grid : styles.listView}>
             {filtered.length === 0
-              ? <p className={styles.empty}>No courses published yet.</p>
+              ? <p className={styles.empty}>No courses match the selected filters.</p>
               : filtered.map((course) => (
                   <CourseCard key={course.courseId} course={course} view={view} />
                 ))

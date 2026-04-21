@@ -10,6 +10,7 @@ const KBPage = React.lazy(() => import('./pages/KBPage'))
 const KBArticlePage = React.lazy(() => import('./pages/KBArticlePage'))
 const CataloguePage = React.lazy(() => import('./pages/CataloguePage'))
 const WebsitePage = React.lazy(() => import('./pages/WebsitePage'))
+const RequestAccessPage = React.lazy(() => import('./pages/RequestAccessPage'))
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'))
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
               <Route path="/course-catalogue" element={<CataloguePage />} />
               <Route path="/catalogue" element={<CataloguePage />} />
               <Route path="/courses/:slug" element={<WebsitePage />} />
+              <Route path="/request-access" element={<RequestAccessPage />} />
               <Route path="/latest-posts" element={<BlogPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />

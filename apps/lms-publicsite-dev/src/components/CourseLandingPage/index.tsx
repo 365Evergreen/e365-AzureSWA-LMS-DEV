@@ -9,6 +9,7 @@ interface CourseLandingMetadata {
   featuredImage?: string
   tags?: string[]
   linkedCourseId?: string
+  slug?: string
 }
 
 interface CourseLandingPageProps {
@@ -116,6 +117,23 @@ export function CourseLandingPage({ metadata, blocks }: CourseLandingPageProps) 
                 ))}
             </div>
           ) : null}
+        </section>
+
+        <section className={styles.ctaSection} aria-labelledby="enroll-cta-heading">
+          <div className={styles.ctaCard}>
+            <div className={styles.ctaContent}>
+              <h2 id="enroll-cta-heading" className={styles.ctaHeading}>Ready to start?</h2>
+              <p className={styles.ctaText}>
+                Request access to begin this course at your own pace.
+              </p>
+            </div>
+            <a
+              href={`/request-access${metadata.slug ? `?course=${encodeURIComponent(metadata.slug)}` : ''}`}
+              className={styles.ctaButton}
+            >
+              Request access
+            </a>
+          </div>
         </section>
       </div>
     </article>

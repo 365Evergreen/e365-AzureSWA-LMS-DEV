@@ -211,3 +211,68 @@
     white-space: normal;
   }
 }
+
+/* ── Enrollment CTA ─────────────────────────────────────────── */
+.ctaSection {
+  /* already inside .inner which has padding */
+}
+
+.ctaCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-8);
+  background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary) 100%);
+  border-radius: var(--radius-xl);
+  flex-wrap: wrap;
+}
+
+.ctaContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.ctaHeading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-inverse);
+}
+
+.ctaText {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: rgb(255 255 255 / 0.85);
+  line-height: var(--line-height-relaxed);
+}
+
+.ctaButton {
+  display: inline-block;
+  padding: var(--space-3) var(--space-8);
+  background-color: var(--color-text-inverse);
+  color: var(--color-brand-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.ctaButton:hover {
+  background-color: var(--color-surface-muted);
+}
+
+@media (max-width: 600px) {
+  .ctaCard {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ctaButton {
+    width: 100%;
+    text-align: center;
+  }
+}

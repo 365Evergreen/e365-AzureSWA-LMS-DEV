@@ -13,18 +13,18 @@ interface HeroProps {
 }
 
 const DEFAULT_PRIMARY_ACTION: HeroAction = {
-  label: 'Explore Knowledge Base',
-  href: '/kb',
+  label: 'Browse courses',
+  href: '/catalogue',
 }
 
 const DEFAULT_SECONDARY_ACTION: HeroAction = {
-  label: 'Read the Blog',
-  href: '/blog',
+  label: 'Request access',
+  href: '/request-access',
 }
 
 export function Hero({
-  headline = 'Build better learning experiences',
-  subheadline = 'The LMS Platform gives your team the tools to create, deliver, and iterate on world-class learning content-faster than ever.',
+  headline = 'Develop the skills that move your team forward',
+  subheadline = 'Browse role-based learning paths, courses, and assessments built for today’s workplace. Self-paced, on-demand, and designed for real results.',
   primaryAction = DEFAULT_PRIMARY_ACTION,
   secondaryAction = DEFAULT_SECONDARY_ACTION,
 }: HeroProps) {
