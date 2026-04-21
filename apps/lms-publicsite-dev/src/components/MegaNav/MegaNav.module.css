@@ -5,7 +5,7 @@
   gap: var(--space-1);
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 4vw;
 }
 
 .item {
@@ -26,6 +26,7 @@
 .navLink:hover {
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
+  text-decoration: underline;
 }
 
 .navLinkActive {
@@ -53,6 +54,7 @@
 .navButtonOpen {
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
+  text-decoration: underline;
 }
 
 /* ── Dropdown panel ────────────────────────────────────────────── */

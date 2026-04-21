@@ -27,11 +27,11 @@ export function SiteHeader() {
           <span className={styles.logoText}>Stay Evergreen</span>
         </Link>
 
-        <div className={styles.controls}>
-          <nav className={styles.desktopNav} aria-label="Main navigation">
-            <MegaNav onNavigate={closeMenu} />
-          </nav>
+        <nav className={styles.desktopNav} aria-label="Main navigation">
+          <MegaNav onNavigate={closeMenu} />
+        </nav>
 
+        <div className={styles.controls}>
           <div className={styles.actions}>
             <Link to="/sign-up" className={styles.ctaButton}>
               Get started
