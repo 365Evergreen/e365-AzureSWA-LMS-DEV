@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/project-setup
+      - feature/create-assements
     paths:
       - services/backend-functions/**
       - .github/workflows/deploy-backend-api.yml

@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/project-setup
+      - feature/create-assements
   workflow_dispatch:
 
 jobs:
