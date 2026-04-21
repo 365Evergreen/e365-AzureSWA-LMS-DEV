@@ -25,7 +25,7 @@ async function getPagesHandler(
     return {
       status: 200,
       jsonBody: { pages, total: pages.length },
-      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
+      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
     };
   } catch (err) {
     context.error('listSitePages error:', err);
@@ -88,7 +88,7 @@ async function getPageHandler(
                 savedAt: path.updatedOn,
               },
             },
-            headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
+            headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
           };
         }
       }
@@ -104,7 +104,7 @@ async function getPageHandler(
     return {
       status: 200,
       jsonBody: { metadata: meta, bundle },
-      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
+      headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
     };
   } catch (err) {
     context.error('getPage error:', err);

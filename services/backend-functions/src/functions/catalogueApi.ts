@@ -15,6 +15,7 @@ import {
   listModuleUnits,
   removeUnitFromModule,
   reorderModuleUnits,
+  createDefaultModuleAssessment,
   uploadUnitContent,
   fetchUnitContent,
   createContentVersion,
@@ -345,6 +346,7 @@ async function addModuleHandler(
   };
 
   await upsertCatalogueItem(moduleItem);
+  await createDefaultModuleAssessment(moduleItem.itemId, claims.oid as string || '', `${parsed.data.title} assessment`);
 
   const existing = await listPathModules(pathId);
   const sortOrder = existing.length === 0 ? 10 : (Math.max(...existing.map(m => m.sortOrder)) + 10);

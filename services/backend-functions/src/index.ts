@@ -13,6 +13,7 @@ import './functions/getEditorPage';
 import './functions/patchPageMeta';
 import './functions/getNav';
 import './functions/catalogueApi';
+import './functions/assessmentApi';
 import './functions/getLearnerCourses';
 import './functions/categories';
 import './functions/signupRequests';

@@ -52,7 +52,7 @@ async function getNavHandler(
   return {
     status: 200,
     jsonBody: topLevel,
-    headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60' },
+    headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=300' },
   };
 }
 

@@ -16,5 +16,5 @@ export function apiBase(): string {
     }
   }
 
-  return 'https://lms-func-365ev-dev.azurewebsites.net'
+  return 'https://lmsendpointpublic-ggbehdbxdacaapdq.z03.azurefd.net'
 }

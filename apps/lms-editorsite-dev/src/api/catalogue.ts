@@ -5,9 +5,19 @@ import type {
   CatalogueItem,
   PathDetail,
   UnitDetail,
+  AssessmentDetail,
+  AssessmentQuestion,
+  AssessmentOption,
 } from '@lms/shared-schemas';
 
-export type { CatalogueItem, PathDetail, UnitDetail };
+export type {
+  CatalogueItem,
+  PathDetail,
+  UnitDetail,
+  AssessmentDetail,
+  AssessmentQuestion,
+  AssessmentOption,
+};
 
 // ─── Auth token helper (shared with pages.ts pattern) ────────────────────────
 
@@ -166,6 +176,39 @@ export async function reorderModules(pathId: string, moduleIds: string[]): Promi
 
 export async function removeModule(pathId: string, moduleId: string): Promise<void> {
   await apiFetch(`/api/catalogue/paths/${pathId}/modules/${moduleId}`, { method: 'DELETE' });
+}
+
+export interface SaveModuleAssessmentRequest {
+  title?: string;
+  description?: string;
+  passingPercent?: number;
+  questions: Array<{
+    questionId?: string;
+    prompt: string;
+    explanation?: string;
+    allowsMultiple?: boolean;
+    sortOrder?: number;
+    options: Array<{
+      optionId?: string;
+      label: string;
+      isCorrect: boolean;
+      sortOrder?: number;
+    }>;
+  }>;
+}
+
+export async function loadEditorModuleAssessment(moduleId: string): Promise<AssessmentDetail> {
+  return apiFetch<AssessmentDetail>(`/api/editor/catalogue/modules/${moduleId}/assessment`);
+}
+
+export async function saveModuleAssessment(
+  moduleId: string,
+  data: SaveModuleAssessmentRequest,
+): Promise<AssessmentDetail> {
+  return apiFetch<AssessmentDetail>(`/api/catalogue/modules/${moduleId}/assessment`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
 }
 
 // ─── Units ────────────────────────────────────────────────────────────────────

@@ -245,10 +245,18 @@ export async function uploadSiteBundle(pageId: string, content: unknown): Promis
   await blob.upload(json, Buffer.byteLength(json), {
     blobHTTPHeaders: { blobContentType: 'application/json' },
   });
+  bundleCache.delete(pageId); // invalidate so next read fetches fresh data
   return blob.url;
 }
 
+// ── In-memory cache for site bundles (avoids repeated blob downloads) ─────────
+const BUNDLE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const bundleCache = new Map<string, { data: unknown; ts: number }>();
+
 export async function fetchSiteBundle(pageId: string): Promise<unknown | null> {
+  const hit = bundleCache.get(pageId);
+  if (hit && Date.now() - hit.ts < BUNDLE_CACHE_TTL) return hit.data;
+
   const client = BlobServiceClient.fromConnectionString(connectionString());
   const blob = client
     .getContainerClient(SITE_CONTENT_CONTAINER)
@@ -259,7 +267,9 @@ export async function fetchSiteBundle(pageId: string): Promise<unknown | null> {
     for await (const chunk of download.readableStreamBody as AsyncIterable<Buffer>) {
       chunks.push(chunk);
     }
-    return JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+    const data = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+    bundleCache.set(pageId, { data, ts: Date.now() });
+    return data;
   } catch {
     return null;
   }
@@ -786,6 +796,12 @@ import type {
   ContentVersion,
   PathModuleLink,
   ModuleUnitLink,
+  AssessmentDefinition,
+  AssessmentQuestion,
+  AssessmentOption,
+  AssessmentDetail,
+  LearnerAssessmentAnswer,
+  AssessmentOutcome,
   EnrolmentRecord,
   ProgressState,
   ProgressEvent,
@@ -795,6 +811,11 @@ const CATALOGUE_TABLE = 'CatalogueItems';
 const CONTENT_VERSIONS_TABLE = 'ContentVersions';
 const PATH_MODULES_TABLE = 'PathModules';
 const MODULE_UNITS_TABLE = 'ModuleUnits';
+const MODULE_ASSESSMENTS_TABLE = 'ModuleAssessments';
+const ASSESSMENT_QUESTIONS_TABLE = 'AssessmentQuestions';
+const ASSESSMENT_OPTIONS_TABLE = 'AssessmentOptions';
+const LEARNER_ASSESSMENT_ANSWERS_TABLE = 'LearnerAssessmentAnswers';
+const ASSESSMENT_OUTCOMES_TABLE = 'AssessmentOutcomes';
 const ENROLMENTS_TABLE = 'Enrolments';
 const ENROLMENTS_BY_ITEM_TABLE = 'EnrolmentsByItem';
 const PROGRESS_TABLE = 'Progress';
@@ -813,6 +834,21 @@ function pathModulesTable(): TableClient {
 }
 function moduleUnitsTable(): TableClient {
   return TableClient.fromConnectionString(connectionString(), MODULE_UNITS_TABLE);
+}
+function moduleAssessmentsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), MODULE_ASSESSMENTS_TABLE);
+}
+function assessmentQuestionsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), ASSESSMENT_QUESTIONS_TABLE);
+}
+function assessmentOptionsTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), ASSESSMENT_OPTIONS_TABLE);
+}
+function learnerAssessmentAnswersTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), LEARNER_ASSESSMENT_ANSWERS_TABLE);
+}
+function assessmentOutcomesTable(): TableClient {
+  return TableClient.fromConnectionString(connectionString(), ASSESSMENT_OUTCOMES_TABLE);
 }
 function enrolmentsTable(): TableClient {
   return TableClient.fromConnectionString(connectionString(), ENROLMENTS_TABLE);
@@ -1191,6 +1227,328 @@ export async function reorderModuleUnits(moduleId: string, orderedUnitIds: strin
       'Replace'
     );
   }
+}
+
+// ─── Module assessments ─────────────────────────────────────────────────────────
+
+function entityToAssessmentDefinition(e: Record<string, unknown>): AssessmentDefinition {
+  return {
+    assessmentId: e.assessmentId as string,
+    moduleId: e.moduleId as string,
+    title: (e.title as string) || 'Module assessment',
+    description: (e.description as string) || '',
+    passingPercent: (e.passingPercent as number) ?? 70,
+    questionCount: (e.questionCount as number) ?? 0,
+    createdOn: e.createdOn as string,
+    updatedOn: e.updatedOn as string,
+    authorId: e.authorId as string,
+  };
+}
+
+function entityToAssessmentQuestion(e: Record<string, unknown>): AssessmentQuestion {
+  return {
+    questionId: e.questionId as string,
+    assessmentId: e.assessmentId as string,
+    prompt: e.prompt as string,
+    explanation: (e.explanation as string) || '',
+    allowsMultiple: (e.allowsMultiple as boolean) ?? false,
+    sortOrder: (e.sortOrder as number) ?? 0,
+    options: [],
+  };
+}
+
+function entityToAssessmentOption(e: Record<string, unknown>): AssessmentOption {
+  return {
+    optionId: e.optionId as string,
+    assessmentId: e.assessmentId as string,
+    questionId: e.questionId as string,
+    label: e.label as string,
+    sortOrder: (e.sortOrder as number) ?? 0,
+    isCorrect: (e.isCorrect as boolean) ?? false,
+  };
+}
+
+function entityToLearnerAssessmentAnswer(e: Record<string, unknown>): LearnerAssessmentAnswer {
+  return {
+    attemptId: e.attemptId as string,
+    userId: e.userId as string,
+    assessmentId: e.assessmentId as string,
+    moduleId: e.moduleId as string,
+    questionId: e.questionId as string,
+    selectedOptionIds: JSON.parse((e.selectedOptionIdsJson as string) || '[]'),
+    isCorrect: (e.isCorrect as boolean) ?? false,
+    answeredOn: e.answeredOn as string,
+  };
+}
+
+function entityToAssessmentOutcome(e: Record<string, unknown>): AssessmentOutcome {
+  return {
+    attemptId: e.attemptId as string,
+    userId: e.userId as string,
+    assessmentId: e.assessmentId as string,
+    moduleId: e.moduleId as string,
+    totalQuestions: (e.totalQuestions as number) ?? 0,
+    correctQuestions: (e.correctQuestions as number) ?? 0,
+    scorePercent: (e.scorePercent as number) ?? 0,
+    passed: (e.passed as boolean) ?? false,
+    submittedOn: e.submittedOn as string,
+  };
+}
+
+async function deletePartitionEntities(client: TableClient, partitionKey: string): Promise<void> {
+  await ensureTable(client);
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq '${partitionKey}'` },
+  })) {
+    await client.deleteEntity(partitionKey, entity.rowKey as string);
+  }
+}
+
+export async function createDefaultModuleAssessment(
+  moduleId: string,
+  authorId: string,
+  title = 'Module assessment',
+): Promise<AssessmentDefinition> {
+  const now = new Date().toISOString();
+  const assessment: AssessmentDefinition = {
+    assessmentId: randomUUID(),
+    moduleId,
+    title,
+    description: '',
+    passingPercent: 70,
+    questionCount: 0,
+    createdOn: now,
+    updatedOn: now,
+    authorId,
+  };
+
+  await upsertModuleAssessmentDefinition(assessment);
+  return assessment;
+}
+
+export async function upsertModuleAssessmentDefinition(assessment: AssessmentDefinition): Promise<void> {
+  const client = moduleAssessmentsTable();
+  await ensureTable(client);
+  await client.upsertEntity(
+    {
+      partitionKey: `ASSESS|MODULE|${assessment.moduleId}`,
+      rowKey: 'DEFINITION',
+      assessmentId: assessment.assessmentId,
+      moduleId: assessment.moduleId,
+      title: assessment.title,
+      description: assessment.description,
+      passingPercent: assessment.passingPercent,
+      questionCount: assessment.questionCount,
+      createdOn: assessment.createdOn,
+      updatedOn: assessment.updatedOn,
+      authorId: assessment.authorId,
+    },
+    'Replace',
+  );
+}
+
+export async function getModuleAssessmentDefinition(moduleId: string): Promise<AssessmentDefinition | null> {
+  const client = moduleAssessmentsTable();
+  await ensureTable(client);
+  try {
+    const entity = await client.getEntity<Record<string, unknown>>(
+      `ASSESS|MODULE|${moduleId}`,
+      'DEFINITION',
+    );
+    return entityToAssessmentDefinition(entity);
+  } catch {
+    return null;
+  }
+}
+
+export async function listAssessmentQuestions(assessmentId: string): Promise<AssessmentQuestion[]> {
+  const client = assessmentQuestionsTable();
+  await ensureTable(client);
+  const results: AssessmentQuestion[] = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ASSESS|${assessmentId}'` },
+  })) {
+    results.push(entityToAssessmentQuestion(entity));
+  }
+  return results.sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function listAssessmentOptions(assessmentId: string): Promise<AssessmentOption[]> {
+  const client = assessmentOptionsTable();
+  await ensureTable(client);
+  const results: AssessmentOption[] = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ASSESS|${assessmentId}'` },
+  })) {
+    results.push(entityToAssessmentOption(entity));
+  }
+  return results.sort((a, b) => {
+    if (a.questionId === b.questionId) {
+      return a.sortOrder - b.sortOrder;
+    }
+    return a.questionId.localeCompare(b.questionId);
+  });
+}
+
+export async function getModuleAssessmentDetail(moduleId: string): Promise<AssessmentDetail | null> {
+  const assessment = await getModuleAssessmentDefinition(moduleId);
+  if (!assessment) {
+    return null;
+  }
+
+  const [questions, options] = await Promise.all([
+    listAssessmentQuestions(assessment.assessmentId),
+    listAssessmentOptions(assessment.assessmentId),
+  ]);
+
+  const optionsByQuestion = new Map<string, AssessmentOption[]>();
+  for (const option of options) {
+    const group = optionsByQuestion.get(option.questionId) ?? [];
+    group.push(option);
+    optionsByQuestion.set(option.questionId, group);
+  }
+
+  return {
+    ...assessment,
+    questionCount: questions.length,
+    questions: questions.map((question) => ({
+      ...question,
+      options: (optionsByQuestion.get(question.questionId) ?? []).sort((a, b) => a.sortOrder - b.sortOrder),
+    })),
+  };
+}
+
+export async function replaceModuleAssessment(detail: AssessmentDetail): Promise<void> {
+  await Promise.all([
+    ensureTable(moduleAssessmentsTable()),
+    ensureTable(assessmentQuestionsTable()),
+    ensureTable(assessmentOptionsTable()),
+  ]);
+
+  const now = new Date().toISOString();
+  await upsertModuleAssessmentDefinition({
+    ...detail,
+    questionCount: detail.questions.length,
+    updatedOn: now,
+  });
+
+  const questionsClient = assessmentQuestionsTable();
+  const optionsClient = assessmentOptionsTable();
+  await Promise.all([
+    deletePartitionEntities(questionsClient, `ASSESS|${detail.assessmentId}`),
+    deletePartitionEntities(optionsClient, `ASSESS|${detail.assessmentId}`),
+  ]);
+
+  for (const question of detail.questions) {
+    await questionsClient.upsertEntity(
+      {
+        partitionKey: `ASSESS|${detail.assessmentId}`,
+        rowKey: `${padSort(question.sortOrder)}|QUESTION|${question.questionId}`,
+        assessmentId: detail.assessmentId,
+        questionId: question.questionId,
+        prompt: question.prompt,
+        explanation: question.explanation,
+        allowsMultiple: question.allowsMultiple,
+        sortOrder: question.sortOrder,
+      },
+      'Replace',
+    );
+
+    for (const option of question.options) {
+      await optionsClient.upsertEntity(
+        {
+          partitionKey: `ASSESS|${detail.assessmentId}`,
+          rowKey: `QUESTION|${question.questionId}|OPTION|${padSort(option.sortOrder)}|${option.optionId}`,
+          assessmentId: detail.assessmentId,
+          questionId: question.questionId,
+          optionId: option.optionId,
+          label: option.label,
+          sortOrder: option.sortOrder,
+          isCorrect: option.isCorrect,
+        },
+        'Replace',
+      );
+    }
+  }
+}
+
+export async function createLearnerAssessmentAnswers(
+  answers: LearnerAssessmentAnswer[],
+): Promise<void> {
+  const client = learnerAssessmentAnswersTable();
+  await ensureTable(client);
+  for (const answer of answers) {
+    await client.upsertEntity(
+      {
+        partitionKey: `ATTEMPT|${answer.attemptId}`,
+        rowKey: `QUESTION|${answer.questionId}`,
+        attemptId: answer.attemptId,
+        userId: answer.userId,
+        assessmentId: answer.assessmentId,
+        moduleId: answer.moduleId,
+        questionId: answer.questionId,
+        selectedOptionIdsJson: JSON.stringify(answer.selectedOptionIds),
+        isCorrect: answer.isCorrect,
+        answeredOn: answer.answeredOn,
+      },
+      'Replace',
+    );
+  }
+}
+
+export async function listLearnerAssessmentAnswers(
+  attemptId: string,
+): Promise<LearnerAssessmentAnswer[]> {
+  const client = learnerAssessmentAnswersTable();
+  await ensureTable(client);
+  const results: LearnerAssessmentAnswer[] = [];
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: { filter: `PartitionKey eq 'ATTEMPT|${attemptId}'` },
+  })) {
+    results.push(entityToLearnerAssessmentAnswer(entity));
+  }
+  return results;
+}
+
+export async function createAssessmentOutcome(outcome: AssessmentOutcome): Promise<void> {
+  const client = assessmentOutcomesTable();
+  await ensureTable(client);
+  await client.upsertEntity(
+    {
+      partitionKey: `OUTCOME|USER|${outcome.userId}|ASSESS|${outcome.assessmentId}`,
+      rowKey: `${outcome.submittedOn}|ATTEMPT|${outcome.attemptId}`,
+      attemptId: outcome.attemptId,
+      userId: outcome.userId,
+      assessmentId: outcome.assessmentId,
+      moduleId: outcome.moduleId,
+      totalQuestions: outcome.totalQuestions,
+      correctQuestions: outcome.correctQuestions,
+      scorePercent: outcome.scorePercent,
+      passed: outcome.passed,
+      submittedOn: outcome.submittedOn,
+    },
+    'Replace',
+  );
+}
+
+export async function getLatestAssessmentOutcome(
+  userId: string,
+  assessmentId: string,
+): Promise<AssessmentOutcome | null> {
+  const client = assessmentOutcomesTable();
+  await ensureTable(client);
+  let latest: AssessmentOutcome | null = null;
+  for await (const entity of client.listEntities<Record<string, unknown>>({
+    queryOptions: {
+      filter: `PartitionKey eq 'OUTCOME|USER|${userId}|ASSESS|${assessmentId}'`,
+    },
+  })) {
+    const outcome = entityToAssessmentOutcome(entity);
+    if (!latest || outcome.submittedOn > latest.submittedOn) {
+      latest = outcome;
+    }
+  }
+  return latest;
 }
 
 // ─── Enrolments (new model) ───────────────────────────────────────────────────

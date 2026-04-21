@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@lms/shared-ui';
 import MediaPickerModal from '../../components/MediaPickerModal';
 import PublishBar from '../../components/PublishBar';
+import ModuleAssessmentModal from '../../components/ModuleAssessmentModal';
 import type { MediaItem } from '../../api/media';
 import {
   loadEditorCatalogueItem,
@@ -57,6 +58,7 @@ export default function EditPathPage() {
   const [showCourseMediaPicker, setShowCourseMediaPicker] = useState(false);
   const [showModuleMediaPicker, setShowModuleMediaPicker] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
+  const [editingAssessmentModuleId, setEditingAssessmentModuleId] = useState<string | null>(null);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -286,6 +288,7 @@ export default function EditPathPage() {
   }
 
   const modalPathId = pathId ?? path.itemId;
+  const editingAssessmentModule = modules.find((module) => module.itemId === editingAssessmentModuleId) ?? null;
 
   return (
     <div className={styles.page}>
@@ -593,6 +596,14 @@ export default function EditPathPage() {
                         <button className={styles.removeBtn} onClick={() => handleRemoveUnit(mod.itemId, unit.itemId)} title="Remove unit">✕</button>
                       </div>
                     ))}
+                    <div className={styles.moduleActions}>
+                      <button
+                        className={styles.editAssessmentBtn}
+                        onClick={() => setEditingAssessmentModuleId(mod.itemId)}
+                      >
+                        Edit assessment
+                      </button>
+                    </div>
                     <button className={styles.addUnitBtn} onClick={() => handleAddUnit(mod.itemId)}>
                       + Add Unit
                     </button>
@@ -634,6 +645,16 @@ export default function EditPathPage() {
           </div>
         </div>
       )}
+
+      <ModuleAssessmentModal
+        isOpen={editingAssessmentModule !== null}
+        moduleId={editingAssessmentModule?.itemId ?? null}
+        moduleTitle={editingAssessmentModule?.title}
+        onClose={() => setEditingAssessmentModuleId(null)}
+        onSaved={() => {
+          void load();
+        }}
+      />
     </div>
   );
 }
