@@ -21,10 +21,8 @@ export default function HomePage() {
 
   const title = '365 Evergreen Learning | Online Training for Microsoft 365'
   const description = 'Self-paced, role-based Microsoft 365 courses. Develop the skills that move your team forward.'
-  const hasCmsContent = !loading && !error && blocks.length > 0
-  const heroIndex = hasCmsContent ? blocks.findIndex((block) => block.type === 'hero') : -1
-  const heroBlocks = heroIndex >= 0 ? [blocks[heroIndex]] : []
-  const contentBlocks = heroIndex >= 0 ? blocks.filter((_, index) => index !== heroIndex) : blocks
+  const contentBlocks = blocks.filter((block) => block.type !== 'hero')
+  const hasCmsContent = !loading && !error && contentBlocks.length > 0
 
   return (
     <div className={styles.page}>
@@ -41,13 +39,7 @@ export default function HomePage() {
         <meta name="twitter:description" content={description} />
       </Helmet>
 
-      {hasCmsContent && heroBlocks.length > 0 ? (
-        <Suspense fallback={<Hero />}>
-          <PublicBlockRenderer blocks={heroBlocks as Block[]} />
-        </Suspense>
-      ) : (
-        <Hero />
-      )}
+      <Hero />
 
       {loading && (
         <div className={styles.cmsContent}>
