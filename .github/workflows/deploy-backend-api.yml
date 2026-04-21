@@ -60,27 +60,9 @@ jobs:
       - name: Create deployment zip
         run: cd .deploy && zip -r ../deploy.zip .
 
-      - name: Extract publish profile credentials
-        id: creds
-        run: |
-          PROFILE='${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}'
-          USER=$(echo "$PROFILE" | grep -oP '(?<=userName=")[^"]+')
-          PASS=$(echo "$PROFILE" | grep -oP '(?<=userPWD=")[^"]+')
-          echo "::add-mask::$PASS"
-          echo "user=$USER" >> $GITHUB_OUTPUT
-          echo "pass=$PASS" >> $GITHUB_OUTPUT
-
-      - name: Deploy zip via Kudu REST API
-        run: |
-          HTTP_STATUS=$(curl -s -o /tmp/deploy_response.txt -w "%{http_code}" \
-            -X POST \
-            -u "${{ steps.creds.outputs.user }}:${{ steps.creds.outputs.pass }}" \
-            -H "Content-Type: application/zip" \
-            --data-binary @deploy.zip \
-            "https://${{ vars.AZURE_FUNCTIONS_APP_NAME }}.scm.azurewebsites.net/api/zipdeploy?isAsync=false")
-          echo "HTTP status: $HTTP_STATUS"
-          cat /tmp/deploy_response.txt || true
-          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
-            echo "Deployment failed with status $HTTP_STATUS"
-            exit 1
-          fi
+      - name: Deploy zip to Azure Functions
+        uses: Azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_FUNCTIONS_APP_NAME }}
+          package: deploy.zip
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
