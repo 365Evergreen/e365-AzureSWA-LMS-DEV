@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom'
+import {
+  PersonSettingsRegular,
+  PersonRegular,
+  DataTrendingRegular,
+  type FluentIcon,
+} from '@fluentui/react-icons'
 import styles from './AudienceCards.module.css'
 
 interface AudienceCard {
-  icon: string
+  Icon: FluentIcon
   title: string
   description: string
   href: string
@@ -10,19 +16,19 @@ interface AudienceCard {
 
 const CARDS: AudienceCard[] = [
   {
-    icon: '💼',
+    Icon: PersonSettingsRegular,
     title: 'IT Professionals',
     description: 'Deploy, configure, and secure Microsoft 365 across your organisation.',
     href: '/catalogue?role=it-pro',
   },
   {
-    icon: '👤',
+    Icon: PersonRegular,
     title: 'End Users',
     description: 'Get confident with Teams, SharePoint, and the everyday tools you use.',
     href: '/catalogue?role=end-user',
   },
   {
-    icon: '📊',
+    Icon: DataTrendingRegular,
     title: 'Managers & Leaders',
     description: 'Lead with data, communicate better, and drive team performance.',
     href: '/catalogue?role=manager',
@@ -40,8 +46,12 @@ export function AudienceCards() {
         <div className={styles.grid}>
           {CARDS.map((card) => (
             <Link key={card.title} to={card.href} className={styles.card}>
-              <div className={styles.icon}>{card.icon}</div>
-              <h3 className={styles.cardTitle}>{card.title}</h3>
+              <div className={styles.cardHeader}>
+                <div className={styles.icon}>
+                  <card.Icon className={styles.iconSvg} />
+                </div>
+                <h3 className={styles.cardTitle}>{card.title}</h3>
+              </div>
               <p className={styles.cardDescription}>{card.description}</p>
               <span className={styles.cardLink}>
                 View paths <span aria-hidden="true">&rarr;</span>
@@ -53,3 +63,4 @@ export function AudienceCards() {
     </section>
   )
 }
+
