@@ -22,8 +22,15 @@ async function getToken(): Promise<string | null> {
       return result.accessToken;
     } catch (err) {
       if (err instanceof InteractionRequiredAuthError) {
-        const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
-        return result.accessToken;
+        try {
+          const result = await msalInstance.acquireTokenPopup({ scopes: [scope], account });
+          return result.accessToken;
+        } catch {
+          // Popup also failed (e.g. AADSTS160021 — session no longer exists).
+          // Fall back to a full redirect so the user is prompted to sign in again.
+          await msalInstance.acquireTokenRedirect({ scopes: [scope], account });
+          return null;
+        }
       }
       throw err;
     }
