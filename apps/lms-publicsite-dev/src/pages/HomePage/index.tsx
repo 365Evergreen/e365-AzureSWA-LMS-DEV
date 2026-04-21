@@ -1,7 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { usePage } from '../../hooks/usePage'
-import { PublicBlockRenderer } from '../../components/PublicBlockRenderer'
-import type { Block } from '../../components/PublicBlockRenderer'
+import type { Block } from '@lms/shared-schemas'
 import { Hero } from './Hero/Hero'
 import { StatsBar } from '../../components/StatsBar'
 import { AudienceCards } from '../../components/AudienceCards'
@@ -10,6 +10,11 @@ import { SocialProof } from '../../components/SocialProof'
 import styles from './HomePage.module.css'
 
 const SITE_URL = import.meta.env.VITE_SITE_URL ?? 'https://lms.365evergreendev.com'
+const PublicBlockRenderer = lazy(() =>
+  import('../../components/PublicBlockRenderer').then((module) => ({
+    default: module.PublicBlockRenderer,
+  })),
+)
 
 export default function HomePage() {
   const { blocks, loading, error } = usePage('home')
@@ -35,12 +40,13 @@ export default function HomePage() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
       </Helmet>
-      {!loading && (
-        hasCmsContent && heroBlocks.length > 0 ? (
+
+      {hasCmsContent && heroBlocks.length > 0 ? (
+        <Suspense fallback={<Hero />}>
           <PublicBlockRenderer blocks={heroBlocks as Block[]} />
-        ) : (
-          <Hero />
-        )
+        </Suspense>
+      ) : (
+        <Hero />
       )}
 
       {loading && (
@@ -51,7 +57,9 @@ export default function HomePage() {
 
       {hasCmsContent && contentBlocks.length > 0 && (
         <div className={styles.cmsContent}>
-          <PublicBlockRenderer blocks={contentBlocks as Block[]} />
+          <Suspense fallback={<div className={styles.contentPlaceholder} aria-hidden />}>
+            <PublicBlockRenderer blocks={contentBlocks as Block[]} />
+          </Suspense>
         </div>
       )}
 

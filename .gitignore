@@ -45,3 +45,6 @@ lms.365evergreendev.com.har
 func-deploy.zip
 azure-lms-agent
 azure-lms-agent/
+apps/lms-publicsite-dev/docs
+lms.365evergreendev.com-*
+lms.365evergreendev.com-*.html
