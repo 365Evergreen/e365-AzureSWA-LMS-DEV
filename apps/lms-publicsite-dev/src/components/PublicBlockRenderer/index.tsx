@@ -398,7 +398,7 @@ function GridBlock({ payload }: BlockRendererProps<GridPayload>) {
   )
 }
 
-function ColumnsBlock({ payload }: { payload: Record<string, unknown> }) {
+function ColumnsBlock({ payload }: BlockRendererProps<ColumnsPayload>) {
   const normalized = normalizeColumnsPayload(payload)
   const gapMap: Record<string, string> = { sm: '0.75rem', md: '1rem', lg: '1.5rem' }
 
@@ -414,7 +414,7 @@ function ColumnsBlock({ payload }: { payload: Record<string, unknown> }) {
         >
           {column.blocks.length === 0
             ? <div className={styles.gridCellEmpty} />
-            : column.blocks.map((block) => renderBlock(block as Block))
+            : <PublicBlockRenderer blocks={column.blocks as Block[]} />
           }
         </div>
       ))}

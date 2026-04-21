@@ -337,6 +337,9 @@ async function addModuleHandler(
     tagsCsv: '',
     createdOn: now,
     updatedOn: now,
+    role: '',
+    learningPath: '',
+    isMandatory: false,
     authorId: claims.oid as string || '',
     tenantId: 'default',
   };
@@ -430,6 +433,9 @@ async function addUnitHandler(
     unitType: parsed.data.unitType,
     createdOn: now,
     updatedOn: now,
+    role: '',
+    learningPath: '',
+    isMandatory: false,
     authorId: claims.oid as string || '',
     tenantId: 'default',
   };
