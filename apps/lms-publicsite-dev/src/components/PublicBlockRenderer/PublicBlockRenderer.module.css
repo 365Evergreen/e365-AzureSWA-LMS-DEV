@@ -327,6 +327,20 @@ details[open] > .accordionSummary::before { transform: rotate(90deg); }
   min-height: 4rem;
 }
 
+.columnsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.columnsHeading {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
 .columns {
   display: grid;
   gap: var(--space-4);

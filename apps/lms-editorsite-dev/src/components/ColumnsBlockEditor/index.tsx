@@ -64,6 +64,19 @@ export default function ColumnsBlockEditor({ payload, onChange }: ColumnsBlockEd
   return (
     <div className={styles.editor}>
       <div className={styles.section}>
+        <label className={styles.field}>
+          <span className={styles.sectionLabel}>Section heading <span className={styles.optional}>(optional)</span></span>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="e.g. Why choose us"
+            value={normalized.heading ?? ''}
+            onChange={(event) => updatePayload({ heading: event.target.value || undefined })}
+          />
+        </label>
+      </div>
+
+      <div className={styles.section}>
         <p className={styles.sectionLabel}>Columns</p>
         <div className={styles.pillRow}>
           {COLUMN_OPTIONS.map((count) => (

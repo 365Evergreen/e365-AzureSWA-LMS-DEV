@@ -403,21 +403,26 @@ function ColumnsBlock({ payload }: BlockRendererProps<ColumnsPayload>) {
   const gapMap: Record<string, string> = { sm: '0.75rem', md: '1rem', lg: '1.5rem' }
 
   return (
-    <div
-      className={styles.columns}
-      style={{ gridTemplateColumns: `repeat(${normalized.columns}, minmax(0, 1fr))`, gap: gapMap[normalized.gap ?? 'md'] }}
-    >
-      {normalized.items.map((column) => (
-        <div
-          key={column.id}
-          className={`${styles.column} ${column.showOnMobile === false ? styles.columnHiddenMobile : ''}`}
-        >
-          {column.blocks.length === 0
-            ? <div className={styles.gridCellEmpty} />
-            : <PublicBlockRenderer blocks={column.blocks as Block[]} />
-          }
-        </div>
-      ))}
+    <div className={styles.columnsWrapper}>
+      {normalized.heading && (
+        <h2 className={styles.columnsHeading}>{normalized.heading}</h2>
+      )}
+      <div
+        className={styles.columns}
+        style={{ gridTemplateColumns: `repeat(${normalized.columns}, minmax(0, 1fr))`, gap: gapMap[normalized.gap ?? 'md'] }}
+      >
+        {normalized.items.map((column) => (
+          <div
+            key={column.id}
+            className={`${styles.column} ${column.showOnMobile === false ? styles.columnHiddenMobile : ''}`}
+          >
+            {column.blocks.length === 0
+              ? <div className={styles.gridCellEmpty} />
+              : <PublicBlockRenderer blocks={column.blocks as Block[]} />
+            }
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

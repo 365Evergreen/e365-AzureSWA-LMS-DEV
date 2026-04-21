@@ -166,6 +166,7 @@ export interface ColumnsItem {
 export interface ColumnsPayload {
   columns: 2 | 3 | 4;
   gap?: 'sm' | 'md' | 'lg';
+  heading?: string;
   items: ColumnsItem[];
 }
 
@@ -372,6 +373,7 @@ const ColumnsItemSchema = z.object({
 export const ColumnsPayloadSchema = z.object({
   columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(2 as 2),
   gap: z.enum(['sm', 'md', 'lg']).optional().default('md'),
+  heading: z.string().optional(),
   items: z.array(ColumnsItemSchema).default([]),
 });
 
