@@ -8,6 +8,8 @@ export function SiteFooter() {
           &copy; {new Date().getFullYear()} LMS Platform. All rights reserved.
         </p>
         <nav className={styles.links} aria-label="Footer navigation">
+          <a href="/catalogue" className={styles.link}>Courses</a>
+          <a href="/request-access" className={styles.link}>Request access</a>
           <a href="/blog" className={styles.link}>Blog</a>
           <a href="/kb" className={styles.link}>Knowledge Base</a>
         </nav>

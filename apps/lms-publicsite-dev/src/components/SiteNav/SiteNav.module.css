@@ -4,3 +4,20 @@
   color: var(--color-brand-primary);
   letter-spacing: -0.01em;
 }
+
+.ctaButton {
+  display: inline-block;
+  padding: var(--space-2) var(--space-5);
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.ctaButton:hover {
+  background-color: var(--color-brand-primary-hover);
+}

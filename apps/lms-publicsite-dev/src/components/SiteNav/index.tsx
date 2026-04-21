@@ -4,6 +4,7 @@ import styles from './SiteNav.module.css'
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home', href: '/' },
+  { label: 'Courses', href: '/catalogue' },
   { label: 'Blog', href: '/blog' },
   { label: 'Knowledge Base', href: '/kb' },
 ]
@@ -13,6 +14,11 @@ export function SiteNav() {
     <Nav
       logo={<span className={styles.logo}>LMS Platform</span>}
       items={NAV_ITEMS}
+      actions={
+        <a href="/request-access" className={styles.ctaButton}>
+          Request access
+        </a>
+      }
     />
   )
 }
