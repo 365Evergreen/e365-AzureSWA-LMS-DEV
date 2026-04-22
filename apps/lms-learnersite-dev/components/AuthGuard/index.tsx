@@ -46,6 +46,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
         throw new Error(`Failed to accept signup request (${response.status})`);
       }
 
+      // Force MSAL to fetch a fresh access token so any newly-assigned app roles
+      // (e.g. Learner) are included in the token for all subsequent API calls.
+      await msalInstance.acquireTokenSilent({
+        scopes: [API_SCOPE],
+        account: user.account,
+        forceRefresh: true,
+      });
+
       if (!cancelled) {
         syncedAccountIdRef.current = accountId;
       }
