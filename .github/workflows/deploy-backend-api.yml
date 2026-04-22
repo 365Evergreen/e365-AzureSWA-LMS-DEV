@@ -19,6 +19,7 @@ jobs:
     name: Build and deploy backend API
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -60,9 +61,40 @@ jobs:
       - name: Create deployment zip
         run: cd .deploy && zip -r ../deploy.zip .
 
-      - name: Deploy zip to Azure Functions
-        uses: Azure/webapps-deploy@v3
+      - name: Log in to Azure
+        uses: azure/login@v2
         with:
-          app-name: ${{ vars.AZURE_FUNCTIONS_APP_NAME }}
-          package: deploy.zip
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Upload zip to blob storage
+        run: |
+          BLOB_NAME="$(date -u +'%Y%m%d%H%M%S')-${GITHUB_SHA::8}.zip"
+          az storage blob upload \
+            --account-name ${{ vars.AZURE_STORAGE_ACCOUNT_NAME }} \
+            --container-name function-releases \
+            --name "$BLOB_NAME" \
+            --file deploy.zip \
+            --auth-mode login \
+            --overwrite
+          echo "BLOB_NAME=$BLOB_NAME" >> $GITHUB_ENV
+
+      - name: Generate SAS URL and update app setting
+        run: |
+          EXPIRY=$(date -u -d "+10 years" +"%Y-%m-%dT%H:%M:%SZ")
+          SAS_TOKEN=$(az storage blob generate-sas \
+            --account-name ${{ vars.AZURE_STORAGE_ACCOUNT_NAME }} \
+            --container-name function-releases \
+            --name "$BLOB_NAME" \
+            --permissions r \
+            --expiry "$EXPIRY" \
+            --auth-mode login \
+            --as-user \
+            --https-only \
+            -o tsv)
+          BLOB_URL="https://${{ vars.AZURE_STORAGE_ACCOUNT_NAME }}.blob.core.windows.net/function-releases/${BLOB_NAME}?${SAS_TOKEN}"
+          az functionapp config appsettings set \
+            --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+            --name ${{ vars.AZURE_FUNCTIONS_APP_NAME }} \
+            --settings "WEBSITE_RUN_FROM_PACKAGE=${BLOB_URL}" \
+            --output none
+          echo "Deployed: $BLOB_NAME"
